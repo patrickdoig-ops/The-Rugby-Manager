@@ -1,0 +1,39 @@
+{
+  "name": "the-rugby-manager",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:cap": "tsc && vite build --mode capacitor",
+    "cap:sync": "npm run build:cap && cap sync ios",
+    "cap:ios": "npm run build:cap && cap sync ios && cap open ios",
+    "preview": "vite preview",
+    "verify": "tsx scripts/checkDeterminism.ts && tsx scripts/checkSeasonDeterminism.ts && tsx scripts/checkSilentScores.ts && tsx scripts/checkSaveSchema.ts && tsx scripts/cssLint.ts",
+    "telemetry": "tsx scripts/telemetry.ts",
+    "audio:check": "tsx scripts/validateAudioManifest.ts",
+    "probe": "node scripts/pitchProbeDriver.mjs",
+    "export:phases": "tsx scripts/exportPhases.ts"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
+    "@sparticuz/chromium": "^149.0.0",
+    "puppeteer-core": "^25.1.0",
+    "tsx": "^4.22.4",
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "@capacitor-community/native-audio": "^6.0.0",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/filesystem": "^6.0.4",
+    "@capacitor/haptics": "^6.0.3",
+    "@capacitor/ios": "^6.2.1",
+    "@capacitor/share": "^6.0.4",
+    "@capacitor/splash-screen": "^6.0.4",
+    "@fontsource/anton": "^5.2.7",
+    "@fontsource/geist-sans": "^5.2.5",
+    "@fontsource/instrument-serif": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8"
+  }
+}

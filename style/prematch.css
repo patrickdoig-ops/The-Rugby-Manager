@@ -1,0 +1,793 @@
+/* ════════════════════════════════════════
+   PRE-MATCH FLOW — 4-step wizard (line-up / opp line-up / scouting / tactics)
+   Editorial dark canvas per docs/DESIGN.md §1. Single CTA per step.
+   ════════════════════════════════════════ */
+
+#pre-match {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  background-image: radial-gradient(
+    ellipse 200% 130% at 50% 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 80%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 50%,
+    var(--rm-bg) 88%
+  );
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+@keyframes pmExitDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(40px); opacity: 0; }
+}
+#pre-match.pm-exit {
+  animation: pmExitDown 600ms ease-out forwards;
+  pointer-events: none;
+}
+
+/* ── Header (back arrow + context + step dots, then mini versus) ── */
+#pm-header {
+  flex-shrink: 0;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#pm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#pm-context-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  text-align: center;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-step-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pm-step-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--rm-border-soft);
+  transition: background 0.15s;
+}
+
+.pm-step-dot--active {
+  background: var(--rm-pitch);
+  box-shadow: 0 0 6px color-mix(in oklch, var(--rm-pitch) 50%, transparent);
+}
+
+/* Mini versus banner — small crests + shortName codes inline. */
+#pm-versus-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pm-versus-code {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pm-versus-sep {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: var(--rm-fs-14);
+  color: var(--rm-text-dim);
+}
+
+/* Crest scales — small variant for the mini versus banner. */
+.pm-crest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.95);
+  font-family: var(--rm-font-display);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+}
+
+.pm-crest--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  font-size: var(--rm-fs-14);
+}
+
+/* ── Injury banner (only on 'mine' step) ── */
+#pm-injury-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: color-mix(in oklch, var(--rm-danger) 14%, var(--rm-surface));
+  border: 1px solid color-mix(in oklch, var(--rm-danger) 35%, transparent);
+  border-radius: 10px;
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text);
+  line-height: 1.4;
+}
+
+.pm-injury-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--rm-danger);
+  color: var(--rm-bg-deep);
+  border-radius: 4px;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pm-injury-text { flex: 1; }
+
+/* ── Squad mood banner ── */
+.pm-mood-banner {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-muted);
+  border: 1px solid var(--rm-border-soft);
+}
+
+.pm-mood-banner strong { color: var(--rm-text); }
+
+.pm-mood-banner--flying strong { color: oklch(0.74 0.18 144); }
+.pm-mood-banner--flat   strong { color: oklch(0.60 0.16 25); }
+
+/* ── Scrollable body ── */
+#pm-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Line-up steps ── */
+.pm-lineup-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+  padding: 18px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--rm-card-shadow);
+}
+
+.pm-lineup-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid var(--rm-hairline);
+  padding-bottom: 12px;
+}
+
+.pm-lineup-title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pm-lineup-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-36);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--rm-chalk);
+  margin: 0;
+}
+
+.pm-edit-squad {
+  background: transparent;
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 999px;
+  color: var(--rm-text-dim);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .pm-edit-squad:hover {
+    color: var(--rm-pitch);
+    border-color: color-mix(in oklch, var(--rm-pitch) 40%, var(--rm-border-soft));
+  }
+}
+
+.pm-lineup-team {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.pm-lineup-meta {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-faint);
+  text-transform: uppercase;
+}
+
+.pm-lineup-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-lineup-section-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rm-hairline);
+  margin-bottom: 6px;
+}
+
+.pm-lineup-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-bottom: 1px solid color-mix(in oklch, var(--rm-border-soft) 40%, transparent);
+}
+
+.pm-lineup-row:last-child {
+  border-bottom: none;
+}
+
+.pm-lineup-row-main {
+  display: grid;
+  grid-template-columns: 36px 1fr auto auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+}
+
+.pm-lineup-row--expandable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .pm-lineup-row--expandable:hover .pm-lineup-name {
+    color: var(--rm-chalk);
+  }
+}
+
+.pm-lineup-chevron {
+  align-self: center;
+  width: 26px;
+  height: 26px;
+}
+
+.pm-lineup-num {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.pm-lineup-name {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-15);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-lineup-pos {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+
+/* Out-of-position warning chip */
+.pm-oop-badge {
+  --oop-c: var(--rm-amber);
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--oop-c);
+  background: color-mix(in oklch, var(--oop-c) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--oop-c) 45%, transparent);
+}
+/* Severity: mild (amber) -> moderate (orange) -> severe (red) */
+.pm-oop-badge--mild     { --oop-c: var(--rm-amber); }
+.pm-oop-badge--moderate { --oop-c: var(--rm-amber-deep); }
+.pm-oop-badge--severe   { --oop-c: var(--rm-danger); }
+
+/* Captain badge — tappable "C" on the user's starting XV. Outlined when
+   un-nominated, filled amber for the current captain. */
+.pm-captain-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 50%;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--rm-text-muted);
+  background: transparent;
+  border: 1px solid color-mix(in oklch, var(--rm-text-muted) 45%, transparent);
+  transition: color 120ms, background 120ms, border-color 120ms;
+}
+.pm-captain-badge:hover {
+  color: var(--rm-amber);
+  border-color: color-mix(in oklch, var(--rm-amber) 55%, transparent);
+}
+.pm-captain-badge--active {
+  color: var(--rm-bg-deep);
+  background: var(--rm-amber);
+  border-color: var(--rm-amber);
+}
+
+/* Bench rows slightly dimmer than the starting XV. */
+.pm-lineup-section + .pm-lineup-section .pm-lineup-name { color: var(--rm-text); }
+
+/* ── Scouting step ── */
+.pm-scout-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pm-scout-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--rm-card-shadow);
+}
+
+.pm-scout-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pm-scout-section-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  margin: 0 0 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+.pm-scout-meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pm-scout-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--rm-bg);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+}
+
+.pm-scout-meta-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-faint);
+  text-transform: uppercase;
+}
+
+.pm-scout-meta-val {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  letter-spacing: 0.02em;
+  color: var(--rm-chalk);
+  line-height: 1.1;
+}
+
+.pm-scout-meta-sub {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.12em;
+  color: var(--rm-text-faint);
+  text-transform: uppercase;
+}
+
+.pm-form-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pm-form-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  color: var(--rm-chalk);
+}
+
+.pm-form-pin--w     { background: var(--rm-pitch); }
+.pm-form-pin--l     { background: var(--rm-danger); }
+.pm-form-pin--d     { background: var(--rm-amber); color: var(--rm-bg-deep); }
+.pm-form-pin--empty { background: var(--rm-surface-2); color: var(--rm-text-faint); }
+
+.pm-tactic-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pm-tactic-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--rm-border-soft);
+  background: var(--rm-bg);
+  border-radius: 999px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text);
+}
+
+.pm-scout-note {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-11);
+  font-style: italic;
+  color: var(--rm-text-faint);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+.pm-watch-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-watch-card {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--rm-bg);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+}
+
+.pm-watch-num {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-watch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pm-watch-name {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  font-weight: 700;
+  color: var(--rm-chalk);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-watch-pos {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+
+.pm-watch-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.pm-watch-stat-val {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-pitch);
+}
+
+.pm-watch-stat-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-faint);
+  text-transform: uppercase;
+}
+
+.pm-trend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pm-trend-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 10px;
+  background: var(--rm-bg);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.pm-trend-val {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  letter-spacing: 0.02em;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-trend-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--rm-text-faint);
+  text-transform: uppercase;
+}
+
+.pm-scout-sub {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-faint);
+  text-transform: uppercase;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.pm-empty {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-faint);
+  text-align: center;
+  padding: 14px 0;
+}
+
+/* ── Footer (single CTA per step) ── */
+#pm-footer {
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+}
+
+#pm-next,
+#pm-start {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #pm-next:hover, #pm-start:hover { background: var(--rm-cta-hover); }
+}
+#pm-next:active, #pm-start:active { background: var(--rm-cta-active); }
+
+/* ── Lineup row tap-to-expand panel ── */
+
+/* The shared grid-template-rows: 0fr collapse doesn't always clip
+   reliably on Safari iOS — override with display toggle for this panel. */
+.pm-lineup-expand {
+  display: none;
+}
+.pm-lineup-expand[data-expanded="true"] {
+  display: block;
+}
+
+.pm-lineup-expand .row-expand-inner {
+  padding: 10px 0 12px 48px; /* indent to align with name column (jersey 36px + gap 12px) */
+}
+
+.pm-expand-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-expand-bar-row {
+  display: grid;
+  grid-template-columns: 92px 1fr 42px;
+  align-items: center;
+  gap: 10px;
+}
+.pm-expand-bar-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+.pm-expand-bar {
+  height: 6px;
+  background: var(--rm-surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.pm-expand-bar-fill {
+  height: 100%;
+  background: var(--rm-pitch);
+  border-radius: inherit;
+}
+.pm-expand-bar-fill--rating {
+  background: linear-gradient(90deg, var(--rm-danger) 0%, var(--rm-amber) 50%, var(--rm-pitch) 100%);
+}
+.pm-expand-bar-val {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-chalk);
+  text-align: right;
+}
+
+.pm-expand-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+.pm-expand-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+}
+.pm-expand-stat span {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-16);
+  color: var(--rm-chalk);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.pm-expand-stat label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.pm-expand-injury {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-danger);
+  text-transform: uppercase;
+  margin-top: 2px;
+}

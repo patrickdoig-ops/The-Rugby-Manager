@@ -1,0 +1,30 @@
+// Where on the try line a try lands (laterally). The runner grounds the ball
+// at the position open play had swept to (state.ball.y), plus a style-scaled
+// jitter for the angle in to the line — wider styles scatter further toward
+// the corner. Returned y is what ConversionKickEvent reads through state.ball.y
+// when it grades the conversion's difficulty, so the same number drives both
+// the commentary band and the kicker's degree of difficulty. One outcome-stream
+// rng() draw, preserving the stream offset across this change.
+
+import type { MatchState } from '../../types/match';
+import { rng } from '../../utils/rng';
+import { clamp } from '../../utils/math';
+import { TRY_LOCATION_BANDS } from '../balance';
+
+export type TryLocationBand = 'central' | 'close' | 'wide' | 'corner';
+
+export function tryLandingY(state: MatchState, jitter: number): number {
+  // The scorer grounds the ball exactly where their forward carry took them,
+  // with no artificial curve in toward the posts. The jitter roll is still
+  // consumed so the outcome RNG stream offset is unchanged.
+  rng(-jitter, jitter);
+  return clamp(state.ball.y, 0, 100);
+}
+
+export function tryLocationBand(y: number): TryLocationBand {
+  const dx = Math.abs(y - 50);
+  if (dx <= TRY_LOCATION_BANDS.central) return 'central';
+  if (dx <= TRY_LOCATION_BANDS.close)   return 'close';
+  if (dx <= TRY_LOCATION_BANDS.wide)    return 'wide';
+  return 'corner';
+}

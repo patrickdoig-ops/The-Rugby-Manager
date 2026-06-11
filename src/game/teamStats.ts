@@ -1,0 +1,166 @@
+// Pure derivations from `GameState.league.results` + team overall ratings.
+// Used by the pre-match screen's stake row (form pins, H2H, spread). Every
+// helper takes the slice it needs as an argument — no module state, no
+// reading from the bus, no subscription to game events.
+
+import type { FixtureResult, GameState, TeamStanding } from '../types/gameState';
+import { HOME_ADVANTAGE } from '../engine/balance';
+import { resultLeaguePoints } from './leagueTable';
+
+export type FormResult = 'W' | 'L' | 'D';
+
+// Last `n` FixtureResult records for the team, sorted oldest-first.
+export function recentFixtureResults(teamId: string, results: FixtureResult[], n = 5): FixtureResult[] {
+  return results
+    .filter(r => r.homeId === teamId || r.awayId === teamId)
+    .sort((a, b) => b.round - a.round)
+    .slice(0, n)
+    .reverse();
+}
+
+// Last `n` results for the team, padded with null on the left so the most
+// recent result is always the rightmost slot. Slot semantics: index 0 is
+// the oldest visible game, index n-1 is the most recent.
+export function recentForm(teamId: string, results: FixtureResult[], n = 5): Array<FormResult | null> {
+  const recent = recentFixtureResults(teamId, results, n); // already oldest-first
+  const outcomes: FormResult[] = recent.map(r => {
+    const isHome = r.homeId === teamId;
+    const my = isHome ? r.homeScore : r.awayScore;
+    const op = isHome ? r.awayScore : r.homeScore;
+    if (my > op) return 'W';
+    if (my < op) return 'L';
+    return 'D';
+  });
+  const padding = Array<FormResult | null>(n - outcomes.length).fill(null);
+  return [...padding, ...outcomes];
+}
+
+// Rugby league points over the last n results: win=4, draw=2, loss=0,
+// +1 for ≥4 tries, +1 for losing by ≤7. Mirrors Gallagher Premiership scoring.
+export function formPoints(teamId: string, results: FixtureResult[], n = 5): number {
+  let pts = 0;
+  for (const r of recentFixtureResults(teamId, results, n)) {
+    const isHome = r.homeId === teamId;
+    const my = isHome ? r.homeScore : r.awayScore;
+    const op = isHome ? r.awayScore : r.homeScore;
+    pts += resultLeaguePoints(my - op, isHome ? r.homeTries : r.awayTries);
+  }
+  return pts;
+}
+
+export interface H2H {
+  wins:   number;
+  draws:  number;
+  losses: number;
+  meetings: number;
+}
+
+// Head-to-head record from team A's perspective across every meeting so far
+// in the season. `meetings === 0` means the two teams have not yet played.
+export function headToHead(teamA: string, teamB: string, results: FixtureResult[]): H2H {
+  let wins = 0, draws = 0, losses = 0;
+  for (const r of results) {
+    const aHome = r.homeId === teamA && r.awayId === teamB;
+    const aAway = r.homeId === teamB && r.awayId === teamA;
+    if (!aHome && !aAway) continue;
+    const my = aHome ? r.homeScore : r.awayScore;
+    const op = aHome ? r.awayScore : r.homeScore;
+    if (my > op) wins++;
+    else if (my < op) losses++;
+    else draws++;
+  }
+  return { wins, draws, losses, meetings: wins + draws + losses };
+}
+
+// Home advantage now lives in src/engine/balance/homeAdvantage.ts because
+// the match engine actually applies it to carries and breakdowns. The
+// pre-match SPREAD tile re-uses the same headline figure so prediction
+// and simulation stay aligned. Form weighting is still prediction-only
+// (no engine path consumes it) and stays here.
+export const HOME_ADVANTAGE_PTS = HOME_ADVANTAGE.spreadPts;
+export const FORM_PTS_WEIGHT    = 0.1;
+
+// "Live" form adjustment: the team's league points relative to the league
+// average, scaled by FORM_PTS_WEIGHT. Zero at season start (every team on
+// 0 pts → average is 0 → delta is 0); grows as standings spread out.
+// Returns 0 for a missing standing or an empty league — both states mean
+// "no signal yet".
+export function formAdjustment(
+  standing: TeamStanding | undefined,
+  standings: TeamStanding[],
+): number {
+  if (!standing || standings.length === 0) return 0;
+  const total = standings.reduce((sum, s) => sum + s.leaguePoints, 0);
+  const avg = total / standings.length;
+  return (standing.leaguePoints - avg) * FORM_PTS_WEIGHT;
+}
+
+// Match handicap from two effective ratings. The favoured team's spread is
+// negative; the underdog's is positive. At this league's scoring tempo 1
+// rating point ≈ 1 scoreboard point, so the difference doubles as the
+// expected margin. Symmetric: `home + away === 0`.
+//
+// Inputs are *effective* ratings — caller is expected to bake in
+// HOME_ADVANTAGE_PTS for the home side and formAdjustment for each team
+// before calling, keeping this helper a pure mathematical transform.
+export function matchSpread(homeRating: number, awayRating: number): { home: number; away: number } {
+  const home = Math.round(awayRating - homeRating);
+  return { home, away: -home };
+}
+
+// Convenience — home-advantage points to fold into the home side's
+// effective rating before calling matchSpread. Returns 0 when the
+// fixture is at a neutral venue (season final) so the spread
+// reflects pure rating + form with no home edge.
+export function homeAdvantagePts(neutralVenue = false): number {
+  return neutralVenue ? 0 : HOME_ADVANTAGE_PTS;
+}
+
+// Wage commitments that count against a club's salaryBudget.
+// Mirrors the league's cap accounting: non-marquee squad wages + any
+// pre-agreed poaches not yet activated (they're real future
+// liabilities even though the player is still at their old club) +
+// pending bids (reserved against the budget so the user can't make
+// more offers than they can pay for; refunded when bids resolve as
+// lost). Used by the budget pill on Contracts / Renewals /
+// TransferMarket and by the hard-constraint check in TransferCoordinator.
+export function clubBudgetUsage(state: GameState, clubId: string): number {
+  let usage = 0;
+  const club = state.career.clubs.find(c => c.id === clubId);
+  if (club) {
+    for (const rid of club.squad) {
+      const p = state.career.roster[rid];
+      if (!p || p.contract.isMarquee) continue;
+      usage += p.contract.annualWage;
+    }
+  }
+  for (const move of state.career.pendingMoves) {
+    if (move.toClubId === clubId) usage += move.annualWage;
+  }
+  // Pending bids reserve their wage against the budget. Retention bids
+  // (current-club bidding to keep their own player) are excluded —
+  // the player's existing wage is already counted via the squad loop
+  // above, and the retention's new wage replaces (rather than stacks
+  // on) that wage if the bid wins. Lost retention bids release no
+  // reservation; the existing wage commitment is unchanged.
+  if (state.career.market) {
+    for (const bid of state.career.market.bids) {
+      if (bid.status !== 'pending') continue;
+      if (bid.clubId !== clubId) continue;
+      if (bid.kind === 'retention') continue;
+      usage += bid.annualWage;
+    }
+  }
+  return usage;
+}
+
+// Wage commitments against a club's staff budget (separate from the player
+// salary cap). Only hired staff wages are counted here.
+export function staffBudgetUsage(state: import('../types/gameState').GameState, clubId: string): number {
+  if (!state.career.staff) return 0;
+  let usage = 0;
+  for (const m of state.career.staff) {
+    if (m.clubId === clubId) usage += m.annualWage;
+  }
+  return usage;
+}

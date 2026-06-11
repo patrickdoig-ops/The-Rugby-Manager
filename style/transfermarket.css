@@ -1,0 +1,606 @@
+/* Free-agent signing window — between renewals and rollover. */
+
+#transfer-market {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+.tm-cappill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: color-mix(in oklch, var(--rm-surface) 80%, transparent);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.tm-cappill--ok    { border-color: color-mix(in oklch, var(--rm-pitch) 40%, transparent); background: color-mix(in oklch, var(--rm-pitch) 12%, transparent); }
+.tm-cappill--tight { border-color: color-mix(in oklch, var(--rm-amber) 60%, transparent);  background: color-mix(in oklch, var(--rm-amber) 14%, transparent); }
+.tm-cappill--over  { border-color: color-mix(in oklch, var(--rm-danger) 60%, transparent); background: color-mix(in oklch, var(--rm-danger) 16%, transparent); }
+.tm-cappill--over span:first-child { color: var(--rm-danger); }
+.tm-cappill span:last-child { color: var(--rm-chalk); font-weight: 600; }
+
+#tm-headrow,
+.tm-row {
+  display: grid;
+  /* WAGE is fixed so NAME absorbs any leftover space. Two flex tracks
+   * (NAME 1.6fr + WAGE 1.2fr) gave WAGE huge empty whitespace and starved
+   * the player-name column at the same time. */
+  grid-template-columns: minmax(0, 1fr) 36px 36px 36px 100px 92px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+/* Narrow viewport: compress columns so the NAME cell stays wide enough
+ * to render the player's name. Without this the fixed POS/AGE/OVR/WAGE
+ * + ACTION widths leave ~8px for NAME on a 390px iPhone, truncating it
+ * to a single initial. */
+@media (max-width: 480px) {
+  #tm-headrow,
+  .tm-row {
+    grid-template-columns: minmax(0, 1fr) 24px 24px 24px 58px 86px;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .tm-len { display: none; } /* drop "× 1y" suffix — every offer is 1y in pre-season */
+  .tm-sign { padding: 6px 6px; font-size: var(--rm-fs-9); letter-spacing: 0.04em; }
+  .tm-name { font-size: var(--rm-fs-11); }
+  .tm-wage { font-size: var(--rm-fs-11); }
+}
+
+#tm-headrow {
+  border-bottom: 1px solid var(--rm-hairline);
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.tm-head {
+  background: transparent;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.tm-head--active { color: var(--rm-pitch); }
+.tm-head.tm-num, .tm-head.tm-wage { text-align: right; }
+.tm-head.tm-sign-col { text-align: center; }
+
+#tm-list,
+#tm-poach-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 16px;
+}
+
+.tm-row {
+  border-bottom: 1px solid var(--rm-hairline);
+  position: relative;
+}
+
+@keyframes tmRowFlash {
+  0%   { background: color-mix(in oklch, var(--rm-pitch) 22%, transparent); }
+  100% { background: transparent; }
+}
+.tm-row--just-signed {
+  animation: tmRowFlash 700ms ease-out;
+}
+@keyframes tmTagWipe {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.tm-row--just-signed::after {
+  content: var(--tm-tag-label, 'OFFER');
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  background: var(--tm-tag-color, var(--rm-pitch));
+  color: var(--rm-bg-deep);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 3px 7px;
+  border-radius: 4px;
+  animation: tmTagWipe 220ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+  pointer-events: none;
+  z-index: 5;
+}
+.tm-row--just-signed.tm-row--tag-fading::after {
+  opacity: 0;
+  transform: translateY(-50%) translateX(6px);
+  transition: opacity 280ms ease-out, transform 280ms ease-out;
+}
+
+.tm-name {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--rm-chalk);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tm-pos {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.06em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+
+.tm-num {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tm-num--rep {
+  color: var(--rm-text-muted);
+}
+
+.tm-wage {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tm-len {
+  color: var(--rm-text-dim);
+  font-weight: 400;
+  font-size: var(--rm-fs-10);
+}
+
+.tm-sign {
+  background: transparent;
+  border: 1px solid var(--rm-pitch);
+  color: var(--rm-pitch);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .tm-sign:hover {
+    background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  }
+}
+
+.tm-sign:active {
+  background: color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+}
+
+.tm-sign--warn {
+  border-color: var(--rm-danger);
+  color: var(--rm-danger);
+}
+
+@media (hover: hover) {
+  .tm-sign--warn:hover {
+    background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
+  }
+}
+
+/* In-window commitment: signed or pre-agreed. Button label flips to
+   "Undo Sign" / "Undo Pre-Agree" — clickable, distinct treatment so
+   the user can see what they've locked in. */
+.tm-sign--undo {
+  border-color: var(--rm-text-dim);
+  color: var(--rm-text-dim);
+  background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
+}
+
+@media (hover: hover) {
+  .tm-sign--undo:hover {
+    background: color-mix(in oklch, var(--rm-danger) 14%, transparent);
+    border-color: var(--rm-danger);
+    color: var(--rm-danger);
+  }
+}
+
+/* Mid-season FA rejection cooldown. Player declined the user's last
+   offer; row is locked behind a disabled chip until WEEK_ADVANCED
+   prunes the entry. Muted treatment to read as "unavailable" without
+   shouting like the warn variant. */
+.tm-sign--cooldown {
+  border-color: var(--rm-border-soft);
+  color: var(--rm-text-dim);
+  background: transparent;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.tm-row--committed .tm-name,
+.tm-row--committed .tm-pos,
+.tm-row--committed .tm-num,
+.tm-row--committed .tm-wage {
+  opacity: 0.78;
+}
+
+.tm-section-h {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.14em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+  margin: 12px 16px 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--rm-hairline);
+}
+
+/* Free Agents / Reg 7 segmented toggle. Mirrors the .lt-toggle__btn
+   pattern from leaguetable.css — tinted-accent active state, no solid
+   fill, hover gated behind @media (hover: hover) so mobile tap can't
+   leave it stuck-hovered. Count chip inherits the active text colour
+   for a single-source-of-truth read. */
+.tm-toggle {
+  display: flex;
+  gap: 3px;
+  margin: 8px 16px 10px;
+  padding: 3px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.tm-toggle__btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 11px 10px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tm-toggle__btn--active {
+  background: color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  color: var(--rm-pitch);
+}
+
+.tm-toggle__count {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--rm-text-dim) 18%, transparent);
+  color: inherit;
+}
+
+.tm-toggle__btn--active .tm-toggle__count {
+  background: color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+}
+
+@media (hover: hover) {
+  .tm-toggle__btn:hover {
+    color: var(--rm-text);
+  }
+  .tm-toggle__btn--active:hover {
+    color: var(--rm-pitch);
+  }
+}
+
+.tm-section-h--poach {
+  margin-top: 8px;
+}
+
+
+.tm-from {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  margin-left: 6px;
+}
+
+.tm-scout-banner {
+  margin: 10px 16px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--rm-hairline);
+  border-radius: 6px;
+  background: var(--rm-surface-2);
+  color: var(--rm-text-dim);
+  font-size: var(--rm-fs-11);
+  line-height: 1.4;
+}
+
+#tm-footer {
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  display: flex;
+  gap: 8px;
+}
+
+#tm-finish {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+  color: var(--rm-chalk);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#tm-finish:active { background: var(--rm-surface-3); }
+
+@media (hover: hover) {
+  #tm-finish:hover { background: var(--rm-surface-3); }
+}
+
+#tm-submit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 4px 20px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#tm-submit:active:not(:disabled) { background: var(--rm-cta-active); }
+
+@media (hover: hover) {
+  #tm-submit:hover:not(:disabled) { background: var(--rm-cta-hover); }
+}
+
+#tm-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+#tm-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #tm-continue:hover  { background: var(--rm-cta-hover); }
+}
+#tm-continue:active { background: var(--rm-cta-active); }
+
+/* ── Tap-to-expand wrapping ── */
+
+.tm-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.tm-row-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px 36px 36px 100px 92px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+}
+@media (max-width: 480px) {
+  .tm-row-main {
+    grid-template-columns: minmax(0, 1fr) 24px 24px 24px 58px 86px;
+    gap: 6px;
+  }
+}
+@media (hover: hover) {
+  .tm-row:hover .tm-row-main {
+    background: color-mix(in oklch, var(--rm-surface-2) 50%, transparent);
+  }
+}
+
+.tm-expand .row-expand-inner {
+  background: color-mix(in oklch, var(--rm-bg-deep) 35%, var(--rm-surface));
+}
+.tm-expand-body {
+  padding: 12px 16px 14px;
+  border-top: 1px dashed color-mix(in oklch, var(--rm-border-soft) 60%, transparent);
+}
+.tm-expand-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 520px) {
+  .tm-expand-grid { grid-template-columns: 1fr 1fr; }
+  .tm-expand-bars { grid-column: 1 / -1; }
+}
+.tm-expand-block { display: flex; flex-direction: column; gap: 6px; }
+.tm-expand-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--rm-text-dim);
+}
+.tm-appeal-rows { display: flex; flex-direction: column; gap: 4px; }
+.tm-appeal-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+}
+.tm-appeal-row > span { color: var(--rm-text-dim); }
+.tm-appeal-row > strong { color: var(--rm-chalk); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.tm-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.tm-mini-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+}
+.tm-mini-stat span {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  color: var(--rm-chalk);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.tm-mini-stat label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.tm-expand-injury {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-danger);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.tm-bar-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+}
+.tm-bar-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--rm-text-dim);
+}
+.tm-bar {
+  height: 6px;
+  background: var(--rm-surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.tm-bar-fill {
+  height: 100%;
+  background: var(--rm-pitch);
+  border-radius: inherit;
+}
+.tm-bar-fill--rep {
+  background: linear-gradient(90deg, var(--rm-text-dim) 0%, var(--rm-amber) 50%, var(--rm-pitch) 100%);
+}
+.tm-bar-val {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-chalk);
+  text-align: right;
+}
+
+#transfer-market .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
+}

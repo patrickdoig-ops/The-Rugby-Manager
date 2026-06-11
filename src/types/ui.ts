@@ -1,0 +1,107 @@
+import type { PenaltyChoice, PenaltyContext, KickOffStrategy, PossessionSide } from './engine';
+import type { GameEvent, MatchState, DisplaySnapshot } from './match';
+// TalkArgs: resolved modifier values passed from UI to engine
+export interface TalkArgs {
+  attack: number;
+  defend: number;
+  decayMinutes: number;
+  singleOut?: { playerId: number; bonus: number };
+}
+import type { Team, TeamTactics } from './team';
+import type { Player } from './player';
+import type { FixtureResult, GameState } from './gameState';
+
+// Forced-substitution choice fired by the engine when a red_20 player's
+// 20 minutes expire or when a player picks up an in-match injury. `reason`
+// drives the modal copy (different framing for sin-bin expiry vs injury);
+// the picking flow is otherwise identical. onChoice receives the picked
+// bench squad number, or null if the manager has nobody to bring on.
+export interface ForcedSubChoicePayload {
+  type: 'forced_substitution_choice';
+  side: PossessionSide;
+  sentOff: Player;
+  bench: Player[];
+  reason: 'red_20' | 'injury';
+  onChoice: (benchSquadNum: number | null) => void;
+}
+
+export type ModalPayload =
+  | { type: 'penalty_choice'; context: PenaltyContext; onChoice: (choice: PenaltyChoice) => void; }
+  | { type: 'kickoff_choice'; onChoice: (choice: KickOffStrategy) => void; }
+  | ForcedSubChoicePayload
+  | {
+      type: 'team_talk_choice';
+      side: PossessionSide;
+      state: MatchState;
+      averageMorale: number;
+      onChoice: (args: TalkArgs) => void;
+    };
+
+export interface AppEvents {
+  'engine:initialized': Record<string, never>;
+  'engine:event':       { event: GameEvent };
+  'engine:stateChange': { state: MatchState; display: DisplaySnapshot };
+  'engine:paused':      { payload: ModalPayload };
+  'engine:resumed':     Record<string, never>;
+  // Engine paused itself outside a modal hand-off — currently fires at the
+  // half-time whistle so the user has to press Play to start the second
+  // half. Distinct from `engine:paused` (modal) because the user keeps
+  // agency over Play / Pause / Tactics / Subs while paused.
+  'engine:autoPaused':  { reason: 'half_time' };
+  'engine:finished':    { state: MatchState };
+  // Fired when MatchCoordinator.tick() throws in live mode. Carries the
+  // error message + stack + key state context so the UI can render a
+  // copy-pastable crash overlay. Silent fixtures don't catch — the
+  // determinism / telemetry harnesses surface failures to CI directly.
+  'engine:error':       {
+    message: string;
+    stack: string;
+    seed: number;
+    clockMinute: number;
+    phase: string;
+    possession: 'home' | 'away';
+    score: { home: number; away: number };
+    lastEvents: string[];
+  };
+  'ui:halfTimeTalkDone': Record<string, never>;
+  'ui:speedChange':     { delayMs: number };
+  // Fired by SimController when the live-match bottom-panel view switches
+  // (dashboard / pitch / commentary / stats / players). StatsPanel uses it
+  // to flush a render it deferred while its pane was hidden.
+  'ui:viewChange':      { view: 'dashboard' | 'pitch' | 'commentary' | 'stats' | 'players' };
+  'ui:matchPaused':     Record<string, never>;
+  'ui:tacticsChange':   { teamId: string; tactics: TeamTactics };
+  'ui:openTacticsModal':{ tactics: TeamTactics; teamId: 'home' | 'away'; oppTactics: TeamTactics };
+  'ui:tacticsClosed':   Record<string, never>;
+  'ui:openSubsModal':   { team: Team; offFieldPlayerIds: number[] };
+  'ui:substitution':    { benchSquadNum: number; fieldSquadNum: number };
+  'ui:positionSwap':    { squadNum1: number; squadNum2: number };
+  'ui:subsClosed':      Record<string, never>;
+  'game:initialized':     { state: GameState };
+  'game:fixtureRecorded': { result: FixtureResult; state: GameState };
+  'game:weekAdvanced':    { state: GameState };
+  'game:seasonComplete':  { state: GameState };
+  // Playoffs (season final + semi-finals). bracketSeeded fires once
+  // after the final regular-season fixture; playoffsUpdated fires per
+  // PLAYOFF_RESULT_RECORDED so the bracket screen + hub re-render.
+  'game:bracketSeeded':   { state: GameState };
+  'game:playoffsUpdated': { state: GameState };
+  // Fires after GameCoordinator.applyTrainingBlock completes — every roster
+  // player's condition + (possibly) baseStats have been mutated, so any
+  // screen that surfaces those fields should re-render. Lives on the
+  // game:* track because training is a season-scope mutation, not an
+  // in-match one.
+  'game:trainingApplied': { state: GameState };
+  // Fires after GameCoordinator.rollSeason() completes — new fixtures,
+  // zeroed standings, and a new seasonLabel are now live in state. Screens
+  // that cache their last render (HubScreen, FixtureListScreen) must
+  // subscribe to this to avoid showing the previous season's data.
+  'game:seasonRolledOver': { state: GameState };
+  // Fired when an autosave write fails (storage full / disabled / private
+  // mode). main.ts debounces this into a single non-blocking warning toast
+  // so the player knows to export their career — autosave is otherwise
+  // silent on success. The explicit Save action in SavesScreen surfaces its
+  // own failure separately.
+  'save:failed': { reason: 'quota' };
+}
+

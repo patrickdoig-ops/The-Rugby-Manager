@@ -1,0 +1,263 @@
+/* Playoff bracket screen — two SFs side by side, the final centred below. */
+
+#playoff-bracket {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#pb-bracket {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1 1 auto;
+}
+
+#pb-semifinals {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  #pb-semifinals { grid-template-columns: 1fr 1fr; }
+}
+
+#pb-final-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+#pb-final-wrap .pb-card { width: 100%; max-width: 480px; }
+
+.pb-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pb-card--final {
+  border: 1px solid color-mix(in oklch, var(--rm-amber) 35%, var(--rm-border-soft));
+  background: linear-gradient(180deg, var(--rm-surface) 0%, color-mix(in oklch, var(--rm-surface) 92%, var(--rm-amber) 8%) 100%);
+}
+
+.pb-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pb-card-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+}
+
+.pb-date {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  color: var(--rm-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.pb-card-body {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.pb-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pb-side--left  { justify-content: flex-start; }
+.pb-side--right { justify-content: flex-end; }
+
+.pb-side--won .pb-name { font-weight: 700; color: var(--rm-text); }
+.pb-side:not(.pb-side--won):not(.pb-side--me) .pb-name { color: var(--rm-text-muted); }
+
+.pb-side--me {
+  /* Player's club emphasis. Subtle so it doesn't compete with the
+   * winner highlight; combines naturally when player won. */
+}
+
+.pb-side--me .pb-name { color: var(--rm-text); }
+
+.pb-name {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-15);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pb-seed {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rm-surface-2);
+  color: var(--rm-text-muted);
+  border: 1px solid var(--rm-border-soft);
+  flex: 0 0 auto;
+}
+
+.pb-crest {
+  width: var(--crest-sm-size);
+  height: var(--crest-sm-size);
+  border-radius: var(--crest-sm-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  flex: 0 0 auto;
+  font-size: var(--rm-fs-14);
+}
+
+.pb-crest--tbc {
+  background: var(--rm-surface-2);
+  color: var(--rm-text-muted);
+  border: 1px dashed var(--rm-border-soft);
+}
+
+.pb-score {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-18);
+  font-weight: 700;
+  color: var(--rm-text);
+  min-width: 26px;
+  text-align: center;
+}
+
+.pb-score--empty { color: var(--rm-text-muted); font-weight: 400; }
+
+.pb-vs {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-muted);
+}
+
+.pb-card-footer {
+  text-align: center;
+}
+
+.pb-venue {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.05em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+
+.pb-champion {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color) 45%, black);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pb-champion--me {
+  box-shadow: 0 0 24px color-mix(in srgb, var(--team-color) 35%, transparent);
+}
+
+.pb-champion-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+}
+
+.pb-champion .pb-crest {
+  width: var(--crest-xl-size);
+  height: var(--crest-xl-size);
+  border-radius: var(--crest-xl-radius);
+  font-size: var(--rm-fs-36);
+}
+
+.pb-champion-name {
+  font-family: var(--rm-font-display);
+  font-size: clamp(calc(22px * var(--rm-text-scale)), 5vw, calc(32px * var(--rm-text-scale)));
+  color: var(--rm-text);
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+#pb-footer {
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  margin-top: auto;
+}
+
+#pb-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #pb-continue:hover { background: var(--rm-cta-hover); }
+}
+#pb-continue:active { background: var(--rm-cta-active); }
+
+#pb-empty {
+  text-align: center;
+  color: var(--rm-text-muted);
+  padding: 40px 16px;
+}

@@ -1,0 +1,259 @@
+/* Renewals screen — end-of-season window between EndOfSeason and Rollover. */
+
+#renewals {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+.rn-cappill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: color-mix(in oklch, var(--rm-surface) 80%, transparent);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.rn-cappill--ok {
+  border-color: color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+  background: color-mix(in oklch, var(--rm-pitch) 12%, transparent);
+}
+
+.rn-cappill--tight {
+  border-color: color-mix(in oklch, var(--rm-amber) 60%, transparent);
+  background: color-mix(in oklch, var(--rm-amber) 14%, transparent);
+}
+
+.rn-cappill--over {
+  border-color: color-mix(in oklch, var(--rm-danger) 60%, transparent);
+  background: color-mix(in oklch, var(--rm-danger) 16%, transparent);
+}
+
+.rn-cappill--over span:first-child {
+  color: var(--rm-danger);
+}
+
+.rn-cappill span:last-child {
+  color: var(--rm-chalk);
+  font-weight: 600;
+}
+
+#rn-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rn-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    "main toggle"
+    "terms toggle"
+    "terms toggle";
+  gap: 6px 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+}
+
+.rn-row--release {
+  background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
+  opacity: 0.78;
+  border-color: color-mix(in oklch, var(--rm-danger) 25%, var(--rm-border-soft));
+}
+
+.rn-row-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rn-name {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-chalk);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rn-marquee {
+  color: var(--rm-amber);
+  vertical-align: -1px;
+}
+
+.rn-meta {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+
+.rn-row-terms {
+  grid-area: terms;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-variant-numeric: tabular-nums;
+}
+
+.rn-current {
+  color: var(--rm-text-dim);
+}
+
+.rn-arrow {
+  color: var(--rm-text-dim);
+}
+
+.rn-new {
+  color: var(--rm-chalk);
+  font-weight: 600;
+}
+
+/* Wage figure doubles as the negotiate affordance on renew rows. */
+.rn-adjust {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--rm-border);
+  -webkit-tap-highlight-color: transparent;
+}
+.rn-adjust:disabled { border-bottom-color: transparent; cursor: default; opacity: 0.6; }
+.rn-adjust--set { border-bottom-style: solid; border-bottom-color: var(--rm-pitch); }
+
+.rn-len {
+  color: var(--rm-text-dim);
+  font-weight: 400;
+  font-size: var(--rm-fs-10);
+}
+
+.rn-delta-up   { color: var(--rm-danger); }   /* wage increased */
+.rn-delta-down { color: var(--rm-pitch); }    /* wage decreased */
+
+.rn-toggle {
+  grid-area: toggle;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: center;
+}
+
+.rn-pick {
+  background: transparent;
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-dim);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 72px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .rn-pick:hover {
+    border-color: var(--rm-text);
+    color: var(--rm-chalk);
+  }
+}
+
+.rn-pick--active[data-decision="renew"] {
+  border-color: var(--rm-pitch);
+  background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  color: var(--rm-pitch);
+}
+
+.rn-pick--active[data-decision="release"] {
+  border-color: var(--rm-danger);
+  background: color-mix(in oklch, var(--rm-danger) 18%, transparent);
+  color: var(--rm-danger);
+}
+
+
+#rn-footer {
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+}
+
+#rn-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #rn-continue:hover  { background: var(--rm-cta-hover); }
+}
+#rn-continue:active { background: var(--rm-cta-active); }
+
+#renewals .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
+}

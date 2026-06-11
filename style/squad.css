@@ -1,0 +1,598 @@
+/* ════════════════════════════════════════
+   SQUAD MANAGEMENT — reach from Hub
+   ════════════════════════════════════════ */
+
+#squad-management {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  /* --team-color is set inline by JS */
+}
+
+/* ─── Position filter chips ─── */
+#sq-filter-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--rm-surface);
+  border-bottom: 1px solid var(--rm-border-soft);
+}
+
+#sq-filter-bar::-webkit-scrollbar { display: none; }
+
+.sq-chip {
+  flex-shrink: 0;
+  padding: 5px 11px;
+  border-radius: 20px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-muted);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.sq-chip.active {
+  background: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, var(--rm-surface-2));
+  border-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 60%, transparent);
+  color: var(--rm-chalk);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 18%, transparent);
+}
+
+/* ─── Player list ─── */
+#sq-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rm-surface-3) transparent;
+}
+
+/* Section separator */
+.sq-section-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 16px 5px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--rm-bg);
+  border-bottom: 1px solid color-mix(in oklch, var(--rm-border-soft) 50%, transparent);
+}
+
+.sq-section-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  white-space: nowrap;
+}
+
+.sq-section-line {
+  grid-column: 2;
+  height: 1px;
+  background: var(--rm-border-soft);
+}
+
+.sq-section-count {
+  grid-column: 3;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  color: var(--rm-text-faint);
+}
+
+/* Column headers right-anchored over the OVR / AVR badge stack. Widths
+   match .sq-ovr (34px) and .sq-avr (40px); the wrapper carries its own
+   10px gap so the two labels line up over the two row badges below
+   regardless of the section-head's 8px outer gap. */
+.sq-col-headers {
+  grid-column: 4;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Spacer matching the 32px expand button + 10px gap so the OVR/CON/AVR
+   labels sit directly above their respective data badges. */
+.sq-col-headers::after {
+  content: '';
+  display: block;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.sq-col-header {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rm-text-faint);
+  text-align: center;
+}
+
+.sq-col-header--ovr { width: 34px; }
+.sq-col-header--con { width: 40px; }
+.sq-col-header--avr { width: 40px; }
+
+/* Player row */
+.sq-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid color-mix(in oklch, var(--rm-border-soft) 45%, transparent);
+  transition: background 0.15s, outline-color 0.15s;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.sq-player:active { background: var(--rm-surface); }
+
+.sq-player--selected {
+  background: color-mix(in oklch, var(--rm-pitch) 10%, transparent) !important;
+  outline-color: var(--rm-pitch);
+}
+
+.sq-player--swap-target {
+  background: color-mix(in oklch, var(--rm-pitch) 4%, transparent);
+}
+
+@media (hover: hover) {
+  .sq-player--swap-target:hover {
+    background: color-mix(in oklch, var(--rm-pitch) 8%, transparent);
+    outline-color: var(--rm-pitch);
+  }
+}
+
+/* Jersey badge */
+.sq-jersey {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-14);
+  transition: background 0.18s, box-shadow 0.18s, color 0.18s;
+}
+
+.sq-jersey--starter {
+  background: linear-gradient(155deg,
+    var(--team-color, var(--rm-pitch)) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 52%, black) 100%);
+  color: var(--rm-chalk);
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 40%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.sq-jersey--bench {
+  background: var(--rm-surface-2);
+  color: var(--rm-text-muted);
+  border: 1px solid var(--rm-border-soft);
+  font-size: var(--rm-fs-13);
+}
+
+.sq-jersey--squad {
+  background: transparent;
+  color: var(--rm-text-faint);
+  border: 1px dashed color-mix(in oklch, var(--rm-border-soft) 70%, transparent);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.04em;
+}
+
+/* Name + position */
+.sq-player-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sq-player-name {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.sq-player-name--starter { color: var(--rm-chalk); }
+.sq-player-name--bench   { color: var(--rm-text); }
+.sq-player-name--squad   { color: var(--rm-text-dim); }
+
+.sq-player-pos {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.sq-player-pos--starter { color: var(--rm-text-muted); }
+.sq-player-pos--bench   { color: var(--rm-text-dim); }
+.sq-player-pos--squad   { color: var(--rm-text-faint); }
+
+/* Out-of-position warning chip */
+.sq-oop-badge {
+  --oop-c: var(--rm-amber);
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--oop-c);
+  background: color-mix(in oklch, var(--oop-c) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--oop-c) 45%, transparent);
+}
+/* Severity: mild (amber) -> moderate (orange) -> severe (red) */
+.sq-oop-badge--mild     { --oop-c: var(--rm-amber); }
+.sq-oop-badge--moderate { --oop-c: var(--rm-amber-deep); }
+.sq-oop-badge--severe   { --oop-c: var(--rm-danger); }
+
+/* OVR badge */
+.sq-ovr {
+  flex-shrink: 0;
+  width: var(--badge-sm-size);
+  height: var(--badge-sm-size);
+  border-radius: var(--badge-sm-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.sq-ovr.ovr-elite {
+  color: var(--rm-stat-4);
+  background: color-mix(in oklch, var(--rm-stat-4) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-4) 28%, transparent);
+  text-shadow: 0 0 10px color-mix(in oklch, var(--rm-stat-4) 50%, transparent);
+}
+.sq-ovr.ovr-good {
+  color: var(--rm-stat-3);
+  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
+}
+.sq-ovr.ovr-avg {
+  color: var(--blue);
+  background: color-mix(in oklch, var(--blue) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--blue) 25%, transparent);
+}
+.sq-ovr.ovr-poor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
+.sq-ovr.ovr-veryPoor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
+
+/* AVR badge — mirrors .sq-ovr at 40px so a "8.4" / "10.0" reads cleanly.
+   Colour bands key off the match-rating scale (mirrors the rating-* bands
+   on .mr-player-rating in matchresult.css); --unrated swaps in an em dash
+   for roster members who haven't played a match this season. */
+.sq-avr {
+  flex-shrink: 0;
+  width: 40px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+
+.sq-avr.rating-high {
+  color: var(--rm-stat-4);
+  background: color-mix(in oklch, var(--rm-stat-4) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-4) 28%, transparent);
+  text-shadow: 0 0 10px color-mix(in oklch, var(--rm-stat-4) 50%, transparent);
+}
+.sq-avr.rating-mid {
+  color: var(--rm-stat-3);
+  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
+}
+.sq-avr.rating-low {
+  color: var(--blue);
+  background: color-mix(in oklch, var(--blue) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--blue) 25%, transparent);
+}
+.sq-avr.rating-poor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
+
+.sq-avr--unrated {
+  color: var(--rm-text-faint);
+  background: transparent;
+}
+
+/* CON badge — current player condition as a percentage. Same dimensions
+   as .sq-avr so the OVR / CON / AVR triplet reads as a tidy row of
+   badges. Colour bands key off the freshness scale rather than the
+   rating scale: high condition shows the rm-pitch green, mid amber,
+   low rm-danger. */
+.sq-con {
+  flex-shrink: 0;
+  width: 40px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+
+.sq-con.con-elite {
+  color: var(--rm-stat-4);
+  background: color-mix(in oklch, var(--rm-stat-4) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-4) 28%, transparent);
+}
+.sq-con.con-good {
+  color: var(--rm-stat-3);
+  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
+}
+.sq-con.con-avg {
+  color: var(--blue);
+  background: color-mix(in oklch, var(--blue) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--blue) 25%, transparent);
+}
+.sq-con.con-poor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
+.sq-con.con-veryPoor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 25%, transparent);
+}
+
+.sq-con--unrated {
+  color: var(--rm-text-faint);
+  background: transparent;
+}
+
+/* MOR pill — fixed-width colour-coded bar, no text. Width matches CON/AVR
+   so the right-hand column group aligns regardless of morale state. Colour
+   alone carries the meaning; the label is preserved in the title attribute. */
+.sq-col-header--mor { width: 28px; }
+
+.sq-mor {
+  flex-shrink: 0;
+  width: 28px;
+  height: 8px;
+  border-radius: 50px;
+}
+
+.sq-mor--unrated {
+  background: color-mix(in oklch, var(--rm-text-faint) 20%, transparent);
+}
+
+.mor-happy     { background: var(--rm-stat-4); }
+.mor-ok        { background: var(--rm-stat-3); }
+.mor-unsettled { background: var(--blue); }
+.mor-unhappy   { background: var(--rm-stat-1); }
+
+/* ─── Footer ─── */
+#sq-footer {
+  flex-shrink: 0;
+  padding: 10px 16px var(--safe-bottom);
+  border-top: 1px solid var(--rm-border-soft);
+  background: var(--rm-surface);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.sq-footer-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.sq-footer-btns button {
+  padding: 14px 8px;
+  border-radius: 14px;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#sq-auto-pick {
+  flex: 1;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-chalk);
+}
+
+#sq-auto-pick:active { background: var(--rm-surface-3); }
+
+@media (hover: hover) {
+  #sq-auto-pick:hover { background: var(--rm-surface-3); }
+}
+
+#sq-save {
+  flex: 2;
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 20px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+#sq-save:active:not(:disabled) { background: var(--rm-cta-active); transform: scale(0.98); }
+
+@media (hover: hover) {
+  #sq-save:hover:not(:disabled) { background: var(--rm-cta-hover); }
+}
+
+#sq-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ─── Per-row 12-stat expand ─── */
+
+/* Allow the expand panel to wrap below the main row content. Keeps the
+   row flex layout intact when collapsed and pushes the panel to its
+   own line when expanded. */
+.sq-player {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+.sq-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s, background 0.15s, transform var(--rm-duration-row) var(--rm-ease-out);
+}
+.sq-expand-btn[aria-expanded="true"] {
+  color: var(--rm-chalk);
+  transform: rotate(180deg);
+}
+@media (hover: hover) {
+  .sq-expand-btn:hover { color: var(--rm-chalk); background: var(--rm-surface-2); }
+}
+
+.sq-expand {
+  flex-basis: 100%;
+}
+.sq-expand-body {
+  padding: 8px 0 6px;
+}
+
+.sq-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding-left: 40px; /* jersey width (30px) + row gap (10px) */
+}
+
+.sq-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sq-stat-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-faint);
+}
+
+.sq-stat-val {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+}
+
+/* Inherit colour from the ovrClass on the parent .sq-stat-cell */
+.sq-stat-cell.ovr-elite   .sq-stat-val { color: var(--rm-stat-4); }
+.sq-stat-cell.ovr-good    .sq-stat-val { color: var(--rm-stat-3); }
+.sq-stat-cell.ovr-avg     .sq-stat-val { color: var(--blue); }
+.sq-stat-cell.ovr-poor    .sq-stat-val { color: var(--rm-stat-1); }
+.sq-stat-cell.ovr-veryPoor .sq-stat-val { color: var(--rm-stat-1); }
+
+/* Discard-confirm sheet styling moved to style/discardConfirm.css (.rm-discard-*),
+   shared by Squad / Training / Tactics via the discardConfirm() helper. */
+
+#squad-management .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
+}
+
+/* ─── Squad status chip (in player-pos line) ─── */
+
+.sq-status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: 5px;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+
+.sq-status-chip--star       { color: var(--rm-amber);      background: color-mix(in oklch, var(--rm-amber) 12%, var(--rm-surface-2));      border-color: color-mix(in oklch, var(--rm-amber) 25%, transparent); }
+.sq-status-chip--firstTeam  { color: var(--rm-pitch);      background: color-mix(in oklch, var(--rm-pitch) 12%, var(--rm-surface-2));      border-color: color-mix(in oklch, var(--rm-pitch) 25%, transparent); }
+.sq-status-chip--impact     { color: var(--rm-stat-5);     background: color-mix(in oklch, var(--rm-stat-5) 12%, var(--rm-surface-2));     border-color: color-mix(in oklch, var(--rm-stat-5) 25%, transparent); }
+.sq-status-chip--squad      { color: var(--rm-text-muted); background: color-mix(in oklch, var(--rm-text-muted) 10%, var(--rm-surface-2)); border-color: color-mix(in oklch, var(--rm-text-muted) 15%, transparent); }
+.sq-status-chip--backup     { color: var(--rm-text-dim);   background: color-mix(in oklch, var(--rm-text-dim) 10%, var(--rm-surface-2));   border-color: color-mix(in oklch, var(--rm-text-dim) 15%, transparent); }

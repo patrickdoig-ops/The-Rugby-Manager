@@ -1,0 +1,545 @@
+/* ════════════════════════════════════════
+   HOME SCREEN — atmospheric pitch splash
+   ════════════════════════════════════════ */
+
+#home-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: var(--rm-bg-deep);
+  background-image:
+    /* Stadium floodlight: intense green bloom from top */
+    radial-gradient(ellipse 100% 52% at 50% -4%,
+      color-mix(in oklch, var(--rm-pitch-deep) 70%, transparent) 0%,
+      color-mix(in oklch, var(--rm-pitch-deep) 28%, transparent) 40%,
+      transparent 72%),
+    /* Secondary soft pitch glow mid-screen */
+    radial-gradient(ellipse 80% 40% at 50% 42%,
+      color-mix(in oklch, var(--rm-pitch-deep) 18%, transparent) 0%,
+      transparent 65%),
+    /* Heavy bottom vignette — anchors CTAs */
+    radial-gradient(ellipse 130% 55% at 50% 108%,
+      oklch(0.07 0.008 150) 0%,
+      transparent 65%),
+    /* Subtle pitch-stripe texture */
+    repeating-linear-gradient(180deg,
+      color-mix(in oklch, var(--rm-pitch-deep) 20%, var(--rm-bg-deep)) 0,
+      color-mix(in oklch, var(--rm-pitch-deep) 20%, var(--rm-bg-deep)) 32px,
+      color-mix(in oklch, var(--rm-pitch-deep) 28%, var(--rm-bg-deep)) 32px,
+      color-mix(in oklch, var(--rm-pitch-deep) 28%, var(--rm-bg-deep)) 64px);
+  display: flex;
+  flex-direction: column;
+  padding-top: max(52px, env(safe-area-inset-top));
+  color: var(--rm-text);
+  overflow: hidden;
+}
+
+/* Decorative pitch-line SVG overlay */
+.home-pitch-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+/* ─── Top chrome ─── */
+#home-chrome {
+  position: relative;
+  z-index: 2;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+#home-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 10px var(--rm-pitch), 0 0 20px color-mix(in oklch, var(--rm-pitch) 40%, transparent); }
+  50%       { opacity: 0.45; box-shadow: 0 0 6px  var(--rm-pitch); }
+}
+
+.home-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  box-shadow: 0 0 10px var(--rm-pitch), 0 0 20px color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+.home-status-text {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.22em;
+  color: var(--rm-chalk);
+  text-transform: uppercase;
+}
+
+/* Top-right chrome cluster (version badge + settings gear) */
+#home-chrome-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Small version badge in top-right chrome */
+.home-chrome-version {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.12em;
+  color: var(--rm-chalk);
+  background: color-mix(in oklch, var(--rm-surface) 55%, transparent);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 20px;
+  padding: 3px 9px;
+}
+
+#settings-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklch, var(--rm-surface) 60%, transparent);
+  border: 1px solid var(--rm-border);
+  border-radius: 10px;
+  color: var(--rm-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+@media (hover: hover) {
+  #settings-btn:hover { background: var(--rm-surface-2); color: var(--rm-chalk); }
+}
+#settings-btn:active { background: var(--rm-surface-3); }
+
+/* ─── Hero block ─── */
+#home-hero {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+.home-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.22em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+}
+.home-eyebrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in oklch, var(--rm-pitch) 40%, transparent), transparent);
+  margin-left: 10px;
+}
+
+/* Three-line title: THE (small/dim) / RUGBY (green glow) / MANAGER (chalk) */
+#home-title {
+  font-family: var(--rm-font-display);
+  font-weight: 400;
+  line-height: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  margin: 0 0 18px;
+}
+
+.title-pre {
+  display: block;
+  font-size: clamp(calc(36px * var(--rm-text-scale)), 10vw, calc(46px * var(--rm-text-scale)));
+  color: var(--rm-chalk);
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+
+.title-top {
+  display: block;
+  font-size: clamp(calc(80px * var(--rm-text-scale)), 22vw, calc(100px * var(--rm-text-scale)));
+  color: var(--rm-pitch);
+  text-shadow:
+    0 0 60px color-mix(in oklch, var(--rm-pitch) 55%, transparent),
+    0 4px 24px rgba(0,0,0,0.5);
+}
+
+.title-bottom {
+  display: block;
+  font-size: clamp(calc(80px * var(--rm-text-scale)), 22vw, calc(100px * var(--rm-text-scale)));
+  color: var(--rm-chalk);
+  text-shadow:
+    0 2px 32px rgba(0,0,0,0.7),
+    0 0 80px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+}
+
+/* Broadcast strip — season context pill row */
+.home-broadcast-strip {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+  border-top: 1px solid color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  border-bottom: 1px solid color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  padding: 7px 0;
+}
+
+.broadcast-item {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  padding: 0 12px;
+  white-space: nowrap;
+}
+.broadcast-item:first-child { padding-left: 0; }
+.broadcast-item--hi { color: var(--rm-pitch); }
+
+.broadcast-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--rm-pitch) 45%, transparent);
+  flex-shrink: 0;
+}
+
+#home-tagline {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: var(--rm-fs-20);
+  line-height: 1.3;
+  color: var(--rm-chalk);
+  max-width: 320px;
+  margin: 0;
+}
+
+#home-tagline strong {
+  color: var(--rm-chalk);
+  font-style: normal;
+}
+
+/* ─── Save context card — tappable CTA for Continue Career ─── */
+#home-save-card {
+  position: relative;
+  z-index: 2;
+  margin: 20px 24px 0;
+  background: color-mix(in oklch, var(--rm-surface) 65%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--rm-border-soft);
+  border-left: 3px solid var(--rm-pitch);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 4px 16px rgba(0,0,0,0.4);
+  /* button reset */
+  width: calc(100% - 48px);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #home-save-card:hover {
+    border-color: color-mix(in oklch, var(--rm-pitch) 55%, var(--rm-border-soft));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      0 4px 24px rgba(0,0,0,0.5),
+      0 0 0 1px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  }
+}
+
+#home-save-card:active {
+  transform: scale(0.99);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 2px 8px rgba(0,0,0,0.4);
+}
+
+.save-card-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rm-pitch);
+}
+
+.save-card-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.save-card-team {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-26);
+  color: var(--rm-chalk);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.save-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.save-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.save-stat-val {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  color: var(--rm-chalk);
+  line-height: 1;
+}
+
+.save-stat-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+
+.save-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid var(--rm-hairline);
+  padding-top: 9px;
+}
+
+.save-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+
+.save-card-season { color: var(--rm-text-muted); }
+
+.save-progress-track {
+  height: 3px;
+  background: color-mix(in oklch, var(--rm-surface-2) 80%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.save-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rm-pitch-deep), var(--rm-pitch));
+  border-radius: 2px;
+}
+
+/* ─── CTAs ─── */
+#home-cta {
+  position: relative;
+  z-index: 2;
+  padding: 16px 24px max(40px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Primary: Start New Game — large pulsing green */
+#start-game-btn {
+  width: 100%;
+  height: 64px;
+  background: color-mix(in oklch, var(--rm-pitch-deep) 90%, oklch(0.30 0.12 144));
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 55%, transparent);
+  border-radius: 14px;
+  color: var(--rm-chalk);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    0 8px 32px color-mix(in oklch, var(--rm-pitch) 30%, transparent),
+    0 4px 12px rgba(0,0,0,0.5);
+  transition: transform 0.12s;
+}
+
+#start-game-btn:active { transform: scale(0.985); }
+
+@media (hover: hover) {
+  #start-game-btn:hover {
+    background: color-mix(in oklch, var(--rm-pitch) 80%, oklch(0.30 0.12 144));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.22),
+      0 8px 44px color-mix(in oklch, var(--rm-pitch) 55%, transparent),
+      0 4px 16px rgba(0,0,0,0.45);
+  }
+}
+
+#start-game-btn .btn-label {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-28);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#start-game-btn svg { flex-shrink: 0; }
+
+/* Secondary: Manage Saves — dark solid button matching the primary CTA font */
+#home-saves-btn {
+  width: 100%;
+  height: 56px;
+  background: color-mix(in oklch, var(--rm-pitch-deep) 60%, oklch(0.08 0.01 144));
+  border: 1px solid color-mix(in oklch, var(--rm-chalk) 14%, transparent);
+  border-radius: 14px;
+  color: var(--rm-chalk);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 0 22px;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s, border-color 0.12s;
+}
+#home-saves-btn:active { transform: scale(0.985); }
+@media (hover: hover) {
+  #home-saves-btn:hover {
+    background: color-mix(in oklch, var(--rm-pitch-deep) 75%, oklch(0.12 0.02 144));
+    border-color: color-mix(in oklch, var(--rm-chalk) 28%, transparent);
+  }
+}
+
+/* ─── Overwrite confirmation modal ─── */
+.home-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.home-confirm {
+  width: 100%;
+  max-width: 480px;
+  padding: 0 24px max(40px, env(safe-area-inset-bottom, 0px));
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 20px 20px 0 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 -8px 48px rgba(0, 0, 0, 0.65);
+  animation: homeConfirmSheetUp 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes homeConfirmSheetUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.home-confirm-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--rm-border);
+  border-radius: 2px;
+  margin: 16px auto 20px;
+}
+
+.home-confirm-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-28);
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.home-confirm-body {
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-muted);
+  margin-bottom: 22px;
+  line-height: 1.55;
+}
+
+.home-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.home-confirm-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.home-confirm-cancel {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  color: var(--rm-text-muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.home-confirm-cancel:active {
+  background: var(--rm-surface-2);
+  transform: scale(0.98);
+}
+
+.home-confirm-proceed {
+  background: var(--rm-cta);
+  border: none;
+  color: var(--rm-on-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 4px 16px color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+}
+
+.home-confirm-proceed:active { 
+  background: var(--rm-cta-active); 
+  transform: scale(0.98);
+}

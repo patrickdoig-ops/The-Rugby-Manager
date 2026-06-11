@@ -1,0 +1,307 @@
+#team-selector {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: var(--rm-bg);
+  background-image: radial-gradient(
+    ellipse 160% 55% at 50% -5%,
+    color-mix(in oklch, var(--rm-pitch) 10%, transparent) 0%,
+    transparent 62%
+  );
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+/* Pitch-line atmosphere — covers the first viewport height only */
+.ts-pitch-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+}
+
+#ts-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 60px 16px 56px;
+  width: 100%;
+  max-width: 480px;
+}
+
+#ts-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ts-season-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 9px;
+  background: color-mix(in oklch, var(--rm-pitch) 10%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+  border-radius: 999px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rm-pitch);
+}
+
+.ts-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  box-shadow: 0 0 7px var(--rm-pitch);
+  flex-shrink: 0;
+  animation: tsDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes tsDotPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+#ts-title {
+  font-family: var(--rm-font-display);
+  font-size: clamp(calc(36px * var(--rm-text-scale)), 11vw, calc(46px * var(--rm-text-scale)));
+  color: var(--rm-chalk);
+  line-height: 0.92;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+#ts-subtitle {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: var(--rm-fs-15);
+  color: var(--rm-text-muted);
+  margin: 0;
+}
+
+#ts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+@media (min-width: 700px) {
+  #ts-inner { max-width: 700px; }
+  #ts-grid  { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1000px) {
+  #ts-inner { max-width: 1000px; }
+  #ts-grid  { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* ── Team cards — full-bleed colour ── */
+.ts-card {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 4px 16px rgba(0, 0, 0, 0.55),
+    0 10px 36px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: tsCardIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.14s, box-shadow 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Studio-light shine at top */
+.ts-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28) 50%, transparent);
+  z-index: 2;
+}
+
+/* Radial highlight from top-centre */
+.ts-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 55% at 50% 0%, rgba(255, 255, 255, 0.09) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Staggered floodlight entrance */
+.ts-card:nth-child(1)  { animation-delay: 0.04s; }
+.ts-card:nth-child(2)  { animation-delay: 0.09s; }
+.ts-card:nth-child(3)  { animation-delay: 0.14s; }
+.ts-card:nth-child(4)  { animation-delay: 0.19s; }
+.ts-card:nth-child(5)  { animation-delay: 0.24s; }
+.ts-card:nth-child(6)  { animation-delay: 0.29s; }
+.ts-card:nth-child(7)  { animation-delay: 0.34s; }
+.ts-card:nth-child(8)  { animation-delay: 0.39s; }
+.ts-card:nth-child(9)  { animation-delay: 0.44s; }
+.ts-card:nth-child(10) { animation-delay: 0.49s; }
+
+@keyframes tsCardIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); filter: brightness(0.55); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    filter: brightness(1);    }
+}
+
+@media (hover: hover) {
+  .ts-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1.5px rgba(255, 255, 255, 0.24),
+      0 8px 28px rgba(0, 0, 0, 0.55),
+      0 16px 52px rgba(0, 0, 0, 0.35),
+      0 0 36px color-mix(in oklch, var(--tc, var(--rm-pitch)) 28%, transparent);
+  }
+}
+
+.ts-card:active { transform: scale(0.97); transition-duration: 0.06s; }
+
+/* Full-height select button */
+.ts-card-select {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 164px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Name area — team colour bleeds here */
+.ts-name-area {
+  flex: 1;
+  padding: 28px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  position: relative;
+  z-index: 2;
+}
+
+.ts-team-primary {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-26);
+  color: rgba(255, 255, 255, 0.96);
+  line-height: 0.92;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts-team-secondary {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1;
+}
+
+/* Footer — semi-transparent dark overlay */
+.ts-card-footer {
+  background: rgba(0, 0, 0, 0.42);
+  padding: 9px 14px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* Tier pills */
+.ts-tier {
+  font-family: var(--rm-font-mono);
+  font-size: calc(7.5px * var(--rm-text-scale));
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+/* Gold — Title Favourites */
+.ts-tier--elite      { color: var(--rm-stat-3);           background: color-mix(in oklch, var(--rm-stat-3)           14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-3)           32%, transparent); }
+/* Silver — Title Contenders */
+.ts-tier--contender  { color: oklch(0.76 0.02 250);       background: color-mix(in oklch, oklch(0.76 0.02 250)       14%, transparent); border-color: color-mix(in oklch, oklch(0.76 0.02 250)       32%, transparent); }
+/* Bronze — Playoff Push */
+.ts-tier--strong     { color: oklch(0.64 0.10 50);        background: color-mix(in oklch, oklch(0.64 0.10 50)        14%, transparent); border-color: color-mix(in oklch, oklch(0.64 0.10 50)        32%, transparent); }
+/* Cyan — Rebuilding / Developing */
+.ts-tier--rebuild    { color: var(--rm-stat-5);           background: color-mix(in oklch, var(--rm-stat-5)           14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5)           32%, transparent); }
+.ts-tier--developing { color: var(--rm-stat-5);           background: color-mix(in oklch, var(--rm-stat-5)           14%, transparent); border-color: color-mix(in oklch, var(--rm-stat-5)           32%, transparent); }
+
+/* Info button — top-right of each card */
+.ts-card-info {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ts-card-info svg { pointer-events: none; }
+
+.ts-card-info:active {
+  background: rgba(0, 0, 0, 0.60);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+@media (hover: hover) {
+  .ts-card-info:hover {
+    background: rgba(0, 0, 0, 0.60);
+    color: rgba(255, 255, 255, 0.92);
+  }
+}

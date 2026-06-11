@@ -1,0 +1,640 @@
+/* ════════════════════════════════════════
+   TACTICS MENU — modal body + pre-match inline
+   Compact label-only pills in rows of three, grouped into Attacking /
+   Defensive sections. Per-category (i) button opens an info modal
+   with all 3 options + descriptions (the descriptions used to live
+   inline under every pill — moved to the modal so the screen scans
+   at a glance).
+   Built from main.css design tokens. No hardcoded colours except the
+   primary CTA green on the Resume button.
+   ════════════════════════════════════════ */
+
+.tactics-menu-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  color: var(--rm-text);
+  padding-bottom: 20px;
+}
+
+.tactics-main-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  border-bottom: 1px solid var(--rm-hairline);
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tactics-categories-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── My Team / Opposition toggle ── */
+.tactics-team-toggle {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+}
+
+.tactics-team-toggle__btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 11px 10px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tactics-team-toggle__btn--active {
+  background: color-mix(in oklch, var(--rm-pitch) 22%, transparent);
+  color: var(--rm-pitch);
+}
+
+@media (hover: hover) {
+  .tactics-team-toggle__btn:hover { color: var(--rm-text); }
+  .tactics-team-toggle__btn--active:hover { color: var(--rm-pitch); }
+}
+
+/* ── Attacking / Defensive section ── */
+.tactics-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tactics-section-title {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rm-chalk);
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+/* ── Category (one tactical dimension) ── */
+.tactics-category {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tactics-cat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tactics-cat-title {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-dim);
+  margin: 0;
+}
+
+.tactics-info-btn {
+  background: transparent;
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 999px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rm-text-muted);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+@media (hover: hover) {
+  .tactics-info-btn:hover {
+    color: var(--rm-pitch);
+    border-color: color-mix(in oklch, var(--rm-pitch) 40%, var(--rm-border-soft));
+  }
+}
+
+/* ── 3-button row per category ── */
+.tactics-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tactics-opt-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  padding: 11px 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s;
+  color: var(--rm-text);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 42px;
+  min-width: 0;
+}
+
+@media (hover: hover) {
+  .tactics-opt-btn:hover {
+    background: var(--rm-surface-2);
+    border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
+  }
+}
+
+.tactics-opt-btn.active {
+  background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface));
+  border-color: var(--rm-pitch);
+  box-shadow: 0 0 14px color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+}
+
+/* ── Read-only (opposition) pill states ── */
+.tactics-opt-btn.readonly {
+  pointer-events: none;
+  cursor: default;
+}
+
+.tactics-opt-btn.active.readonly {
+  background: color-mix(in oklch, var(--rm-amber) 18%, var(--rm-surface));
+  border-color: var(--rm-amber);
+  box-shadow: 0 0 14px color-mix(in oklch, var(--rm-amber) 18%, transparent);
+}
+
+.tactics-opt-btn.active.readonly .tactics-opt-label {
+  color: var(--rm-amber);
+}
+
+@keyframes tacticsCommitPulse {
+  0%   { box-shadow: 0 0 14px color-mix(in oklch, var(--rm-pitch) 18%, transparent); }
+  50%  { box-shadow: 0 0 28px color-mix(in oklch, var(--rm-pitch) 50%, transparent); }
+  100% { box-shadow: 0 0 14px color-mix(in oklch, var(--rm-pitch) 18%, transparent); }
+}
+
+.tactics-opt-btn.active.committing {
+  animation: tacticsCommitPulse 220ms ease-out;
+}
+
+.tactics-opt-label {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--rm-chalk);
+  display: block;
+  width: 100%;
+}
+
+.tactics-opt-btn.active .tactics-opt-label {
+  color: var(--rm-pitch);
+}
+
+@media (max-width: 360px) {
+  /* Tight viewports: scale labels down before truncating. */
+  .tactics-opt-btn   { padding: 10px 6px; }
+  .tactics-opt-label { font-size: var(--rm-fs-11); }
+}
+
+/* ── Per-category info modal ── */
+.tactics-info-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.tactics-info-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.tactics-info-card {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.tactics-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+.tactics-info-title {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  margin: 0;
+}
+
+.tactics-info-close {
+  background: transparent;
+  border: none;
+  color: var(--rm-text-muted);
+  font-size: var(--rm-fs-22);
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .tactics-info-close:hover { color: var(--rm-text); }
+}
+
+.tactics-info-options {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.tactics-info-opt {
+  display: flex;
+  flex-direction: column;
+  background: var(--rm-bg);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--rm-text);
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .tactics-info-opt:hover {
+    border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft));
+  }
+}
+
+.tactics-info-opt.active {
+  background: color-mix(in oklch, var(--rm-pitch) 14%, var(--rm-bg));
+  border-color: var(--rm-pitch);
+}
+
+.tactics-info-opt.readonly {
+  pointer-events: none;
+  cursor: default;
+}
+
+.tactics-info-opt.active.readonly {
+  background: color-mix(in oklch, var(--rm-amber) 14%, var(--rm-bg));
+  border-color: var(--rm-amber);
+}
+
+.tactics-info-opt.active.readonly .tactics-info-opt-label,
+.tactics-info-opt.active.readonly .tactics-info-opt-tick {
+  color: var(--rm-amber);
+}
+
+.tactics-info-opt-label {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--rm-chalk);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tactics-info-opt.active .tactics-info-opt-label {
+  color: var(--rm-pitch);
+}
+
+.tactics-info-opt-tick {
+  color: var(--rm-pitch);
+  display: inline-flex;
+  align-items: center;
+}
+
+.tactics-info-opt-desc {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  font-weight: 400;
+  color: var(--rm-text-muted);
+  line-height: 1.4;
+}
+
+.tactics-info-done {
+  background: var(--rm-surface-2);
+  border: none;
+  border-top: 1px solid var(--rm-hairline);
+  color: var(--rm-text);
+  padding: 14px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .tactics-info-done:hover { background: var(--rm-surface-3); }
+}
+
+/* ── Modal footer + Resume CTA (in-match modal only) ── */
+.tactics-modal-footer {
+  margin-top: 12px;
+  border-top: 1px solid var(--rm-hairline);
+  padding-top: 16px;
+}
+
+/* Resume CTA — matches the in-flow primary CTA from DESIGN.md §8.1. */
+.tactics-resume-btn {
+  width: 100%;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .tactics-resume-btn:hover  { background: var(--rm-cta-hover); }
+}
+.tactics-resume-btn:active { background: var(--rm-cta-active); }
+
+/* ════════════════════════════════════════
+   ADVANCED TACTICS — zone-tab editor
+   .advt-tabs/.advt-tab switch zones; each .advk-card holds the kicking +
+   with-ball + defending controls. Sliders are restyled range inputs.
+   ════════════════════════════════════════ */
+.advk-card {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.advk-card-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.advk-zone-label {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  color: var(--rm-chalk);
+  letter-spacing: 0.01em;
+}
+.advk-zone-desc { font-size: var(--rm-fs-11); color: var(--rm-text-dim); }
+
+.advk-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.advk-row-title {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--rm-pitch);
+}
+.advk-freq-val { font-size: var(--rm-fs-12); color: var(--rm-text); }
+.advk-freq-val strong { color: var(--rm-pitch); }
+
+.advk-types { display: flex; flex-direction: column; gap: 8px; }
+.advk-types .advk-row-title { margin-bottom: 2px; }
+.advk-type-row { display: grid; grid-template-columns: 78px 1fr 40px; align-items: center; gap: 10px; }
+.advk-type-label { font-size: var(--rm-fs-12); color: var(--rm-text); }
+.advk-type-pct { font-size: var(--rm-fs-12); font-weight: 600; color: var(--rm-chalk); text-align: right; }
+
+/* Range sliders on the pitch accent. */
+.advk-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rm-surface-2);
+  outline: none;
+  cursor: pointer;
+}
+.advk-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  border: 2px solid var(--rm-bg);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+}
+.advk-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rm-pitch);
+  border: 2px solid var(--rm-bg);
+}
+
+/* ── Advanced tactics: zone groups, per-zone sliders, discrete picks ── */
+.advt-group { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--rm-hairline); }
+.advt-group-title {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--rm-pitch);
+}
+.advt-slider-row { display: flex; flex-direction: column; gap: 5px; }
+.advt-slider-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.advt-slider-label { font-size: var(--rm-fs-12); color: var(--rm-text); font-weight: 600; }
+.advt-slider-ends { font-size: var(--rm-fs-11); color: var(--rm-text-dim); }
+.advt-pick-row { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 10px; }
+.advt-pick-label { font-size: var(--rm-fs-12); color: var(--rm-text); }
+.advt-pick-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.advt-pick-btn {
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 8px;
+  padding: 7px 4px;
+  cursor: pointer;
+  color: var(--rm-text);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-11);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+@media (hover: hover) { .advt-pick-btn:hover { border-color: color-mix(in oklch, var(--rm-pitch) 35%, var(--rm-border-soft)); } }
+.advt-pick-btn.active {
+  background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface));
+  border-color: var(--rm-pitch);
+  color: var(--rm-pitch);
+}
+
+/* ── Tactics header + advanced on/off toggle (top-right) ── */
+.tactics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--rm-hairline);
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+}
+.tactics-header .tactics-main-title { border: none; padding: 0; margin: 0; }
+.tactics-header-spacer { flex: 0 0 auto; }
+.adv-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+.adv-switch-label { font-size: var(--rm-fs-12); font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--rm-text-dim); transition: color 0.15s; }
+.adv-switch:has(.adv-switch-input:checked) .adv-switch-label { color: var(--rm-pitch); }
+.adv-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
+.adv-switch-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.adv-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rm-text-dim);
+  transition: transform 0.15s, background 0.15s;
+}
+.adv-switch-input:checked + .adv-switch-track { background: color-mix(in oklch, var(--rm-pitch) 30%, var(--rm-surface)); border-color: var(--rm-pitch); }
+.adv-switch-input:checked + .adv-switch-track .adv-switch-thumb { transform: translateX(18px); background: var(--rm-pitch); }
+.adv-switch-input:focus-visible + .adv-switch-track { box-shadow: 0 0 0 2px color-mix(in oklch, var(--rm-pitch) 40%, transparent); }
+
+/* ── Advanced editor: zone tab bar ── */
+.advt-wrapper { display: flex; flex-direction: column; gap: 14px; }
+.advt-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  padding: 4px;
+}
+.advt-tab {
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 3px;
+  cursor: pointer;
+  color: var(--rm-text-dim);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-11);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+@media (hover: hover) { .advt-tab:hover { color: var(--rm-chalk); } }
+.advt-tab.active { background: color-mix(in oklch, var(--rm-pitch) 18%, var(--rm-surface)); color: var(--rm-pitch); }
+.advt-tab-content { display: flex; flex-direction: column; }
+
+/* ── Standalone Tactics screen (Hub tile) ── */
+#tactics {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+}
+.tactics-screen-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+}
+/* Fixed full-width Save CTA pinned to the bottom of the Tactics screen. */
+#tactics-footer {
+  flex: 0 0 auto;
+  padding: 12px 16px max(16px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--rm-hairline);
+  background: var(--rm-bg);
+}
+/* Club-colour header, matching the Hub sub-menus (Contracts, Club). */
+#tactics .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
+}

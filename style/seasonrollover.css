@@ -1,0 +1,693 @@
+/* End-of-Season + Rollover screens. Paired post-final-round flow. */
+
+#end-of-season,
+#rollover {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+#end-of-season::before,
+#rollover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 100% 50% at 50% 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 14%, transparent) 0%,
+    transparent 65%
+  );
+  z-index: 0;
+}
+
+#end-of-season > *,
+#rollover > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== EndOfSeasonScreen ===== */
+
+#eos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 0 16px;
+}
+
+@media (min-width: 640px) {
+  #eos-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.eos-section {
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  padding: 14px;
+  flex: 0 0 auto;
+}
+
+#end-of-season > .eos-section {
+  margin: 14px 16px 0;
+}
+
+.eos-h3 {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
+#end-of-season > div:nth-of-type(2) {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.eos-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eos-row {
+  display: grid;
+  grid-template-columns: 24px 28px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.eos-row--me {
+  background: color-mix(in oklch, var(--rm-pitch) 18%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-pitch) 40%, transparent);
+}
+
+.eos-rank {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-dim);
+  text-align: right;
+}
+
+.eos-crest {
+  width: var(--crest-xs-size);
+  height: var(--crest-xs-size);
+  border-radius: var(--crest-xs-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-11);
+  color: rgba(255,255,255,0.92);
+}
+
+.eos-team-name {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.08em;
+  color: var(--rm-text);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eos-pts {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.eos-season-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eos-season-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rm-hairline);
+}
+
+.eos-season-list li:last-child { border-bottom: none; }
+
+.eos-season-list span {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+
+.eos-season-list strong {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.eos-leaders {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .eos-leaders { grid-template-columns: 1fr 1fr; }
+}
+
+.eos-leader {
+  padding: 14px;
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--rm-bg) 60%, transparent);
+}
+
+.eos-leader-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.16em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.eos-leader-name {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  color: var(--rm-chalk);
+  letter-spacing: 0.03em;
+}
+
+.eos-leader-name--empty {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  font-weight: 600;
+  color: var(--rm-text-muted);
+}
+
+.eos-leader-meta {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.eos-leader-metric {
+  margin-top: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-14);
+  font-weight: 700;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+#eos-footer,
+#roll-footer {
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  margin-top: auto;
+}
+
+#eos-continue,
+#roll-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #eos-continue:hover,  #roll-continue:hover  { background: var(--rm-cta-hover); }
+}
+#eos-continue:active, #roll-continue:active { background: var(--rm-cta-active); }
+
+/* ===== RolloverScreen ===== */
+
+.roll-section {
+  margin: 14px 16px 0;
+  padding: 14px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+}
+
+#rollover {
+  overflow-y: auto;
+}
+
+.roll-h3 {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roll-count {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-16);
+  color: var(--rm-chalk);
+  letter-spacing: 0.02em;
+}
+
+.roll-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@keyframes rollRowIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.roll-list .roll-row {
+  opacity: 0;
+  animation: rollRowIn 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--row-delay, 0ms);
+}
+
+.roll-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: color-mix(in oklch, var(--rm-bg) 65%, transparent);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.roll-name {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-chalk);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.roll-meta {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+
+@keyframes rollDeltaIn {
+  0%   { opacity: 0; translate: 0 2px; filter: brightness(2); }
+  60%  { opacity: 1; translate: 0 0;   filter: brightness(2); }
+  100% { opacity: 1; translate: 0 0;   filter: brightness(1); }
+}
+
+/* Large stat deltas (|v| >= 4) get an additional scale-pop alongside
+   the reveal — same spring as scoreKick. Uses individual `scale:`
+   property so it composes with rollDeltaIn's `translate:` without
+   either animation clobbering the other's transform. */
+@keyframes rollDeltaPop {
+  0%   { scale: 1.35; }
+  100% { scale: 1; }
+}
+
+.roll-deltas {
+  display: flex;
+  gap: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-wrap: wrap;
+}
+
+.roll-deltas > span {
+  opacity: 0;
+  translate: 0 2px;
+  animation: rollDeltaIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--delta-delay, 0ms);
+}
+
+.roll-deltas > span.roll-delta--major {
+  animation:
+    rollDeltaIn  320ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    rollDeltaPop 200ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: var(--delta-delay, 0ms);
+}
+
+.roll-delta-pos { color: var(--rm-pitch); }
+.roll-delta-neg { color: var(--rm-danger); }
+
+.roll-empty {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-muted);
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+  padding: 18px 0;
+}
+
+/* ===== EndOfSeasonScreen — champion banner ===== */
+
+.eos-champion-section {
+  padding: 0;
+  background: transparent;
+  border: none;
+  margin: 14px 16px 0;
+}
+
+/* The owner's end-of-season verdict — objective met/missed + board standing. */
+.eos-board { text-align: center; }
+.eos-board-objective {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.08em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+.eos-board-verdict {
+  font-size: var(--rm-fs-16);
+  font-weight: 700;
+  margin: 6px 0 4px;
+  color: var(--rm-chalk);
+}
+.eos-board-verdict--exceeded,
+.eos-board-verdict--met { color: var(--rm-pitch); }
+.eos-board-verdict--missed { color: var(--rm-danger); }
+.eos-board-confidence {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.06em;
+  color: var(--rm-text-dim);
+}
+.eos-board-confidence--shaky { color: var(--rm-amber); }
+.eos-board-confidence--critical { color: var(--rm-danger); }
+
+@keyframes eosChampionEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes eosWashSwell {
+  to { opacity: 1; }
+}
+@keyframes eosCrestPop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes eosNameRise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.eos-champion {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color) 45%, black);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: eosChampionEnter 800ms cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.eos-champion::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 100% at 50% 50%,
+    color-mix(in srgb, var(--team-color) 28%, transparent) 0%,
+    transparent 70%);
+  opacity: 0;
+  animation: eosWashSwell 1400ms ease-out 200ms forwards;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.eos-champion > * { position: relative; z-index: 1; }
+
+.eos-champion--me {
+  box-shadow: 0 0 26px color-mix(in srgb, var(--team-color) 35%, transparent);
+  overflow: visible;
+}
+
+/* Championship confetti — pure CSS burst from the crest area when the
+   player wins. 14 dots scatter outward in colour-cycled team/amber/white.
+   Triggers once after the crest pop (700ms delay) and fades over 1.2s. */
+.eos-confetti {
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.eos-confetti span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 1px;
+  background: var(--c);
+  opacity: 0;
+  animation: eosConfetti 1200ms cubic-bezier(0.22, 1, 0.36, 1) 700ms forwards;
+}
+
+@keyframes eosConfetti {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); }
+}
+
+.eos-confetti span:nth-child(1)  { --dx:  90px; --dy: -36px; --rot:  220deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(2)  { --dx:  61px; --dy:  43px; --rot:  -90deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(3)  { --dx:  42px; --dy:  91px; --rot:  140deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(4)  { --dx:   0px; --dy:  80px; --rot:   60deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(5)  { --dx: -40px; --dy:  86px; --rot: -200deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(6)  { --dx: -54px; --dy:  45px; --rot:  100deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(7)  { --dx:-108px; --dy:  19px; --rot: -130deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(8)  { --dx: -80px; --dy: -29px; --rot:  180deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(9)  { --dx: -67px; --dy: -67px; --rot:  -70deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(10) { --dx: -19px; --dy: -73px; --rot:  240deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(11) { --dx:  26px; --dy: -97px; --rot: -150deg; --c: var(--rm-amber);   }
+.eos-confetti span:nth-child(12) { --dx:  51px; --dy: -61px; --rot:   80deg; --c: var(--rm-chalk);   }
+.eos-confetti span:nth-child(13) { --dx:  82px; --dy: -38px; --rot: -210deg; --c: var(--team-color); }
+.eos-confetti span:nth-child(14) { --dx:  70px; --dy:  -6px; --rot:  120deg; --c: var(--rm-amber);   }
+
+.eos-champion-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+}
+
+.eos-champion-crest {
+  width: var(--crest-xl-size);
+  height: var(--crest-xl-size);
+  border-radius: var(--crest-xl-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  font-size: var(--rm-fs-36);
+  animation: eosCrestPop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 400ms backwards;
+}
+
+.eos-champion-name {
+  font-family: var(--rm-font-display);
+  font-size: clamp(calc(32px * var(--rm-text-scale)), 8vw, calc(48px * var(--rm-text-scale)));
+  color: var(--rm-text);
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: eosNameRise 600ms cubic-bezier(0.22, 1, 0.36, 1) 900ms backwards;
+}
+
+.eos-champion-season {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+  text-align: center;
+  animation: eosNameRise 600ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms backwards;
+}
+
+/* ── Trophy + medals ── */
+.eos-champion-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+.eos-trophy {
+  color: var(--rm-amber);
+  filter: drop-shadow(0 2px 6px color-mix(in oklch, var(--rm-amber) 35%, transparent));
+  animation: rmTrophyPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) 1300ms backwards;
+}
+@keyframes rmTrophyPop {
+  0%   { transform: scale(0.4) rotate(-18deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.eos-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.eos-medal--gold   { color: var(--rm-amber); }
+.eos-medal--silver { color: oklch(0.78 0.012 90); }
+.eos-medal--bronze { color: oklch(0.55 0.10 60); }
+.eos-medal {
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+  flex: 0 0 auto;
+}
+
+/* ── Standings + leader-card entrance choreography ── */
+.eos-row {
+  animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) calc(var(--row-delay, 0ms) + 200ms) both;
+}
+.eos-leader {
+  animation: eosCrestPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--leader-delay, 1400ms)) backwards;
+}
+.eos-leaders > .eos-leader:nth-child(1) { --leader-delay: 1400ms; }
+.eos-leaders > .eos-leader:nth-child(2) { --leader-delay: 1600ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eos-trophy,
+  .eos-row,
+  .eos-leader,
+  .eos-champion-name,
+  .eos-champion-season,
+  .eos-champion-label,
+  .eos-champion-crest,
+  .eos-confetti,
+  .eos-confetti span,
+  .roll-breakout {
+    animation: rmFadeOnly 80ms ease-out both !important;
+    animation-delay: 0ms !important;
+  }
+}
+
+/* ── Rollover breakout-talent hero ── */
+.roll-breakout {
+  margin: 0 0 4px;
+  padding: 18px 16px 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, black);
+  border-radius: 14px;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: eosCrestPop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms backwards;
+}
+.roll-breakout-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--rm-amber);
+}
+.roll-breakout-crest {
+  width: var(--crest-lg-size);
+  height: var(--crest-lg-size);
+  border-radius: var(--crest-lg-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  color: var(--rm-chalk);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.roll-breakout-name {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  color: var(--rm-text);
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.roll-breakout-meta {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.05em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+.roll-breakout-ovr {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--rm-pitch);
+  margin-top: 4px;
+}
+.roll-breakout-ovr span {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-24);
+  letter-spacing: 0.02em;
+  color: var(--rm-text);
+  margin-left: 4px;
+}

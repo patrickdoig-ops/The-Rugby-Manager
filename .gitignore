@@ -1,0 +1,5 @@
+node_modules/
+dist/
+scripts/floor-changes.json
+.DS_Store
+harness/

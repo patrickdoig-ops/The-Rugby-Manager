@@ -1,0 +1,237 @@
+# The Rugby Manager
+
+[![Deploy to GitHub Pages](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/deploy.yml/badge.svg)](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/deploy.yml)
+[![Telemetry](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/telemetry.yml/badge.svg)](https://github.com/patrickdoig-ops/The-Rugby-Manager/actions/workflows/telemetry.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+
+### Take charge of English rugby's elite. Build a dynasty, one season at a time.
+
+**The Rugby Manager** is the deep, obsessive management sim that rugby fans have been waiting for — the kind of game that's kept football managers up until 3am for decades, finally built for the oval ball. It's an indie passion project: made by a fan, for fans, with no shortcuts on the detail.
+
+Pick **any club in the English top flight** and step into the manager's office. Set your tactics, work the transfer market, develop your squad, and chase silverware across season after season — then do it all again as players age, contracts expire, and the league evolves around you.
+
+No download. No account. No backend. Just open it and play, free, in your browser.
+
+### ▶ [**Play now**](https://patrickdoig-ops.github.io/The-Rugby-Manager/)
+
+---
+
+## Why you'll get hooked
+
+### 🏟️ Take any top-flight club
+Choose your side and take over everything a real director of rugby handles — the whole league is yours to compete in, and beat.
+
+### 🎯 Tactics that actually matter
+Seven tactical dimensions — gameplan, attacking style, breakdown commitment, defensive line, backfield cover, offload strategy, and kicking — all adjustable **mid-match**. Read the game, react to the scoreline, and outthink an AI coach that adapts its own tactics and substitutions to the clock and the fatigue on the field.
+
+### ⚡ A living, breathing match engine
+Every phase is simulated — scrums, lineouts, mauls, breakdowns, kicks, cards, TMO reviews — with player attributes driving every outcome and live commentary narrating it all. Stamina drains, players tire, injuries happen, and a sin-binned forward genuinely weakens your scrum.
+
+### 🗓️ A full career, not just a season
+Run a complete top-flight campaign — fixtures, international breaks, semifinals, and a final at the home of English rugby — then carry it forward. Players age and develop, contracts run down, owners reward success with bigger budgets, and rival clubs fight you for the best signings. Build a squad. Build a legacy.
+
+### 💷 The full manager's toolkit
+- **Transfers** — a multi-round competitive bid market where ambition, squad need, and reputation decide who wins, not just the size of the wage packet.
+- **Contracts & salary cap** — manage your cap, designate your marquee, and fight to keep your stars.
+- **Training** — weekly plans that develop attributes and manage condition across the whole squad.
+- **Youth & recruitment** — academy graduates and new arrivals keep the talent pool fresh every year.
+
+**This is the rugby management game fans have always wanted. Now it exists — and it's free to play.**
+
+---
+
+## For players
+
+- **Free & browser-based** — nothing to install, runs on desktop and mobile.
+- **Your save is yours** — progress autosaves locally in your browser; no account, no sign-in, no servers.
+- **Pick up where you left off** — saves carry across seasons, and older saves keep working as the game updates.
+
+> Just want to play? **[Open the game](https://patrickdoig-ops.github.io/The-Rugby-Manager/)** — everything below is for developers and the curious.
+
+---
+
+## For developers
+
+A browser-based, event-driven Rugby Union match and career simulator built with vanilla TypeScript and CSS — no framework, no backend. The sections below cover the architecture, build, and contribution workflow.
+
+### Under the hood
+
+**Match engine**
+- **Phase-based simulation** — `KickOff` → `OpenPlay` → `Breakdown` / `Scrum` / `Lineout` / `Maul` / `Penalty` / `KickReturn` / `TryScored` / `Conversion`, etc.
+- **Player-driven resolvers** — every phase compares player attributes (12 baseStats, scaled 1-99) against opponents, mixed with seeded RNG.
+- **Live commentary** — descriptors emitted by the engine are rendered as colourised text by an independent UI module.
+- **Tactical depth** — seven adjustable tactical dimensions (gameplan, attacking style, breakdown commitment, defensive line, backfield, offload strategy, kick decisions), changeable mid-match.
+- **Cards & TMO** — yellow / red_20 / red_full sin-bin lifecycle, TMO reviews with frozen clock, team-22-rule auto-yellow.
+- **AI directors** — pure, RNG-free tactical and substitution directors adapt the AI side based on score, time remaining, and player fatigue.
+- **Stamina, fatigue and injuries** — per-player condition decays during a match and carries forward to the next; in-match injuries flow into the season-scope injury system.
+
+**Career mode**
+- **Full 2025/26 League season** — 90 fixtures across 18 rounds with real ISO dates, Autumn Nations and Six Nations breaks, semifinals and a final at Twickenham.
+- **Persistent rosters** — every player carries a globally unique `rosterId`, accumulating season stats and aging year-over-year.
+- **Contracts and salary cap** — £6.4M senior cap + £1.4M dispensation, marquee exclusions, hand-authored marquee per club, interactive cap pill.
+- **Owner budgets** — per-club wage budgets set by prior-season performance, Newcastle Red Bull takeover at year-2, random investor takeovers from year-3+.
+- **Competitive signings** — multi-round bid market with appeal-score resolution, AI clubs target their own budgets, Reg 7 cross-League poaching for final-year players.
+- **Mid-season free-agent signings** — interactive Hub flow with appeal-based acceptance rolls and per-player cooldowns.
+- **Training** — manager-set training plans drive weekly attribute drift and condition recovery for the entire squad.
+- **Playoffs** — top-4 bracket after Round 18, semifinals followed by a neutral-venue final.
+- **Saves** — autosave to `localStorage`, schema-versioned with auto-migration across 18 save versions.
+
+**Architecture**
+- **Strict engine ↔ UI separation** — typed pub/sub event bus, no direct DOM access from the engine, no engine method calls from the UI (except `SimController`).
+- **Single mutation seam** — every match state write flows through `applyMatchEvent`, every season write through `applySeasonEvent`. Exhaustive `MatchEvent` / `SeasonEvent` discriminated unions enforce coverage at compile time.
+- **Always-on invariants** — `assertInvariants` and `assertSeasonInvariants` run after every event; throw on illegal state.
+- **Deterministic RNG** — four isolated mulberry32 streams (outcome / form / commentary / career) so matches and full careers are seed-reproducible.
+- **Headless AI fixtures** — silent `MatchCoordinator` instances simulate every AI fixture league-wide each round, populating standings and player stats identically to the live match.
+
+### Tech stack
+
+- **TypeScript** (strict mode) — primary correctness check, no test framework.
+- **Vite** — dev server and production build.
+- **Vanilla HTML / CSS** — no framework dependencies; CSS custom properties for theming.
+- **GitHub Pages** — hosted build, deployed automatically from `main`.
+
+---
+
+### Quick start
+
+Requires Node.js 20+ and npm.
+
+```bash
+git clone https://github.com/patrickdoig-ops/The-Rugby-Manager.git
+cd The-Rugby-Manager
+npm install
+npm run dev
+```
+
+The dev server prints a local URL (typically `http://localhost:5173/The-Rugby-Manager/`). Open it in a browser; saves persist in `localStorage`.
+
+---
+
+### Available scripts
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the Vite dev server with hot reload. |
+| `npm run build` | Type-check (`tsc`) and produce a production build in `dist/` (GitHub Pages base). |
+| `npm run build:cap` | Same build with a relative base, for the Capacitor native shell. |
+| `npm run cap:sync` | `build:cap` then `cap sync ios` — copies `dist/` into the iOS project. |
+| `npm run cap:ios` | `cap:sync` then `cap open ios` — opens the Xcode workspace (macOS only). |
+| `npm run preview` | Serve the built `dist/` folder locally. |
+| `npm run verify` | Run match and season determinism harnesses (`scripts/checkDeterminism.ts`, `scripts/checkSeasonDeterminism.ts`). Both must pass before every commit. |
+| `npm run telemetry` | Generate the balance and realism report (450-fixture, 5-seed sweep) to stdout. CI also runs this on every push to `main` and commits the result to `telemetry/latest.md`. |
+
+There is no test or lint command — TypeScript strict mode is the primary correctness check, and the determinism harnesses guard runtime behaviour.
+
+---
+
+### Project structure
+
+```
+.
+├── docs/                          # Authoritative reference docs
+│   ├── match-engine.md            # Match engine internals, phases, resolvers, formulas
+│   ├── game-engine.md             # Season-scope engine, GameCoordinator, save format
+│   ├── transfer-system.md         # Transfer system roadmap and open questions
+│   ├── prem-fixtures-2025-26.md   # Authoritative 2025/26 fixture list
+│   ├── team-data.md               # Source of truth for team JSONs
+│   └── DESIGN.md                  # Visual design system, colours, typography
+├── src/
+│   ├── engine/                    # Match engine — pure, no UI imports
+│   │   ├── MatchCoordinator.ts    # Per-match orchestrator
+│   │   ├── applyMatchEvent.ts     # Sole match-state mutation seam
+│   │   ├── balance/               # All gameplay tuning constants
+│   │   ├── events/                # Phase handlers (read-only over state)
+│   │   └── resolvers/             # Pure outcome resolvers
+│   ├── game/                      # Season engine
+│   │   ├── GameCoordinator.ts     # Per-career orchestrator
+│   │   ├── applySeasonEvent.ts    # Sole season-state mutation seam
+│   │   ├── simulateFixture.ts     # Headless AI fixture sims
+│   │   └── …                      # Transfers, training, rollover, leaderboards
+│   ├── ui/                        # All DOM-touching code
+│   ├── data/                      # Team JSONs (10 League clubs) + 2025/26 fixtures
+│   ├── types/                     # Shared type definitions
+│   ├── utils/                     # eventBus, rng streams, save/load
+│   └── main.ts                    # App entry point
+├── scripts/                       # Determinism harnesses, telemetry, audits
+├── style/                         # Global CSS
+├── telemetry/                     # CI-generated telemetry report (do not edit by hand)
+├── .github/workflows/             # Deploy + telemetry CI
+└── index.html
+```
+
+---
+
+### Architecture overview
+
+#### Engine ↔ UI contract
+The match engine never imports from UI code; UI never calls engine methods directly **except** for `SimController` (Play/Pause/Speed). All communication flows through a typed pub/sub singleton at `src/utils/eventBus.ts`. Within a tick, `engine:event` fires **before** `engine:stateChange`, so UI state caches from the prior tick are still valid when the event arrives.
+
+The season engine emits an analogous family of `game:*` events (`game:initialized`, `game:fixtureRecorded`, `game:weekAdvanced`, `game:bracketSeeded`, `game:seasonComplete`, `game:seasonRolledOver`) for in-season screens to subscribe to.
+
+#### Mutation boundaries
+- **Match state:** all writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.currentStats`, and `player.rating` go through `applyMatchEvent(state, event)`. Every call runs `assertInvariants` afterwards.
+- **Season state:** all writes to `GameState` go through `applySeasonEvent(state, event)`. Every call runs `assertSeasonInvariants` afterwards.
+
+Both use exhaustive discriminated unions with a `default: const _: never = event;` to catch missing branches at compile time.
+
+#### Determinism
+Four isolated mulberry32 streams (outcome / form / commentary / career) ensure that:
+- A match with a given seed is fully reproducible.
+- A career with `(playerTeamId, rootSeed)` is fully reproducible across multiple seasons.
+- Adding commentary cannot perturb match outcomes; adding transfer logic cannot perturb a match.
+
+#### Balance constants
+Every gameplay tuning number — probabilities, thresholds, modifiers, fatigue multipliers, rating point values — lives in `src/engine/balance/`. One file per concern (kicking, openPlay, breakdown, scrum, lineout, fatigue, rating, tactics, discipline, …) with a barrel re-export. Resolvers never hardcode tuning literals.
+
+---
+
+### Documentation
+
+The codebase is heavily documented to maintain strict architectural and design guidelines. Read these before contributing:
+
+- **[`CLAUDE.md`](./CLAUDE.md)** — Architectural invariants, mutation-boundary rules, and ways of working. Read this first.
+- **[`docs/match-engine.md`](./docs/match-engine.md)** — Match engine reference: phase state machine, resolver formulas, RNG streams, tactics effects, UI event-bus contract.
+- **[`docs/game-engine.md`](./docs/game-engine.md)** — Season engine reference: `GameCoordinator`, fixtures, headless AI sims, league standings, save format.
+- **[`docs/transfer-system.md`](./docs/transfer-system.md)** — Transfer system roadmap and open implementation questions.
+- **[`docs/DESIGN.md`](./docs/DESIGN.md)** — Visual design system: colours, fonts, spacing, component patterns.
+- **[`docs/team-data.md`](./docs/team-data.md)** — Source of truth for the 10 League team JSONs. Regenerate with `node scripts/generateTeamJsons.mjs`.
+- **[`docs/prem-fixtures-2025-26.md`](./docs/prem-fixtures-2025-26.md)** — Authoritative 2025/26 League schedule.
+
+---
+
+### Deployment
+
+The production build deploys to GitHub Pages automatically on every push to `main` via `.github/workflows/deploy.yml`. The Vite `base` path is `/The-Rugby-Manager/` — do not change it or asset URLs break in production.
+
+A second workflow (`.github/workflows/telemetry.yml`) runs the telemetry harness on every push to `main` and commits the regenerated report to `telemetry/latest.md`.
+
+#### iOS (Capacitor)
+
+The same web build is wrapped as a native iOS app via [Capacitor](https://capacitorjs.com/) for App Store distribution (`capacitor.config.ts`, app id `com.patrickdoig.rugbymanager`). The committed `ios/` Xcode project excludes synced web assets and Pods via its `.gitignore`, so after cloning, run `npm run cap:sync` once to populate it. Building, signing, and archiving for the App Store require a Mac with Xcode and CocoaPods; `npm run cap:ios` opens the workspace there. The `--mode capacitor` build emits a relative asset base so URLs resolve under `capacitor://localhost`.
+
+---
+
+### Versioning
+
+The current version is rendered on the Home Screen and lives in `src/version.ts`. The pattern is `2.XXa` (e.g. `2.191a`); bump by 1 after every committed update.
+
+---
+
+### Contributing
+
+This repository follows the conventions documented in [`CLAUDE.md`](./CLAUDE.md). A non-exhaustive summary:
+
+- **Simplicity first** — minimum code that solves the problem, no speculative abstractions.
+- **Surgical changes** — touch only what the task requires; don't refactor adjacent code.
+- **Mutation boundaries** — never sneak a direct write past `applyMatchEvent` / `applySeasonEvent`.
+- **Randomness boundary** — never call `Math.random()` directly; use the four streams in `src/utils/rng.ts`.
+- **Balance constants** — all gameplay tuning lives in `src/engine/balance/`. Never introduce a tuning literal in a resolver.
+- **Doc co-update** — when engine code changes, update the matching engine doc in the same commit.
+- **Always green** — both `npm run build` and `npm run verify` must pass cleanly before every commit.
+
+---
+
+### License
+
+No license file is currently present in this repository. All rights reserved by the author unless otherwise stated.

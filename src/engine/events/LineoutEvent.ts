@@ -1,0 +1,117 @@
+import type { PhaseContext, PhaseResult } from './types';
+import type { MatchEvent } from '../../types/matchEvent';
+import { MatchPhase } from '../../types/engine';
+import { resolveLineout } from '../resolvers/LineoutResolver';
+import { rng } from '../../utils/rng';
+import { LINEOUT_VALUES, MAUL_GATE } from '../balance';
+import { availableForwards, onFieldPlayers, metresFromOppositionTryLine } from '../FieldPosition';
+import { effStyleScalar } from '../tacticsResolve';
+import { SLOT } from '../Slot';
+import type { MatchState } from '../../types/match';
+import type { Team } from '../../types/team';
+
+// Maul-vs-FirstPhase gate after a clean lineout catch. Zone-driven base
+// probability modified by the attacking team's attackingStyle. Same gate
+// fires for human and AI — no modal. Tuning lives in MAUL_GATE
+// (balance/maul.ts); see the maul docs for the table.
+function maulGatePct(state: MatchState, attackTeam: Team): number {
+  const dist = metresFromOppositionTryLine(state);
+  let base: number;
+  if (dist <= 10)      base = MAUL_GATE.opp10mPct;
+  else if (dist <= 22) base = MAUL_GATE.opp22Pct;
+  else if (dist <= 50) base = MAUL_GATE.oppHalfPct;
+  else                 base = MAUL_GATE.ownHalfPct;
+
+  const bias = effStyleScalar(state, attackTeam, {
+    keep_it_tight: MAUL_GATE.keepItTightBias,
+    balanced:      MAUL_GATE.balancedBias,
+    wide_wide:     MAUL_GATE.wideWideBias,
+  });
+  return Math.max(0, Math.min(100, base + bias));
+}
+
+export function handleLineout({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
+  const attackSide = state.possession;
+  const flipSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+
+  // Hooker (#2) and jumpers (#4/#5/#6) filtered to on-field players; if a
+  // primary jumper is sin-binned, the find() chain falls back to the next
+  // available forward — weaker jumper score is the natural penalty for being
+  // a forward down at the lineout.
+  const attackFwds   = availableForwards(attackTeam, state, attackSide);
+  const defendFwds   = availableForwards(defendTeam, state, flipSide);
+  const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+  const defendOnField = onFieldPlayers(defendTeam, state, flipSide);
+  const hooker       = attackFwds.find(p => p.id === SLOT.HOOKER) ?? attackFwds[0] ?? attackOnField[0]!;
+  const jumperIds    = LINEOUT_VALUES.jumperIds;
+  const chosenId     = jumperIds[rng(0, jumperIds.length - 1)];
+  const attackJumper = attackFwds.find(p => p.id === chosenId)
+                    ?? attackFwds.find(p => p.id === SLOT.LOCK_4)
+                    ?? attackFwds[0]
+                    ?? attackOnField[0]!;
+  const defendJumper = defendFwds.find(p => p.id === SLOT.LOCK_4)
+                    ?? defendFwds.find(p => p.id === SLOT.LOCK_5)
+                    ?? defendFwds.find(p => p.id === SLOT.FLANKER_6)
+                    ?? defendFwds[0]
+                    ?? defendOnField[0]!;
+  const res = resolveLineout(hooker, attackJumper, defendJumper);
+
+  const events: MatchEvent[] = [
+    { type: 'LINEOUT_THROWN', hooker },
+  ];
+
+  if (res.result === 'crooked_throw') {
+    events.push({
+      type: 'LINEOUT_RESOLVED',
+      outcome: 'crooked_throw',
+      hooker, attackJumper, defendJumper,
+      attackSide, possessionSideAfter: flipSide,
+    });
+    return {
+      nextPhase: MatchPhase.Scrum,
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'crooked_throw', primary: hooker }] },
+      primaryPlayer: hooker,
+      events,
+    };
+  }
+
+  if (res.result === 'clean_catch') {
+    events.push({
+      type: 'LINEOUT_RESOLVED',
+      outcome: 'clean_catch',
+      hooker, attackJumper, defendJumper,
+      attackSide, possessionSideAfter: attackSide,
+    });
+    // Maul gate. Zone × attackingStyle → either drive the maul (Maul
+    // phase) or transfer the ball straight to the backs (FirstPhase).
+    // The lineout narration fires either way; the maul gets its own
+    // commentary on the next tick when handleMaul resolves.
+    const nextPhase = rng(1, 100) <= maulGatePct(state, attackTeam)
+      ? MatchPhase.Maul
+      : MatchPhase.FirstPhase;
+    return {
+      nextPhase,
+      // narration step's secondary is the hooker (thrower) for {secondary} interpolation;
+      // PhaseResult.secondaryPlayer is the defend jumper (the contested defender) for stats.
+      narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'clean_catch', primary: attackJumper, secondary: hooker }] },
+      primaryPlayer: attackJumper,
+      secondaryPlayer: defendJumper,
+      events,
+    };
+  }
+
+  // steal
+  events.push({
+    type: 'LINEOUT_RESOLVED',
+    outcome: 'steal',
+    hooker, attackJumper, defendJumper,
+    attackSide, possessionSideAfter: flipSide,
+  });
+  return {
+    nextPhase: MatchPhase.FirstPhase,
+    narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Lineout, key: 'steal', primary: defendJumper, secondary: attackJumper }] },
+    primaryPlayer: defendJumper,
+    secondaryPlayer: attackJumper,
+    events,
+  };
+}

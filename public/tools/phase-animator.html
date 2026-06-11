@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase Animator — The Rugby Manager (dev tool)</title>
+<style>
+  :root {
+    --bg: #0c100e; --bg2: #090d0b;
+    --panel: #141b17; --panel-hi: #1b2620; --line: #283430; --line-hi: #38483f;
+    --ink: #eaf1ec; --muted: #8ca399;
+    --accent: #3ee592; --accent-2: #4ff3a1; --accent-soft: rgba(62,229,146,.14);
+    --ball: #f7ad33; --home: #a8294f; --away: #2a64cc; --sel: #ffd23f;
+    --pitch1: #2f7d3f; --pitch2: #2a7239;
+    --radius: 8px; --shadow: 0 3px 12px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--accent-soft); }
+  body { margin: 0; color: var(--ink);
+         background: radial-gradient(120% 80% at 72% 0%, #121a16 0%, var(--bg) 55%, var(--bg2) 100%);
+         font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  #app { display: grid; grid-template-columns: 320px 1fr; grid-template-rows: 1fr auto;
+         grid-template-areas: "side stage" "side timeline"; height: 100vh; }
+  #sidebar { grid-area: side; background: var(--panel); border-right: 1px solid var(--line);
+             padding: 18px 16px; overflow-y: auto; }
+  #stage { grid-area: stage; display: flex; align-items: center; justify-content: center;
+           padding: 20px; overflow: hidden; }
+  #timeline { grid-area: timeline; background: var(--panel); border-top: 1px solid var(--line);
+              padding: 12px 18px 16px; }
+
+  /* header */
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
+                background: linear-gradient(135deg, var(--accent), #1ea968); color: #05140c;
+                font-size: 13px; font-weight: 900; box-shadow: 0 2px 12px var(--accent-soft); flex: none; }
+  h1 { font-size: 15px; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 11px; margin: 1px 0 0; }
+  h2 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+       margin: 22px 0 8px; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+  button, select, input[type=file]::file-selector-button {
+    background: var(--panel-hi); color: var(--ink); border: 1px solid var(--line); border-radius: 7px;
+    padding: 7px 12px; font: 600 12px/1 system-ui, sans-serif; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, transform .04s ease, box-shadow .15s ease; }
+  button:hover { border-color: var(--accent); background: #213029; }
+  button:active { transform: translateY(1px); }
+  button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); color: #05140c; border-color: var(--accent);
+                   box-shadow: 0 2px 12px var(--accent-soft); }
+  button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+  button.warn { color: #ff9d9d; }
+  button.warn:hover { border-color: #ff7d7d; background: #2a1b1d; }
+  select { width: 100%; padding: 8px; }
+  input[type=file] { font-size: 11px; color: var(--muted); max-width: 100%; }
+  input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; }
+  label.row { display: flex; align-items: center; gap: 8px; margin: 8px 0; cursor: pointer; }
+  .btns { display: flex; flex-wrap: wrap; gap: 7px; }
+  .hint { color: var(--muted); font-size: 11px; line-height: 1.55; margin: 8px 0; }
+
+  /* segmented mode toggle */
+  .seg { display: flex; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px;
+         padding: 3px; gap: 3px; margin: 0 0 10px; }
+  .seg-btn { flex: 1; background: transparent; border: none; border-radius: 6px; padding: 8px 10px;
+             color: var(--muted); font: 700 11px/1 system-ui; cursor: pointer;
+             transition: background .15s ease, color .15s ease; }
+  .seg-btn:hover { background: var(--panel-hi); color: var(--ink); }
+  .seg-btn.active { background: var(--accent); color: #05140c; box-shadow: 0 1px 8px var(--accent-soft); }
+  .seg-btn.active:hover { background: var(--accent-2); color: #05140c; }
+
+  /* Pitch — portrait, matches the game: x = long axis (vertical, 100 at top), y = lateral. */
+  #pitch { position: relative; aspect-ratio: 3 / 4; height: 100%; max-width: 100%;
+           background: repeating-linear-gradient(var(--pitch1) 0 6.25%, var(--pitch2) 6.25% 12.5%);
+           border: 2px solid #cfe8d6; border-radius: 8px; touch-action: none;
+           box-shadow: 0 12px 44px rgba(0,0,0,.45), inset 0 0 70px rgba(0,0,0,.18); }
+  .pline { position: absolute; left: 0; right: 0; border-top: 2px solid rgba(255,255,255,.8); }
+  .pline.dash { border-top: 2px dashed rgba(255,255,255,.4); }
+  .pline.faint { border-top: 1px dashed rgba(255,255,255,.22); }
+  .endlabel { position: absolute; left: 10px; font-weight: 800; font-size: 15px; letter-spacing: .06em;
+              opacity: .45; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+         border: 2px solid rgba(255,255,255,.92); color: #fff; font: 800 10px/18px system-ui;
+         text-align: center; cursor: grab; user-select: none; z-index: 3;
+         box-shadow: 0 2px 6px rgba(0,0,0,.45);
+         transition: transform .12s ease, outline-color .12s ease, box-shadow .12s ease; }
+  .dot:hover { transform: scale(1.1); z-index: 7; }
+  .dot:active { cursor: grabbing; }
+  .dot.home { background: var(--home); } .dot.away { background: var(--away); }
+  #possIndicator { position: absolute; left: 50%; transform: translateX(-50%);
+    padding: 5px 14px; border-radius: 20px; font: 800 10.5px/1.4 system-ui; letter-spacing: .07em;
+    color: #fff; pointer-events: none; z-index: 10; white-space: nowrap; display: none;
+    box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,.25); }
+  .dot.sel { outline: 3px solid var(--sel); outline-offset: 2px;
+             box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 14px rgba(255,210,63,.55); z-index: 5; }
+  .dot.ball { width: 26px; height: 18px; margin: -9px 0 0 -13px; border-radius: 50%;
+              background: var(--ball); border-color: #b9791a; z-index: 6; cursor: grab; }
+  .dot.ghost { opacity: .3; pointer-events: none; border-style: dotted; z-index: 2; box-shadow: none; }
+  /* trail markers for the ball's authored path */
+  .trail { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+           background: rgba(247,173,51,.5); z-index: 1; pointer-events: none;
+           box-shadow: 0 0 5px rgba(247,173,51,.35); }
+
+  /* timeline */
+  #tlbar { position: relative; height: 38px; background: linear-gradient(#0a0f0c, #0e1512);
+           border: 1px solid var(--line); border-radius: 8px; margin: 10px 0; cursor: pointer;
+           box-shadow: inset 0 1px 4px rgba(0,0,0,.45); }
+  #playhead { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent);
+              box-shadow: 0 0 10px var(--accent); }
+  #playhead::before { content: ''; position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+              width: 13px; height: 13px; border-radius: 50%; background: var(--accent);
+              box-shadow: 0 0 10px var(--accent); }
+  .beatmark { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.22); }
+  .beatlbl { position: absolute; top: -17px; transform: translateX(-50%); font-size: 10px; font-weight: 600;
+             color: var(--muted); white-space: nowrap; }
+  .kfmark { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px;
+            background: var(--sel); transform: rotate(45deg); border: 1px solid rgba(0,0,0,.5);
+            border-radius: 2px; box-shadow: 0 0 5px rgba(255,210,63,.55); }
+  .tlrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill { background: var(--panel-hi); border: 1px solid var(--line); border-radius: 20px;
+          padding: 5px 12px; font-weight: 600; font-size: 12px; }
+  #phaseTag { color: var(--accent); }
+  .kbd { font: 600 10px/1 ui-monospace, monospace; background: var(--panel-hi); border: 1px solid var(--line);
+         border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; color: var(--ink); }
+
+  /* selected entity + keyframe list */
+  .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.6); vertical-align: middle; background: var(--ball); }
+  #selName { color: var(--ink); font-weight: 700; text-transform: none; letter-spacing: 0; }
+  #kflist { margin-top: 8px; max-height: 150px; overflow-y: auto; }
+  #kflist:empty { display: none; }
+  .kfrow { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; border-radius: 5px;
+           cursor: pointer; font: 11px/1.4 ui-monospace, monospace; color: var(--muted);
+           transition: background .12s ease, color .12s ease; }
+  .kfrow:hover { background: var(--panel-hi); color: var(--ink); }
+  .kfrow.active { background: var(--accent-soft); color: var(--ink); }
+
+  code { background: var(--bg2); padding: 1.5px 5px; border-radius: 4px; font-size: 11px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .guide { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 4px; padding: 8px 12px;
+           border: 1px solid var(--line); border-radius: 8px; background: var(--panel-hi);
+           font-weight: 600; width: 100%; transition: border-color .15s ease, background .15s ease; }
+  .guide:hover { border-color: var(--accent); background: #1d2a23; text-decoration: none; }
+  textarea { width: 100%; height: 92px; background: var(--bg2); color: var(--ink); border: 1px solid var(--line);
+             border-radius: 7px; font: 11px/1.4 ui-monospace, monospace; padding: 8px; resize: vertical; }
+
+  /* scrollbars */
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-hi); border-radius: 5px; border: 2px solid var(--panel); }
+  ::-webkit-scrollbar-thumb:hover { background: #4a5d52; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">▶</span>
+      <div>
+        <h1>Phase Animator</h1>
+        <p class="sub">2D pitch keyframe authoring</p>
+      </div>
+    </div>
+    <a class="guide" href="https://github.com/patrickdoig-ops/The-Rugby-Manager/blob/main/docs/phase-animator.md" target="_blank" rel="noopener">📖 User guide ↗</a>
+    <p class="hint" style="margin-top:8px">Coords are game space — x = long axis (0–100, 100 = top), y = lateral (0–100, 0/100 = touchlines).</p>
+
+    <h2>Phase source</h2>
+    <div class="seg" id="modeToggle">
+      <button class="seg-btn active" data-mode="single">Single phases</button>
+      <button class="seg-btn" data-mode="transitions">Transitions</button>
+    </div>
+    <select id="phaseSel"><option value="">— blank phase —</option></select>
+    <p class="hint"><b>Single phases</b> — each distinct phase animation, authored on its own. <b>Transitions</b> — every predecessor→phase pairing, with players seeded from the previous phase. Pick one + Load phase, or drop your own <code>trace.json</code> (<code>npm run probe</code>):</p>
+    <input type="file" id="traceFile" accept=".json" />
+    <div class="btns" style="margin-top:8px">
+      <button id="loadPhase">Load phase</button>
+      <button id="resetForm">Reset formation</button>
+    </div>
+    <p class="hint" id="phaseInfo">No phase loaded.</p>
+
+    <h2><span id="selSwatch" class="swatch"></span> Selected <span id="selName">ball</span></h2>
+    <div class="btns">
+      <button id="addKf" class="primary">Set keyframe @ playhead</button>
+      <button id="delKf" class="warn">Delete keyframe</button>
+    </div>
+    <label class="row"><input type="checkbox" id="autoKey" checked /> Auto-keyframe while dragging</label>
+    <label class="row"><input type="checkbox" id="showGhosts" checked /> Show start/end ghosts</label>
+    <div id="kflist"></div>
+
+    <h2>Export / Import</h2>
+    <div class="btns">
+      <button id="exportBtn">Export JSON</button>
+      <button id="copyBtn">Copy</button>
+      <button id="importBtn">Import ↓</button>
+    </div>
+    <textarea id="io" placeholder="Exported animation JSON appears here; paste here + Import to reload."></textarea>
+  </div>
+
+  <div id="stage"><div id="pitch"><div id="possIndicator"></div></div></div>
+
+  <div id="timeline">
+    <div class="tlrow">
+      <button id="playBtn" class="primary">▶ Play</button>
+      <button id="stopBtn">⏹</button>
+      <span class="pill">Speed
+        <select id="speed" style="width:auto;display:inline-block;border:none;background:transparent;padding:0 0 0 4px">
+          <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+        </select></span>
+      <span class="pill">Playhead <span id="phLabel">0.00</span></span>
+      <span class="pill" id="phaseTag">(blank)</span>
+    </div>
+    <div id="tlbar"><div id="playhead"></div></div>
+    <p class="hint">Click the bar to scrub · drag any dot/ball to keyframe it · diamonds = the selected entity's keyframes, ticks = beats.<br>
+    <span class="kbd">Space</span> play/pause · <span class="kbd">←</span> <span class="kbd">→</span> step (hold <span class="kbd">Shift</span> for bigger) · <span class="kbd">[</span> <span class="kbd">]</span> prev/next beat · <span class="kbd">Home</span> rewind</p>
+  </div>
+</div>
+
+<!-- Real engine phase samples (regenerate with: npm run export:phases). -->
+<script src="phases.js"></script>
+<script>
+(() => {
+  // ---- pitch coordinate mapping (game space → screen %) ----
+  // x = long axis 0..100 (100 at top of screen). y = lateral 0..100 (0 left touchline).
+  // These MUST mirror the live renderer's src/ui/pitchCoords.ts (INGOAL_PCT=8,
+  // PLAY_SPAN=84, TOUCH_MARGIN=3.5, PLAY_WIDTH_PCT=93) so a dot dragged to a line in
+  // the tool sits at the same game x/y the match view would draw it at. drawPitch and
+  // the dot mapping both read these, so the canvas stays internally consistent.
+  const TOP0 = 8, TOPSPAN = 84, LEFT0 = 3.5, LEFTSPAN = 93;
+  const xToTop  = x => TOP0 + (100 - x) / 100 * TOPSPAN;       // %
+  const yToLeft = y => LEFT0 + y / 100 * LEFTSPAN;             // %
+  // x may be dragged BEYOND the field of play into the in-goal areas (behind a try line):
+  // x>100 is the top in-goal, x<0 the bottom. The range is capped at [-6,106] so the dot
+  // stays inside the pitch element's in-goal band (xToTop stays within 0..100%). The game
+  // renders these the same way (toTop extrapolates) — used for the conversion's defending
+  // line behind their try line. y stays on-field [0,100].
+  const topToX  = topPct => clamp(100 - (topPct - TOP0) / TOPSPAN * 100, -6, 106);
+  const leftToY = leftPct => clamp((leftPct - LEFT0) / LEFTSPAN * 100, 0, 100);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const pitch = document.getElementById('pitch');
+
+  // ---- pitch markings (horizontal lines because x is vertical) ----
+  function drawPitch() {
+    // In-goal bands beyond each try line (top: 0..TOP0%, bottom: 100-TOP0..100%), shaded
+    // so behind-the-line authoring (x>100 / x<0) reads clearly. Drawn first so the try
+    // lines sit on top; pointer-events:none so dragging into them still works.
+    for (const band of [{ top: 0, h: TOP0 }, { top: 100 - TOP0, h: TOP0 }]) {
+      const g = document.createElement('div');
+      g.style.cssText = `position:absolute;left:0;right:0;top:${band.top}%;height:${band.h}%;`
+        + 'background:rgba(255,255,255,.06);pointer-events:none;';
+      pitch.appendChild(g);
+    }
+    const lines = [
+      [100, 'solid'], [78, 'dash'], [50, 'solid'], [22, 'dash'], [0, 'solid'], // try/22/half
+      [90, 'faint'], [60, 'faint'], [40, 'faint'], [10, 'faint'],              // 10m-ish guides
+    ];
+    for (const [x, kind] of lines) {
+      const d = document.createElement('div');
+      d.className = 'pline' + (kind === 'dash' ? ' dash' : kind === 'faint' ? ' faint' : '');
+      d.style.top = xToTop(x) + '%';
+      pitch.appendChild(d);
+    }
+    const top = document.createElement('div'); top.className = 'endlabel';
+    top.textContent = 'AWAY 22 →'; top.style.top = '1%'; pitch.appendChild(top);
+    const bot = document.createElement('div'); bot.className = 'endlabel';
+    bot.textContent = '← HOME 22'; bot.style.bottom = '1%'; pitch.appendChild(bot);
+  }
+  drawPitch();
+
+  // ---- default 15-a-side formation in game coords ----
+  // Home attacks toward x=100 (top). Forwards low cluster, backs fanned ahead.
+  function homeFormation() {
+    return {
+      1:[42,44], 2:[43,50], 3:[42,56], 4:[40,47], 5:[40,53], 6:[44,40], 7:[44,60], 8:[38,50],
+      9:[40,52], 10:[37,42], 12:[35,34], 13:[33,26], 11:[31,16], 14:[34,80], 15:[24,50],
+    };
+  }
+  // Away defends (mirror across halfway: x' = 100 - x, attacks toward x=0).
+  function awayFormation() {
+    const h = homeFormation(), o = {};
+    for (const k in h) o[k] = [100 - h[k][0], 100 - h[k][1]];
+    return o;
+  }
+
+  // ---- entity model ----
+  // entity: { id, kind:'home'|'away'|'ball', jersey, kf:[{t,x,y}] }   t in 0..1
+  let entities = [];
+  let elById = {};
+  let ghostById = {};   // start/end ghosts for the ball
+  let selectedId = 'ball';
+  let beats = [];       // [{t,label}]
+  let phaseName = '(blank)';
+  let playhead = 0;
+  let playing = false;
+
+  function makeEntities() {
+    entities = []; pitch.querySelectorAll('.dot,.ghost,.trail').forEach(e => e.remove());
+    elById = {}; ghostById = {};
+    document.getElementById('possIndicator').style.display = 'none';
+    const add = (id, kind, jersey, x, y) => {
+      const e = { id, kind, jersey, kf: [{ t: 0, x, y }] };
+      entities.push(e);
+      const el = document.createElement('div');
+      el.className = 'dot ' + kind + (kind === 'ball' ? ' ball' : '');
+      el.textContent = jersey || '';
+      el.dataset.id = id;
+      pitch.appendChild(el);
+      elById[id] = el;
+    };
+    add('ball', 'ball', '', 50, 50);
+    const hf = homeFormation(), af = awayFormation();
+    for (const n of Object.keys(hf)) add('h' + n, 'home', n, hf[n][0], hf[n][1]);
+    for (const n of Object.keys(af)) add('a' + n, 'away', n, af[n][0], af[n][1]);
+    // ball ghosts (start / end)
+    for (const g of ['gstart', 'gend']) {
+      const el = document.createElement('div');
+      el.className = 'dot ball ghost'; el.dataset.ghost = g;
+      pitch.appendChild(el); ghostById[g] = el;
+    }
+    select('ball');
+  }
+
+  // ---- interpolation ----
+  function posAt(e, t) {
+    const k = e.kf;
+    if (k.length === 0) return { x: 50, y: 50 };
+    if (t <= k[0].t) return { x: k[0].x, y: k[0].y };
+    if (t >= k[k.length - 1].t) return { x: k[k.length - 1].x, y: k[k.length - 1].y };
+    for (let i = 0; i < k.length - 1; i++) {
+      if (t >= k[i].t && t <= k[i + 1].t) {
+        const span = k[i + 1].t - k[i].t || 1;
+        const f = (t - k[i].t) / span;
+        return { x: k[i].x + (k[i + 1].x - k[i].x) * f, y: k[i].y + (k[i + 1].y - k[i].y) * f };
+      }
+    }
+    return { x: k[0].x, y: k[0].y };
+  }
+
+  function setKeyframe(e, t, x, y) {
+    const eps = 0.012;
+    const existing = e.kf.find(k => Math.abs(k.t - t) < eps);
+    if (existing) { existing.x = x; existing.y = y; }
+    else e.kf.push({ t, x, y });
+    e.kf.sort((a, b) => a.t - b.t);
+  }
+
+  // ---- rendering ----
+  function render() {
+    for (const e of entities) {
+      const p = posAt(e, playhead);
+      const el = elById[e.id];
+      el.style.top = xToTop(p.x) + '%';
+      el.style.left = yToLeft(p.y) + '%';
+      el.classList.toggle('sel', e.id === selectedId);
+    }
+    // ball ghosts + trail
+    const ball = entities.find(e => e.id === 'ball');
+    const showG = document.getElementById('showGhosts').checked && ball.kf.length > 1;
+    pitch.querySelectorAll('.trail').forEach(e => e.remove());
+    for (const g of ['gstart', 'gend']) {
+      const el = ghostById[g];
+      el.style.display = showG ? 'block' : 'none';
+      if (showG) {
+        const k = g === 'gstart' ? ball.kf[0] : ball.kf[ball.kf.length - 1];
+        el.style.top = xToTop(k.x) + '%'; el.style.left = yToLeft(k.y) + '%';
+      }
+    }
+    if (showG) for (const k of ball.kf) {
+      const t = document.createElement('div'); t.className = 'trail';
+      t.style.top = xToTop(k.x) + '%'; t.style.left = yToLeft(k.y) + '%';
+      pitch.appendChild(t);
+    }
+    // timeline
+    document.getElementById('playhead').style.left = (playhead * 100) + '%';
+    document.getElementById('phLabel').textContent = playhead.toFixed(2);
+    renderTimelineMarks();
+    renderKfList();
+  }
+
+  function renderTimelineMarks() {
+    const bar = document.getElementById('tlbar');
+    bar.querySelectorAll('.beatmark,.beatlbl,.kfmark').forEach(e => e.remove());
+    for (const b of beats) {
+      const m = document.createElement('div'); m.className = 'beatmark'; m.style.left = (b.t * 100) + '%'; bar.appendChild(m);
+      const l = document.createElement('div'); l.className = 'beatlbl'; l.style.left = (b.t * 100) + '%'; l.textContent = b.label; bar.appendChild(l);
+    }
+    const e = entities.find(x => x.id === selectedId);
+    if (e) for (const k of e.kf) {
+      const d = document.createElement('div'); d.className = 'kfmark'; d.style.left = (k.t * 100) + '%'; bar.appendChild(d);
+    }
+  }
+
+  function renderKfList() {
+    const e = entities.find(x => x.id === selectedId);
+    const box = document.getElementById('kflist');
+    if (!e) { box.innerHTML = ''; return; }
+    box.innerHTML = e.kf.map(k => {
+      const active = Math.abs(k.t - playhead) < 0.02 ? ' active' : '';
+      return `<div class="kfrow${active}" data-t="${k.t}"><span>t ${k.t.toFixed(2)}</span>` +
+             `<span>x ${k.x.toFixed(1)}  y ${k.y.toFixed(1)}</span></div>`;
+    }).join('');
+  }
+
+  function select(id) {
+    selectedId = id;
+    const e = entities.find(x => x.id === id);
+    document.getElementById('selName').textContent =
+      e.kind === 'ball' ? 'Ball' : (e.kind.toUpperCase() + ' #' + e.jersey);
+    document.getElementById('selSwatch').style.background =
+      e.kind === 'ball' ? 'var(--ball)' : e.kind === 'home' ? 'var(--home)' : 'var(--away)';
+    render();
+  }
+
+  // ---- dragging ----
+  let drag = null;
+  pitch.addEventListener('pointerdown', ev => {
+    const el = ev.target.closest('.dot:not(.ghost)');
+    if (!el) return;
+    const id = el.dataset.id;
+    select(id);
+    drag = { id };
+    try { el.setPointerCapture(ev.pointerId); } catch {}
+    ev.preventDefault();
+  });
+  pitch.addEventListener('pointermove', ev => {
+    if (!drag) return;
+    const r = pitch.getBoundingClientRect();
+    const topPct = (ev.clientY - r.top) / r.height * 100;
+    const leftPct = (ev.clientX - r.left) / r.width * 100;
+    const x = topToX(topPct), y = leftToY(leftPct);
+    const e = entities.find(z => z.id === drag.id);
+    if (document.getElementById('autoKey').checked) setKeyframe(e, playhead, x, y);
+    else { // move the nearest keyframe at/over playhead, or kf0
+      const k = e.kf.find(kk => Math.abs(kk.t - playhead) < 0.012) || e.kf[0];
+      k.x = x; k.y = y;
+    }
+    render();
+  });
+  pitch.addEventListener('pointerup', () => { drag = null; });
+
+  // ---- timeline scrub ----
+  const tlbar = document.getElementById('tlbar');
+  let scrubbing = false;
+  const scrub = ev => {
+    const r = tlbar.getBoundingClientRect();
+    playhead = clamp((ev.clientX - r.left) / r.width, 0, 1);
+    render();
+  };
+  tlbar.addEventListener('pointerdown', ev => { scrubbing = true; try { tlbar.setPointerCapture(ev.pointerId); } catch {} scrub(ev); });
+  tlbar.addEventListener('pointermove', ev => { if (scrubbing) scrub(ev); });
+  tlbar.addEventListener('pointerup', () => { scrubbing = false; });
+
+  // ---- playback ----
+  let raf = null, lastTs = 0;
+  function loop(ts) {
+    if (!playing) return;
+    const dt = (ts - lastTs) / 1000; lastTs = ts;
+    const speed = parseFloat(document.getElementById('speed').value);
+    playhead += dt * 0.45 * speed;   // ~2.2s per full timeline at 1x
+    if (playhead >= 1) { playhead = 1; playing = false; document.getElementById('playBtn').textContent = '▶ Play'; }
+    render();
+    if (playing) raf = requestAnimationFrame(loop);
+  }
+  document.getElementById('playBtn').onclick = () => {
+    if (playing) { playing = false; document.getElementById('playBtn').textContent = '▶ Play'; return; }
+    if (playhead >= 1) playhead = 0;
+    playing = true; lastTs = performance.now(); document.getElementById('playBtn').textContent = '⏸ Pause';
+    raf = requestAnimationFrame(loop);
+  };
+  document.getElementById('stopBtn').onclick = () => { playing = false; playhead = 0; document.getElementById('playBtn').textContent = '▶ Play'; render(); };
+
+  // ---- keyframe buttons ----
+  document.getElementById('addKf').onclick = () => {
+    const e = entities.find(x => x.id === selectedId);
+    const p = posAt(e, playhead); setKeyframe(e, playhead, p.x, p.y); render();
+  };
+  document.getElementById('delKf').onclick = () => {
+    const e = entities.find(x => x.id === selectedId);
+    const i = e.kf.findIndex(k => Math.abs(k.t - playhead) < 0.03);
+    if (i > 0) { e.kf.splice(i, 1); render(); }   // never delete the t=0 anchor
+  };
+  document.getElementById('autoKey').onchange = render;
+  document.getElementById('showGhosts').onchange = render;
+  document.getElementById('resetForm').onclick = () => { if (confirm('Reset all players to default formation?')) { makeEntities(); render(); } };
+
+  // ---- keyframe-list rows: click to scrub the playhead to that keyframe ----
+  document.getElementById('kflist').addEventListener('click', ev => {
+    const row = ev.target.closest('.kfrow');
+    if (row) { playhead = clamp(parseFloat(row.dataset.t), 0, 1); render(); }
+  });
+
+  // ---- keyboard shortcuts (ignored while typing in a field) ----
+  function jumpBeat(dir) {
+    if (!beats.length) return;
+    const ts = beats.map(b => b.t).sort((a, b) => a - b);
+    if (dir > 0) { const n = ts.find(t => t > playhead + 1e-4); if (n != null) playhead = n; }
+    else { const ps = ts.filter(t => t < playhead - 1e-4); if (ps.length) playhead = ps[ps.length - 1]; }
+    render();
+  }
+  document.addEventListener('keydown', ev => {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const step = ev.shiftKey ? 0.05 : 0.01;
+    if (ev.code === 'Space')           { ev.preventDefault(); document.getElementById('playBtn').click(); }
+    else if (ev.code === 'ArrowRight') { ev.preventDefault(); playhead = clamp(playhead + step, 0, 1); render(); }
+    else if (ev.code === 'ArrowLeft')  { ev.preventDefault(); playhead = clamp(playhead - step, 0, 1); render(); }
+    else if (ev.key === ']')           { ev.preventDefault(); jumpBeat(1); }
+    else if (ev.key === '[')           { ev.preventDefault(); jumpBeat(-1); }
+    else if (ev.code === 'Home')       { ev.preventDefault(); document.getElementById('stopBtn').click(); }
+  });
+
+  // ---- phase source: embedded samples (phases.js) + optional trace.json ----
+  let phaseItems = [];   // unified: {label, start, moves, resolve, primary, secondary, side, phase, keys}
+  let allEmbedItems = []; // the full enriched embedded set (every predecessor pairing)
+  let mode = 'single';    // 'single' = ~120 distinct phases; 'transitions' = all pairs + seeding
+
+  function setPhaseList(items, note) {
+    phaseItems = items;
+    const sel = document.getElementById('phaseSel');
+    sel.innerHTML = '<option value="">— blank phase —</option>';
+    items.forEach((it, i) => {
+      const o = document.createElement('option'); o.value = i; o.textContent = it.label; sel.appendChild(o);
+    });
+    document.getElementById('phaseInfo').textContent = note;
+  }
+
+  function embedItems() {
+    const E = window.EMBEDDED_PHASES || [];
+    // Find (phase·key) pairs that have more than one distinct predecessor so the
+    // transitions label can disambiguate: "FIRST_PHASE · crash_ball ← LINEOUT:clean_catch"
+    const predsByPk = new Map();
+    for (const s of E) {
+      const pk = s.phase + ':' + s.key;
+      if (!predsByPk.has(pk)) predsByPk.set(pk, new Set());
+      predsByPk.get(pk).add((s.prevPhase || '') + ':' + (s.prevKey || ''));
+    }
+    return E.map(s => {
+      const base = s.phase + ' · ' + s.keys.join('/');
+      const predStr = predsByPk.get(s.phase + ':' + s.key).size > 1
+        ? ' ← ' + (s.prevPhase || '?') + ':' + (s.prevKey || '?')
+        : '';
+      return {
+        label: base, singleLabel: base, transLabel: base + predStr,
+        start: s.start, moves: s.moves || [], resolve: s.resolve,
+        primary: s.primary, secondary: s.secondary, side: s.side, phase: s.phase, keys: s.keys,
+        layout: s.layout || [], attacksTop: s.attacksTop ?? null, actorSide: s.actorSide ?? s.side,
+        prevPhase: s.prevPhase ?? null, prevKey: s.prevKey ?? null,
+      };
+    });
+  }
+
+  // Populate the dropdown for the current mode. 'single' collapses to one richest
+  // sample per (phase, outcome) — no predecessor blending; 'transitions' lists every
+  // predecessor→phase pairing.
+  function rebuildList() {
+    let items;
+    if (mode === 'transitions') {
+      items = allEmbedItems.map(it => ({ ...it, label: it.transLabel }));
+    } else {
+      const byPk = new Map();
+      for (const it of allEmbedItems) {
+        const pk = it.phase + '|' + it.keys.join('/');
+        const score = it.moves.length * 100 + it.layout.length;   // richest path, then fullest layout
+        const cur = byPk.get(pk);
+        if (!cur || score > cur._score) byPk.set(pk, { ...it, label: it.singleLabel, _score: score });
+      }
+      items = [...byPk.values()];
+    }
+    items.sort((a, b) => a.label.localeCompare(b.label));
+    const noun = mode === 'transitions' ? 'phase transitions' : 'single phases';
+    setPhaseList(items, `${items.length} ${noun} — pick one and Load phase.`);
+  }
+
+  function traceItems(trace) {
+    const beats = (trace.beats || []).filter(b => b.keys && b.keys.length);
+    return beats.map(b => {
+      const prev = (trace.beats || []).find(x => x.idx === b.idx - 1);
+      return {
+        label: `#${b.idx} ${b.phase} · ${b.keys.join('/')}`,
+        start: prev ? { x: prev.ballX, y: prev.ballY } : { x: b.ballX, y: b.ballY },
+        moves: b.moves || [], resolve: { x: b.ballX, y: b.ballY },
+        primary: null, secondary: null, side: b.side, phase: b.phase, keys: b.keys,
+        attacksTop: b.attacksTop ?? null, actorSide: b.actorSide ?? b.side,
+        prevPhase: b.prevPhase ?? null, prevKey: b.prevKey ?? null,
+      };
+    });
+  }
+
+  document.getElementById('traceFile').onchange = ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const trace = JSON.parse(rd.result);
+        const items = traceItems(trace);
+        setPhaseList(items, `Loaded ${items.length} beats from trace.json. Pick one and Load phase.`);
+      } catch (e) { alert('Bad trace.json: ' + e.message); }
+    };
+    rd.readAsText(f);
+  };
+
+  // ---- mode toggle: single phases vs transitions ----
+  document.querySelectorAll('#modeToggle .seg-btn').forEach(btn => {
+    btn.onclick = () => {
+      if (btn.dataset.mode === mode) return;
+      mode = btn.dataset.mode;
+      document.querySelectorAll('#modeToggle .seg-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.mode === mode));
+      rebuildList();
+    };
+  });
+
+  document.getElementById('loadPhase').onclick = () => {
+    makeEntities();
+    const v = document.getElementById('phaseSel').value;
+    if (v === '') { phaseName = '(blank)'; beats = []; document.getElementById('phaseTag').textContent = phaseName; render(); return; }
+    const it = phaseItems[v];
+    // Seed the BALL track: start (prev-phase position) → in-phase movements → resolution.
+    const path = it.moves.length ? [it.start, ...it.moves] : [it.start, it.resolve];
+    const dedup = path.filter((p, i) => i === 0 || p.x !== path[i - 1].x || p.y !== path[i - 1].y);
+    const ball = entities.find(e => e.id === 'ball');
+    ball.kf = dedup.map((p, i) => ({ t: dedup.length === 1 ? 0 : i / (dedup.length - 1), x: p.x, y: p.y }));
+    beats = ball.kf.map((k, i) => ({ t: k.t, label: i === 0 ? 'start' : (i === ball.kf.length - 1 ? 'resolve' : 'beat ' + i) }));
+    phaseName = `${it.phase} (${it.keys.join('/')})`;
+    document.getElementById('phaseTag').textContent = phaseName;
+    // Pre-place players at the game's choreographed layout. Priority order for t=0:
+    //   1. Explicit `from` in the layout (formation chase — game-authored, never override).
+    //   2. Predecessor resting position — eliminates the teleport when chaining phases.
+    //   3. Current resting position (static, no animation).
+    // Predecessor seeding only applies in transitions mode; single phases load with
+    // every dot at its own resting position (game-authored `from` chases still animate).
+    const prevById = {};
+    if (mode === 'transitions' && it.prevPhase != null && it.prevKey != null) {
+      const prevSample = (window.EMBEDDED_PHASES || []).find(
+        s => s.phase === it.prevPhase && s.key === it.prevKey
+      );
+      if (prevSample) for (const pd of (prevSample.layout || [])) prevById[pd.id] = pd;
+    }
+    let placed = 0, fromPrev = 0;
+    for (const d of (it.layout || [])) {
+      const e = entities.find(x => x.id === d.id);
+      if (!e) continue;
+      const prev = prevById[d.id];
+      if (d.from) {
+        // Game-authored chase: respect as-is.
+        e.kf = [{ t: 0, x: d.from.x, y: d.from.y }, { t: 1, x: d.x, y: d.y }];
+      } else if (prev && (prev.x !== d.x || prev.y !== d.y)) {
+        // Seed from predecessor resting position → current resting position.
+        e.kf = [{ t: 0, x: prev.x, y: prev.y }, { t: 1, x: d.x, y: d.y }];
+        fromPrev++;
+      } else {
+        e.kf = [{ t: 0, x: d.x, y: d.y }];
+      }
+      placed++;
+    }
+    // Possession + direction badge — keyed on the ACTING team (the side performing the
+    // phase = sideOf(primaryPlayer)), not `it.side`. On a possession-swap outcome (e.g.
+    // box_kick_to_touch) the engine sets `side` to the team receiving the next set piece,
+    // but the animation depicts the actor (the kicker). actorAttacksTop flips the exported
+    // attacksTop (which is relative to `side`) when the actor is the other team.
+    const actorSide = it.actorSide || it.side;
+    const actorAttacksTop = it.attacksTop == null ? null
+      : (actorSide === it.side ? it.attacksTop : !it.attacksTop);
+    const pi = document.getElementById('possIndicator');
+    if (actorSide) {
+      pi.style.background = actorSide === 'home' ? 'var(--home)' : 'var(--away)';
+      pi.style.display = 'block';
+      if (actorAttacksTop === true) {
+        pi.style.top = '3%'; pi.style.bottom = '';
+        pi.textContent = '▲ ' + actorSide.toUpperCase() + ' IN POSSESSION';
+      } else if (actorAttacksTop === false) {
+        pi.style.top = ''; pi.style.bottom = '3%';
+        pi.textContent = '▼ ' + actorSide.toUpperCase() + ' IN POSSESSION';
+      } else {
+        pi.style.top = '3%'; pi.style.bottom = '';
+        pi.textContent = actorSide.toUpperCase() + ' IN POSSESSION';
+      }
+    } else {
+      pi.style.display = 'none';
+    }
+    // Sidebar info — clear possession + direction + involved players
+    const dirStr = actorAttacksTop === true ? ' · attacking ↑ (top)' : actorAttacksTop === false ? ' · attacking ↓ (bottom)' : '';
+    const possStr = actorSide ? actorSide.toUpperCase() + ' in possession' + dirStr + '. ' : '';
+    const invStr = it.primary != null ? 'Involved: #' + it.primary + (it.secondary != null ? ' & #' + it.secondary : '') + '. ' : '';
+    const prevStr = fromPrev > 0 ? ' (' + fromPrev + ' seeded from ' + it.prevPhase + ':' + it.prevKey + ')' : '';
+    document.getElementById('phaseInfo').textContent =
+      possStr + invStr + 'Layout: ' + placed + ' dots placed' + prevStr + ', ball: ' + dedup.length + ' kf.';
+    playhead = 0; render();
+  };
+
+  // ---- export / import ----
+  function exportObj() {
+    return {
+      meta: { phase: phaseName, beats, generatedBy: 'phase-animator', coords: 'game(x:long 0-100 top=100, y:lateral 0-100)' },
+      entities: entities.map(e => ({ id: e.id, kind: e.kind, jersey: e.jersey,
+        kf: e.kf.map(k => ({ t: +k.t.toFixed(4), x: +k.x.toFixed(2), y: +k.y.toFixed(2) })) })),
+    };
+  }
+  document.getElementById('exportBtn').onclick = () => { document.getElementById('io').value = JSON.stringify(exportObj(), null, 2); };
+  document.getElementById('copyBtn').onclick = async () => {
+    const t = document.getElementById('io'); if (!t.value) t.value = JSON.stringify(exportObj(), null, 2);
+    try { await navigator.clipboard.writeText(t.value); } catch {} t.select();
+  };
+  document.getElementById('importBtn').onclick = () => {
+    try {
+      const o = JSON.parse(document.getElementById('io').value);
+      makeEntities();
+      for (const ie of o.entities || []) {
+        const e = entities.find(x => x.id === ie.id);
+        if (!e || !Array.isArray(ie.kf)) continue;
+        // Coerce + drop any keyframe with a non-finite t/x/y so a malformed paste
+        // can't push NaN coords into a dot (which silently vanishes off the canvas).
+        e.kf = ie.kf
+          .map(k => ({ t: +k.t, x: +k.x, y: +k.y }))
+          .filter(k => Number.isFinite(k.t) && Number.isFinite(k.x) && Number.isFinite(k.y));
+      }
+      beats = o.meta?.beats || []; phaseName = o.meta?.phase || '(imported)';
+      document.getElementById('phaseTag').textContent = phaseName; playhead = 0; render();
+    } catch (e) { alert('Bad JSON: ' + e.message); }
+  };
+
+  // ---- go ----
+  makeEntities();
+  if (window.EMBEDDED_PHASES && window.EMBEDDED_PHASES.length) {
+    allEmbedItems = embedItems();
+    rebuildList();
+  } else {
+    document.getElementById('phaseInfo').textContent = 'phases.js not found — start blank, or load a trace.json.';
+  }
+  render();
+})();
+</script>
+</body>
+</html>

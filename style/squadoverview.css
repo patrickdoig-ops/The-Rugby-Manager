@@ -1,0 +1,320 @@
+/* Squad Overview — pre-season depth chart. Mirrors RolloverScreen's
+ * card+section structure and CTA footer pattern verbatim so the visual
+ * language is continuous across the Squad Builder chain. Tokens-only;
+ * the CTA pitch-green is the one design.md-allowed hardcoded hex. */
+
+#squad-overview {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow: hidden;
+}
+
+#so-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
+/* ─── Section card ─── */
+
+.so-section {
+  margin: 14px 16px 0;
+  padding: 14px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 12px;
+  box-shadow: var(--rm-card-shadow);
+}
+
+.so-section--thin {
+  border-color: color-mix(in oklch, var(--rm-stat-2) 35%, var(--rm-border-soft));
+  background: color-mix(in oklch, var(--rm-stat-2) 5%, var(--rm-surface));
+  box-shadow:
+    var(--rm-card-shadow),
+    0 0 18px color-mix(in oklch, var(--rm-stat-2) 12%, transparent);
+}
+
+/* ─── Section header (label · divider · count) ─── */
+
+.so-h3 {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.so-h3-label {
+  flex-shrink: 0;
+}
+
+.so-h3-line {
+  flex: 1;
+  height: 1px;
+  background: var(--rm-hairline);
+}
+
+/* Stacked count badge — display number on top + mono "Total in squad"
+ * label underneath, both right-aligned. Number flips to stat-2 amber
+ * when the section is thin (squad below the depth target) so the gap
+ * registers at a glance without needing extra chrome. */
+.so-h3-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.so-h3-count-val {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  letter-spacing: 0.02em;
+  color: var(--rm-chalk);
+  font-variant-numeric: tabular-nums;
+}
+
+.so-h3-count-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+  text-transform: uppercase;
+}
+
+.so-section--thin .so-h3-count-val {
+  color: var(--rm-stat-2);
+  text-shadow: 0 0 8px color-mix(in oklch, var(--rm-stat-2) 35%, transparent);
+}
+.so-section--thin .so-h3-count-lbl {
+  color: color-mix(in oklch, var(--rm-stat-2) 80%, var(--rm-text-muted));
+}
+
+.so-thin-hint {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: color-mix(in oklch, var(--rm-stat-2) 8%, transparent);
+  border: 1px solid color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
+  border-radius: 8px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: color-mix(in oklch, var(--rm-stat-2) 70%, var(--rm-text));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.so-thin-hint strong {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-stat-2);
+}
+
+/* ─── Player rows ─── */
+
+.so-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.so-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+}
+
+.so-row--empty {
+  background: color-mix(in oklch, var(--rm-surface-2) 80%, transparent);
+  border-style: dashed;
+  border-color: color-mix(in oklch, var(--rm-stat-2) 30%, var(--rm-border-soft));
+}
+
+/* OVR badge — matches the .ct-ovr / .sq-ovr sibling conventions but
+ * scoped to .so-ovr so existing screens stay untouched. */
+.so-ovr {
+  flex-shrink: 0;
+  width: var(--badge-md-size);
+  height: var(--badge-md-size);
+  border-radius: var(--badge-md-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: 1px solid transparent;
+}
+
+.so-ovr-val {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.so-ovr-lbl {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-8);
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.so-ovr.ovr-elite {
+  color: var(--rm-stat-4);
+  background: color-mix(in oklch, var(--rm-stat-4) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-4) 28%, transparent);
+}
+.so-ovr.ovr-elite .so-ovr-val {
+  text-shadow: 0 0 10px color-mix(in oklch, var(--rm-stat-4) 50%, transparent);
+}
+.so-ovr.ovr-good {
+  color: var(--rm-stat-3);
+  background: color-mix(in oklch, var(--rm-stat-3) 12%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-3) 28%, transparent);
+}
+.so-ovr.ovr-avg {
+  color: var(--blue);
+  background: color-mix(in oklch, var(--blue) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--blue) 25%, transparent);
+}
+.so-ovr.ovr-poor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 22%, transparent);
+}
+.so-ovr--empty {
+  color: var(--rm-text-faint);
+  background: transparent;
+  border-color: color-mix(in oklch, var(--rm-stat-2) 25%, transparent);
+}
+.so-ovr--empty .so-ovr-val {
+  font-size: var(--rm-fs-22);
+}
+
+/* Row body */
+
+.so-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.so-row-name {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  font-weight: 600;
+  color: var(--rm-chalk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.so-row--empty .so-row-name {
+  color: var(--rm-text-muted);
+  font-weight: 500;
+}
+
+.so-row-meta {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.06em;
+  color: var(--rm-text-dim);
+  text-transform: uppercase;
+}
+
+/* ─── Footer CTA (mirrors #roll-footer / #eos-footer) ─── */
+
+#so-footer {
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  margin-top: auto;
+}
+
+#so-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #so-continue:hover  { background: var(--rm-cta-hover); }
+}
+#so-continue:active { background: var(--rm-cta-active); transform: scale(0.98); }
+
+#squad-overview .app-header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%
+  );
+  border-bottom-color: color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, transparent);
+}
+
+/* OVR badge: very poor tier */
+.so-ovr.ovr-veryPoor {
+  color: var(--rm-stat-1);
+  background: color-mix(in oklch, var(--rm-stat-1) 10%, var(--rm-surface-2));
+  border-color: color-mix(in oklch, var(--rm-stat-1) 22%, transparent);
+}
+
+/* ─── Expand panel ─── */
+
+.so-expand {
+  flex-basis: 100%;
+}
+
+.so-expand-body {
+  padding: 8px 0 4px;
+}
+
+/* Override sq-stats-grid left padding: align with player name
+ * (OVR badge 42px + gap 12px = 54px) rather than squad jersey column. */
+.so-stats-grid.sq-stats-grid {
+  padding-left: 54px;
+}

@@ -1,0 +1,128 @@
+/* Mode Picker — sits between Team Selector and Hub on the new-game path.
+ * Background uses --team-color (set inline from team.color) for the
+ * stadium-glow gradient. Screen-root visibility owned by screenRouter.
+ */
+
+#mode-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: var(--rm-bg);
+  background-image: radial-gradient(
+    ellipse 200% 130% at 50% 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 80%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 50%,
+    var(--rm-bg) 88%
+  );
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+#mp-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 60px 20px 32px;
+  width: 100%;
+  max-width: 480px;
+}
+
+#mp-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+#mp-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.14em;
+  color: var(--rm-pitch);
+  text-transform: uppercase;
+}
+
+#mp-title {
+  font-family: var(--rm-font-display);
+  font-size: clamp(calc(44px * var(--rm-text-scale)), 14vw, calc(64px * var(--rm-text-scale)));
+  color: var(--rm-chalk);
+  line-height: 0.92;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+#mp-subtitle {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  color: var(--rm-chalk);
+  margin: 0;
+}
+
+#mp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.mp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 20px;
+  background: var(--team-color-tile, var(--team-color, var(--rm-pitch)));
+  border: 1px solid color-mix(in srgb, var(--team-color, var(--rm-pitch)) 65%, transparent);
+  border-radius: 12px;
+  color: var(--team-color-tile-text, var(--rm-chalk));
+  cursor: pointer;
+  text-align: left;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 8px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 25%, rgba(0, 0, 0, 0.4)),
+    0 10px 30px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .mp-card:hover {
+    background: color-mix(in srgb, var(--team-color-tile, var(--team-color, var(--rm-pitch))) 88%, var(--rm-on-accent));
+    transform: translateY(-2px);
+  }
+}
+
+.mp-card:active {
+  background: color-mix(in srgb, var(--team-color-tile, var(--team-color, var(--rm-pitch))) 75%, black);
+  transform: translateY(1px);
+}
+
+.mp-card-icon {
+  margin-bottom: 2px;
+}
+
+.mp-card-title {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mp-card-body {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--team-color-tile-text, var(--rm-chalk)) 80%, transparent);
+}

@@ -1,0 +1,101 @@
+/* Game-over screen — the manager has been sacked. Sombre counterpart to the
+   budget-reveal / end-of-season screens. */
+
+#sacked {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#sack-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+#sack-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-top: 3px solid var(--rm-danger);
+  border-radius: 14px;
+  padding: 28px 20px;
+}
+
+.sack-headline {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-24);
+  font-weight: 800;
+  color: var(--rm-danger);
+  letter-spacing: 0.02em;
+}
+
+.sack-club {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  margin-top: 6px;
+}
+
+.sack-lead {
+  font-size: var(--rm-fs-13);
+  line-height: 1.5;
+  color: var(--rm-text);
+  margin: 16px 0 0;
+}
+
+.sack-summary {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rm-border-soft);
+}
+
+.sack-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sack-summary-val {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-18);
+  font-weight: 700;
+  color: var(--rm-chalk);
+}
+
+.sack-summary-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+}
+
+#sack-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.sack-secondary {
+  background: transparent;
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--rm-text-dim);
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

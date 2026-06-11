@@ -1,0 +1,395 @@
+/* Owner-budget + takeover reveal screens. Sit between EndOfSeason
+ * and Renewals in the post-final off-season chain (plus an extra
+ * BudgetReveal entry point at the start of Squad Builder mode).
+ */
+
+#budget-reveal,
+#takeover-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  background: var(--rm-bg);
+  background-image: radial-gradient(
+    ellipse 200% 55% at 50% 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 70%, black) 0%,
+    color-mix(in srgb, var(--team-color, var(--rm-pitch)) 25%, black) 45%,
+    transparent 80%
+  );
+  display: flex;
+  flex-direction: column;
+  padding-top:    env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left:   env(safe-area-inset-left, 0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ===== BudgetRevealScreen ===== */
+
+#br-card {
+  margin: 18px 16px 0;
+  padding: 22px 18px 24px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color, var(--rm-pitch)) 18%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color, var(--rm-pitch)) 40%, black);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  animation: tkHeroEnter 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.br-crest {
+  width: var(--crest-lg-size);
+  height: var(--crest-lg-size);
+  border-radius: var(--crest-lg-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  font-size: var(--rm-fs-22);
+}
+
+.br-club-name {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  color: var(--rm-text);
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.br-headline-label {
+  margin-top: 6px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+}
+
+.br-headline {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-44);
+  color: var(--rm-text);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.br-delta {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.br-delta--up   { background: color-mix(in oklch, var(--rm-pitch) 22%, transparent); color: var(--rm-pitch); border: 1px solid color-mix(in oklch, var(--rm-pitch) 50%, transparent); }
+.br-delta--down { background: color-mix(in oklch, var(--rm-danger) 22%, transparent); color: var(--rm-danger); border: 1px solid color-mix(in oklch, var(--rm-danger) 50%, transparent); }
+.br-delta--flat { background: var(--rm-surface-2); color: var(--rm-text-muted); border: 1px solid var(--rm-border-soft); }
+
+.br-reasons {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.br-reason {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  letter-spacing: 0.05em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--rm-surface-2);
+  color: var(--rm-text-muted);
+  border: 1px solid var(--rm-border-soft);
+  text-transform: uppercase;
+  /* Cascade entry — delay set inline per chip via --row-delay. The
+     hero card's tkHeroEnter (600ms) plus the budget counter-up (1200ms
+     starting at 600ms) means chips start landing while the counter
+     finishes — chips read as "and here's why". */
+  animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) calc(var(--row-delay, 0ms) + 1400ms) both;
+}
+
+.br-delta {
+  /* Scale-pop entrance after the counter-up settles. */
+  animation: tkCrestPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 1700ms backwards;
+}
+
+.br-usage {
+  margin-top: 14px;
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--rm-bg-deep);
+  border-radius: 10px;
+  border: 1px solid var(--rm-border-soft);
+}
+
+.br-usage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-12);
+}
+
+.br-usage-label { color: var(--rm-text-muted); }
+.br-usage-val   { color: var(--rm-text); font-weight: 600; }
+.br-usage-val--over { color: var(--rm-danger); }
+
+.br-note {
+  margin: 14px 0 0;
+  text-align: center;
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-muted);
+  max-width: 340px;
+  line-height: 1.4;
+}
+
+#br-footer,
+#tk-footer {
+  flex-shrink: 0;
+  padding: 14px 20px var(--safe-bottom);
+  border-top: 1px solid var(--rm-hairline);
+  background: color-mix(in oklch, var(--rm-bg) 92%, transparent);
+  margin-top: auto;
+}
+
+#br-continue,
+#tk-continue {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--rm-pitch) 28%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  #br-continue:hover, #tk-continue:hover { background: var(--rm-cta-hover); }
+}
+#br-continue:active, #tk-continue:active { background: var(--rm-cta-active); }
+
+/* ===== TakeoverRevealScreen ===== */
+
+#tk-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 auto;
+}
+
+@keyframes tkHeroEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes tkCrestPop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.tk-hero {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--team-color, var(--rm-pitch)) 22%, black) 0%, var(--rm-surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--team-color, var(--rm-pitch)) 45%, black);
+  border-radius: 14px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 0 30px color-mix(in srgb, var(--team-color, var(--rm-pitch)) 30%, transparent);
+  animation: tkHeroEnter 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tk-crest {
+  width: var(--crest-sm-size);
+  height: var(--crest-sm-size);
+  border-radius: var(--crest-sm-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rm-font-display);
+  color: var(--rm-chalk);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  flex: 0 0 auto;
+  font-size: var(--rm-fs-14);
+}
+
+.tk-crest--lg {
+  width: var(--crest-xl-size);
+  height: var(--crest-xl-size);
+  border-radius: var(--crest-xl-radius);
+  font-size: var(--rm-fs-36);
+  animation: tkCrestPop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms backwards;
+}
+
+.tk-hero-headline {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-18);
+  color: var(--rm-text);
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.tk-hero-boost {
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-28);
+  color: var(--rm-pitch);
+  letter-spacing: 0.02em;
+}
+
+.tk-hero-sub {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-muted);
+  text-align: center;
+  max-width: 360px;
+  line-height: 1.4;
+}
+
+.tk-others-label {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-text-muted);
+  text-align: center;
+  margin-top: 6px;
+}
+
+.tk-others {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tk-other-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border-soft);
+  border-radius: 10px;
+}
+
+.tk-other-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tk-other-headline {
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text);
+}
+
+.tk-other-boost {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  color: var(--rm-pitch);
+  letter-spacing: 0.04em;
+}
+
+/* Stagger the league-wide takeover rows after the hero card lands.
+   Delay is inline per row via --row-delay. */
+.tk-other-row {
+  animation: rmRowEnter var(--rm-duration-row) var(--rm-ease-out) calc(var(--row-delay, 0ms) + 900ms) both;
+}
+
+/* ── Newspaper framing on the takeover hero card ──
+   Adds an editorial accent above the headline and a faux byline below
+   the boost figure. The hero text already lands via tkHeroEnter on the
+   parent — these inner elements stay opacity:1 so they don't compete. */
+.tk-hero-eyebrow {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-10);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--rm-danger);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid color-mix(in oklch, var(--rm-danger) 35%, transparent);
+}
+.tk-hero-eyebrow::before,
+.tk-hero-eyebrow::after {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 1px;
+  background: color-mix(in oklch, var(--rm-danger) 60%, transparent);
+}
+.tk-hero--investor .tk-hero-eyebrow {
+  color: var(--rm-pitch);
+  border-bottom-color: color-mix(in oklch, var(--rm-pitch) 35%, transparent);
+}
+.tk-hero--investor .tk-hero-eyebrow::before,
+.tk-hero--investor .tk-hero-eyebrow::after {
+  background: color-mix(in oklch, var(--rm-pitch) 60%, transparent);
+}
+
+/* Lift the headline to display-font scale for the newspaper feel. */
+.tk-hero .tk-hero-headline {
+  font-size: var(--rm-fs-26);
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  max-width: 380px;
+}
+
+.tk-hero-byline {
+  font-family: var(--rm-font-editor);
+  font-style: italic;
+  font-size: var(--rm-fs-12);
+  color: var(--rm-text-muted);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #br-card,
+  .br-reason,
+  .br-delta,
+  .tk-hero,
+  .tk-crest--lg,
+  .tk-other-row {
+    animation: rmFadeOnly 80ms ease-out both !important;
+    animation-delay: 0ms !important;
+  }
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#040704" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Rugby Manager" />
+  <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="%BASE_URL%icon.svg" />
+  <title>Rugby Manager</title>
+  <!-- Fonts are self-hosted via @fontsource (imported in src/main.ts) — no CDN. -->
+  <!-- Pre-paint theme gate — light mode deferred (see DESIGN.md §9).
+       Un-comment the body below when body.light-mode CSS rules land:
+  <script>
+    (function(){
+      if(localStorage.getItem('rugby-manager-theme')==='light'){
+        document.body.classList.add('light-mode');
+      }
+    })();
+  </script>
+  -->
+</head>
+<body>
+  <div id="home-screen"></div>
+  <div id="settings"></div>
+  <div id="saves"></div>
+  <div id="team-selector"></div>
+  <div id="team-info"></div>
+  <div id="mode-picker"></div>
+  <div id="hub"></div>
+  <div id="tactics"></div>
+  <div id="fixture-list"></div>
+  <div id="league-table"></div>
+  <div id="league-menu"></div>
+  <div id="competitions-menu"></div>
+  <div id="european-cup"></div>
+  <div id="european-shield"></div>
+  <div id="european-round"></div>
+  <div id="european-final"></div>
+  <div id="team-stats"></div>
+  <div id="player-stats"></div>
+  <div id="player-profile"></div>
+  <div id="pre-match"></div>
+  <div id="team-talk"></div>
+  <div id="app"></div>
+  <div id="match-result"></div>
+  <div id="round-results"></div>
+  <div id="playoff-bracket"></div>
+  <div id="budget-reveal"></div>
+  <div id="takeover-reveal"></div>
+  <div id="end-of-season"></div>
+  <div id="sacked"></div>
+  <div id="renewals"></div>
+  <div id="transfer-market"></div>
+  <div id="retention-decision"></div>
+  <div id="signing-results"></div>
+  <div id="rollover"></div>
+  <div id="contracts"></div>
+  <div id="loans"></div>
+  <div id="contracts-transfers-menu"></div>
+  <div id="scouting"></div>
+  <div id="club-menu"></div>
+  <div id="board-confidence"></div>
+  <div id="staff"></div>
+  <div id="club-finances"></div>
+  <div id="squad-management"></div>
+  <div id="squad-overview"></div>
+  <div id="training"></div>
+  <div id="training-results"></div>
+  <div id="international-break"></div>
+  <div id="intl-callups"></div>
+  <div id="cup-fixtures"></div>
+  <div id="cup-results"></div>
+  <div id="matchday"></div>
+  <div id="assistant-manager"></div>
+  <div id="achievements"></div>
+  <div id="inbox"></div>
+  <div id="press-conference" class="hidden"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

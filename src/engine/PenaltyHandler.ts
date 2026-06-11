@@ -1,0 +1,348 @@
+import type { MatchState, GameEvent } from '../types/match';
+import { MatchPhase, type PenaltyChoice, type KickOffStrategy } from '../types/engine';
+import { resolvePenaltyKickToTouch } from './resolvers/KickingResolver';
+import { resolveOpenPlay } from './resolvers/OpenPlayResolver';
+import { eventBus } from '../utils/eventBus';
+import { clamp } from '../utils/math';
+import { makeId } from './eventId';
+import { attackDir, inOpposition22, inOppositionHalf, isTryScoredAt, metresFromOppositionTryLine, onFieldPlayers, pickHardCarrier, pickKicker, pickFullback, pickPrimaryDefender, tryLineDefenceBonus } from './FieldPosition';
+import { lineoutFormationY, clearingKickLandingY, kickForTouchMissY, openSweepStep } from './Lateral';
+import { applyMatchEvent } from './applyMatchEvent';
+import { PENALTY_VALUES, TAP_AND_GO_AI, TACTIC_MODIFIERS, SWEEP_STYLE_MULT } from './balance';
+import { effDefensiveLine, effStyleScalar } from './tacticsResolve';
+import { rng } from '../utils/rng';
+import type { CommentaryStreamer } from './CommentaryStreamer';
+
+export interface PenaltyHandlerDeps {
+  state: MatchState;
+  humanSide: 'home' | 'away';
+  // Silent mode (headless AI fixture): never prompt. Kick-off defaults to
+  // `high_ball`; penalty decisions take the symmetric field-position
+  // auto-choice in handlePenaltyDecision (kick_to_touch / tap_and_go /
+  // tap_and_kick_dead — same logic for both sides, so no home/away bias).
+  silent?: boolean;
+  // Events route through the streamer so they pace evenly across the tick.
+  streamer: CommentaryStreamer;
+}
+
+export class PenaltyHandler {
+  constructor(private deps: PenaltyHandlerDeps) {}
+
+  async awaitKickOffStrategy(): Promise<KickOffStrategy> {
+    const { state, humanSide, silent } = this.deps;
+    if (silent || state.possession !== humanSide) {
+      return 'high_ball';
+    }
+    const wasRunning = state.engine.isRunning;
+    const choice = await new Promise<KickOffStrategy>(resolve => {
+      eventBus.emit('engine:paused', {
+        payload: { type: 'kickoff_choice', onChoice: (c) => resolve(c) },
+      });
+    });
+    if (wasRunning) eventBus.emit('engine:resumed', {});
+    return choice;
+  }
+
+  async handlePenaltyDecision(): Promise<void> {
+    const { state, humanSide, silent } = this.deps;
+
+    // Silent mode is used for telemetry, the determinism harness, and the
+    // headless AI fixtures inside `recordPlayerMatchResult`. The auto-choice
+    // must be symmetric for both sides — until v2.48a this branch was
+    // gated on `state.possession === humanSide`, and since `humanSide`
+    // defaults to 'home' in silent fixtures, that meant home auto-kicked at
+    // goal in opposition half (3 pts) while away auto-kicked to touch
+    // (defensive lineout). Across the 90-fixture round-robin telemetry
+    // that asymmetry produced ~3 percentage points of structural home-win
+    // bias on top of the documented HOME_ADVANTAGE channel.
+    if (silent) {
+      const opposingSide = state.possession === 'home' ? 'away' : 'home';
+      let autoChoice: PenaltyChoice;
+      if (inOppositionHalf(state)) {
+        // 5-10m from the try line: defenders are unset, a quick tap goes
+        // for the 7-point shot instead of the certain 3 from a goal kick.
+        const dist = metresFromOppositionTryLine(state);
+        const inTapZone = dist >= TAP_AND_GO_AI.closeRangeMinMetres && dist <= TAP_AND_GO_AI.closeRangeMaxMetres;
+        autoChoice = (inTapZone && rng(1, 100) <= TAP_AND_GO_AI.closeRangePct) ? 'tap_and_go' : 'kick_to_touch';
+      } else if (state.clock.clockInTheRed && state.score[state.possession] > state.score[opposingSide]) {
+        autoChoice = 'tap_and_kick_dead';
+      } else {
+        autoChoice = 'kick_to_touch';
+      }
+      this.applyPenaltyChoice(autoChoice);
+      return;
+    }
+
+    // Live mode: prompt the human only when they have a penalty in opposition
+    // half. The AI side stays defensive (kick to touch, with a clock-burn
+    // exception when leading late) — this human-vs-AI asymmetry is by
+    // design (the AI is intentionally less aggressive than the manager).
+    if (state.possession !== humanSide || !inOppositionHalf(state)) {
+      const aiSide = humanSide === 'home' ? 'away' : 'home';
+      let autoChoice: PenaltyChoice;
+      if (state.clock.clockInTheRed && state.possession === aiSide && state.score[aiSide] > state.score[humanSide]) {
+        autoChoice = 'tap_and_kick_dead';
+      } else if (state.possession === aiSide && inOppositionHalf(state)) {
+        // AI side attacking: normally kick to touch, but in the 5-10m close
+        // range take the occasional tap-and-go shot at a 7-point try with
+        // the defence unset (same probability as the silent-mode branch).
+        const dist = metresFromOppositionTryLine(state);
+        const inTapZone = dist >= TAP_AND_GO_AI.closeRangeMinMetres && dist <= TAP_AND_GO_AI.closeRangeMaxMetres;
+        autoChoice = (inTapZone && rng(1, 100) <= TAP_AND_GO_AI.closeRangePct) ? 'tap_and_go' : 'kick_to_touch';
+      } else {
+        autoChoice = 'kick_to_touch';
+      }
+      this.applyPenaltyChoice(autoChoice);
+      return;
+    }
+
+    // state.lastPenalty is set by the PENALTY_AWARDED reducer before the phase
+    // transitions to Penalty; reaching the modal without one is a programming
+    // error (the assert keeps the bus boundary honest about what it sends).
+    const last = state.lastPenalty;
+    if (!last) throw new Error('PenaltyHandler: state.lastPenalty unset when entering Penalty phase');
+
+    const wasRunning = state.engine.isRunning;
+    const choice = await new Promise<PenaltyChoice>(resolve => {
+      eventBus.emit('engine:paused', {
+        payload: {
+          type: 'penalty_choice',
+          context: {
+            phase: state.phase,
+            ballX: state.ball.x,
+            ballY: state.ball.y,
+            inOpposition22: inOpposition22(state),
+            attackingSide: state.possession,
+            clockInTheRed: state.clock.clockInTheRed,
+            halfTimeDone: state.clock.halfTimeDone,
+            offence: last.offence,
+            offenderName: `${last.offender.firstName} ${last.offender.lastName}`,
+            offenderPosition: last.offender.position,
+          },
+          onChoice: (c) => resolve(c),
+        },
+      });
+    });
+    if (wasRunning) eventBus.emit('engine:resumed', {});
+    if (!state.engine.isRunning) return;
+    this.applyPenaltyChoice(choice);
+  }
+
+  private emit(name: 'engine:event' | 'engine:stateChange', payload: { event: GameEvent } | { state: MatchState }): void {
+    if (this.deps.silent) return;
+    // engine:stateChange is paired by the streamer with every flushed event;
+    // we only need to forward engine:event emissions through it.
+    if (name === 'engine:event') this.deps.streamer.enqueue((payload as { event: GameEvent }).event);
+  }
+
+  private applyPenaltyChoice(choice: PenaltyChoice): void {
+    const { state } = this.deps;
+    const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
+    const kicker = pickKicker(attackTeam, state, state.possession);
+
+    if (choice === 'kick_for_goal') {
+      // Enter the KickAtGoal micro-phase: emit the kicker_steps_up beat and
+      // defer the actual kick resolution to KickAtGoalHandler.advance() on
+      // the next tick. MatchCoordinator.nextTickDelay() applies the shorter
+      // inter-tick gap so the build-up doesn't burn a full sim tick.
+      const tryLine = !state.clock.halfTimeDone
+        ? (state.possession === 'home' ? 100 : 0)
+        : (state.possession === 'home' ? 0 : 100);
+      const distFromPosts = Math.abs(state.ball.y - 50) * PENALTY_VALUES.goalKickDistanceFromPostsWeight
+                          + Math.abs(state.ball.x - tryLine) * PENALTY_VALUES.goalKickTryLineOffsetWeight;
+
+      applyMatchEvent(state, { type: 'KICK_AT_GOAL_STARTED', kicker, kind: 'penalty', distFromPosts });
+
+      const entryEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.clock.gameMinute,
+        phase: MatchPhase.Penalty,
+        side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
+        ballX: state.ball.x,
+        ballY: state.ball.y,
+        narration: {
+          steps: [
+            { kind: 'announcement', key: 'kicker_steps_up', primary: kicker },
+          ],
+        },
+      };
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: entryEvent });
+      this.emit('engine:event', { event: entryEvent });
+
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickAtGoal });
+
+    } else if (choice === 'kick_to_touch') {
+      const entryEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.clock.gameMinute,
+        phase: MatchPhase.Penalty,
+        side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
+        ballX: state.ball.x,
+        ballY: state.ball.y,
+        narration: {
+          steps: [
+            { kind: 'announcement', key: 'kicks_for_touch', primary: kicker },
+          ],
+        },
+      };
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: entryEvent });
+      this.emit('engine:event', { event: entryEvent });
+
+      // The kick_to_touch path no longer teleports a flat 20m forward.
+      // Distance is rolled from kicker quality + RNG (resolvePenaltyKickToTouch),
+      // and a touch-finding roll decides whether the kick reaches the
+      // sideline at all. On miss, possession swaps and the opposition
+      // counter-attacks via KickReturn — a real penalty-to-touch cost
+      const distanceToTryLine = metresFromOppositionTryLine(state);
+      const res = resolvePenaltyKickToTouch(kicker, distanceToTryLine);
+      const defendSide: 'home' | 'away' = state.possession === 'home' ? 'away' : 'home';
+      const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
+      const defender = pickFullback(defendTeam, state, defendSide);
+      const kickFromOppositionHalf = inOppositionHalf(state);
+
+      applyMatchEvent(state, { type: 'KICK_FROM_HAND', kicker, metres: res.distance });
+      applyMatchEvent(state, {
+        type: 'BALL_REPOSITIONED',
+        x: clamp(state.ball.x + attackDir(state) * res.distance, 5, 95),
+        // Found touch → lineout snaps to the touchline; missed → in-field diagonal (~5m short of touch).
+        y: res.findsTouch ? lineoutFormationY(state) : kickForTouchMissY(state),
+      });
+
+      let outcomeKey: 'kick_to_touch' | 'kick_to_touch_close' | 'kick_to_touch_long' | 'kick_to_touch_missed';
+      let landingMetres: number | undefined;
+      if (res.findsTouch && kickFromOppositionHalf) {
+        landingMetres = metresFromOppositionTryLine(state);
+        outcomeKey = landingMetres <= 10 ? 'kick_to_touch_close' : 'kick_to_touch_long';
+      } else {
+        outcomeKey = res.findsTouch ? 'kick_to_touch' : 'kick_to_touch_missed';
+      }
+
+      const penEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.clock.gameMinute,
+        phase: MatchPhase.Penalty,
+        side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
+        secondaryPlayer: res.findsTouch ? undefined : defender,
+        ballX: state.ball.x,
+        ballY: state.ball.y,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: outcomeKey, primary: kicker, secondary: res.findsTouch ? undefined : defender, metres: landingMetres }] },
+      };
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
+      this.emit('engine:event', { event: penEvent });
+
+      if (res.findsTouch) {
+        if (state.clock.clockInTheRed) {
+          applyMatchEvent(state, { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET', value: true });
+        }
+        // Found touch — attacking team retains the throw at the new ball
+        // position. The set_piece_award announcement is fired by
+        // MatchCoordinator's cross-tick detector at the start of the next
+        // tick (Lineout), so the penalty tick stays at 1 commentary event
+        // instead of bursting 2.
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
+      } else {
+        // Missed touch — opposition gather and counter-attack via KickReturn.
+        applyMatchEvent(state, { type: 'POSSESSION_SWAPPED' });
+        applyMatchEvent(state, { type: 'KICK_RETURN_CARRIER_SET', player: defender });
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.KickReturn });
+      }
+
+    } else if (choice === 'tap_and_kick_dead') {
+      const penEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.clock.gameMinute,
+        phase: MatchPhase.Penalty,
+        side: state.possession,
+        sideName: (state.possession === 'home' ? state.homeTeam : state.awayTeam).name,
+        primaryPlayer: kicker,
+        ballX: state.ball.x,
+        ballY: state.ball.y,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_kick_dead', primary: kicker }] },
+      };
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
+      this.emit('engine:event', { event: penEvent });
+      applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Lineout });
+
+    } else {
+      // tap_and_go — resolved as a forward hard carry. The defence is
+      // retreating 10m so no breakdown mod is needed; hard-carry tactic
+      // mods still apply for the defensive line shape.
+      const attackSide = state.possession;
+      const defendSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
+      const defendTeam = attackSide === 'home' ? state.awayTeam : state.homeTeam;
+      const carrier = pickHardCarrier(attackTeam, state, attackSide);
+      const defender = pickPrimaryDefender(defendTeam, state, defendSide, carrier);
+      const defensiveLine = effDefensiveLine(state, defendTeam);
+      const collisionMod = TACTIC_MODIFIERS.hardCarryCollisionMod[defensiveLine];
+      const evasionMod   = TACTIC_MODIFIERS.hardCarryEvasionMod[defensiveLine]
+                         + TACTIC_MODIFIERS.defensiveLineEvasionMod[defensiveLine];
+      const dlCollision  = TACTIC_MODIFIERS.defensiveLineCollisionMod[defensiveLine] + collisionMod;
+      const tlBonus = tryLineDefenceBonus(state);
+      const res = resolveOpenPlay(carrier, defender, evasionMod + tlBonus.evasion, 0, dlCollision + tlBonus.collision);
+      const direction = attackDir(state);
+      const gainMetres = res.gainMetres;
+
+      const outcome: 'line_break' | 'dominant_carry' | 'dominant_tackle' | 'play_on' =
+        res.outcome === 'line_break'       ? 'line_break'
+        : res.outcome === 'dominant_carry' ? 'dominant_carry'
+        : res.outcome === 'dominant_tackle' ? 'dominant_tackle'
+        : 'play_on';
+      // Snapshot the tap mark before the carry so the GameEvent can carry a
+      // movements path for the 2D pitch (this handler is an orchestrator outside
+      // PhaseRouter, which builds movements for every other carry phase). The ball
+      // walks tap-mark → final and the carrier-dot follower rides the final leg,
+      // matching open play / first phase. Presentation-only and deterministic.
+      const tapStartX = state.ball.x;
+      const tapStartY = state.ball.y;
+      applyMatchEvent(state, {
+        type: 'CARRY_RESOLVED',
+        carrier,
+        defender,
+        metres: gainMetres,
+        direction,
+        outcome,
+        defSide: defendSide,
+      });
+
+      const tryScored = isTryScoredAt(state.ball.x, attackSide, state.clock.halfTimeDone);
+      // Tap-and-go off a penalty plays like a first phase: attack the open side.
+      if (!tryScored) {
+        const sweep = openSweepStep(state, effStyleScalar(state, attackTeam, SWEEP_STYLE_MULT));
+        applyMatchEvent(state, { type: 'BALL_REPOSITIONED', y: sweep.y, lateralDir: sweep.lateralDir });
+      }
+      const penEvent: GameEvent = {
+        id: makeId(),
+        gameMinute: state.clock.gameMinute,
+        phase: MatchPhase.Penalty,
+        side: attackSide,
+        sideName: attackTeam.name,
+        primaryPlayer: carrier,
+        secondaryPlayer: defender,
+        ballX: state.ball.x,
+        ballY: state.ball.y,
+        movements: (tapStartX !== state.ball.x || tapStartY !== state.ball.y)
+          ? [{ x: tapStartX, y: tapStartY }, { x: state.ball.x, y: state.ball.y }]
+          : undefined,
+        outcome,
+        narration: { steps: [{ kind: 'phase_outcome', phase: MatchPhase.Penalty, key: 'tap_and_go', primary: carrier, secondary: defender }] },
+      };
+      applyMatchEvent(state, { type: 'COMMENTARY_LOGGED', event: penEvent });
+      this.emit('engine:event', { event: penEvent });
+
+      if (tryScored) {
+        applyMatchEvent(state, { type: 'PENDING_TRY_SCORER_SET', scorer: carrier });
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.TryScored });
+      } else {
+        applyMatchEvent(state, { type: 'PHASE_CHANGED', phase: MatchPhase.Breakdown });
+      }
+    }
+
+    this.emit('engine:stateChange', { state });
+  }
+}

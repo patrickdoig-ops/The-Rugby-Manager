@@ -67,7 +67,7 @@ export function initMatchdayScreen(
       const isMine = f.homeId === myId || f.awayId === myId;
       const rowDelay = Math.min(i, 16) * 25;
       return `
-        <div class="fl-row fl-row--locked${isMine ? ' fl-row--me' : ''}" style="--row-delay: ${rowDelay}ms">
+        <div class="fl-row${isMine ? ' fl-row--me' : ''}" style="--row-delay: ${rowDelay}ms">
           <div class="fl-round"><span class="fl-round-label">${COMP_TAG[f.comp]}</span></div>
           <div class="fl-matchup">
             <div class="fl-team fl-team--home">
@@ -88,9 +88,9 @@ export function initMatchdayScreen(
       ? formatDateMedium(block.startDate)
       : `${formatDateMedium(block.startDate)} – ${formatDateMedium(block.endDate)}`;
     const mineCount = block.fixtures.filter(f => f.homeId === myId || f.awayId === myId).length;
-    const sub = mineCount > 0
-      ? `${myTeam?.name ?? 'Your club'} ${mineCount > 1 ? `play ${mineCount} games` : 'are in action'} this week.`
-      : `${myTeam?.name ?? 'Your club'} have no fixture this week — the rest of the schedule plays out.`;
+    const sub = mineCount === 0
+      ? `${myTeam?.name ?? 'Your club'} have no fixture this week — the rest of the schedule plays out.`
+      : '';
 
     // When the manager has a League Cup game this block, note who's in charge —
     // mirrors the persistent Club → Assistant Manager setting.
@@ -115,10 +115,10 @@ export function initMatchdayScreen(
       </div>
 
       <div class="cup-content">
-        <div class="cup-hero">
-          <div class="cup-hero-sub">${sub}</div>
+        ${(sub || assistNote) ? `<div class="cup-hero">
+          ${sub ? `<div class="cup-hero-sub">${sub}</div>` : ''}
           ${assistNote ? `<div class="cup-hero-sub" style="margin-top:0.35rem;color:#9aa0a6;font-style:italic">${assistNote}</div>` : ''}
-        </div>
+        </div>` : ''}
         <div id="fl-list">${rows}</div>
       </div>
 

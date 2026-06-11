@@ -78,6 +78,7 @@ import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
 import { initMatchdayScreen, showMatchdayPreview } from './ui/MatchdayScreen';
+import type { CalendarBlock } from './game/calendarBlocks';
 import { initTacticsHubScreen, showTacticsScreen } from './ui/TacticsHubScreen';
 import { initLeagueTableScreen, showLeagueTable, showLeagueTablePostMatch } from './ui/LeagueTableScreen';
 import { initLeagueMenuScreen, showLeagueMenuScreen } from './ui/LeagueMenuScreen';
@@ -1363,48 +1364,147 @@ document.addEventListener('DOMContentLoaded', () => {
     if (eng.isManagerSacked()) { runSackScreen('midseason'); return; }
     const toHub = (): void => { if (gameEngine) autosave(gameEngine.toSavePayload()); goHub(); };
 
-    // The actual advance: route to the existing per-competition flow in the
-    // same priority order the Hub preview uses.
-    const dispatch = (): void => {
-      const s = eng.getState();
-      // 1. Playoffs — the bracket exists from the final regular round until rollover.
-      if (s.league.playoffs) { void runPlayoffWeek(); return; }
-      // 2. League Cup break (pre-season block / international windows).
-      if (eng.getCupBreakStep()) { onPlayCupStep(toHub); return; }
-      // 3. European fixture due, or a completed-but-unshown European round.
-      if (eng.getCurrentEuropeanFixture() || eng.getCurrentEuropeanRound()) {
-        maybePlayEuropeanFixture(toHub);
-        return;
-      }
-      // 4. Next league fixture.
-      const next = eng.getCurrentFixture();
-      if (next) {
-        const home = allTeams.find(t => t.id === next.homeId);
-        const away = allTeams.find(t => t.id === next.awayId);
-        if (home && away) {
-          const playerSide: 'home' | 'away' = next.homeId === s.player.teamId ? 'home' : 'away';
-          onPlayRound(home, away, playerSide, next.round);
-        }
-        return;
-      }
-      // 5. Nothing left to play — the season is over; enter the end-of-season chain.
+    // Cup recap / international-return admin steps carry no fixtures to preview
+    // — advance straight through their existing recap screens. The cup
+    // matchdays themselves go through the block-driven runCupBlock below; this
+    // only catches a leg's end recap or a standalone returns step.
+    const cupStep = eng.getCupBreakStep();
+    if (cupStep === 'advance_round' || cupStep === 'resolve_returns') {
+      onPlayCupStep(toHub);
+      return;
+    }
+    // European completed-but-unshown round (no fixture) — recap, no preview.
+    if (!eng.getCurrentEuropeanFixture() && eng.getCurrentEuropeanRound()) {
+      maybePlayEuropeanFixture(toHub);
+      return;
+    }
+
+    const block = eng.getNextBlock();
+    if (!block) {
+      // No fixtures left to cluster — finish the playoffs or roll the season.
+      if (eng.getState().league.playoffs) { void runPlayoffWeek(); return; }
       runEndOfSeasonChain();
+      return;
+    }
+
+    // Show the week's fixtures, then play the block.
+    showMatchdayPreview(block, () => playBlock(block, toHub), () => goHub('back'));
+    screenRouter.show('matchday');
+  }
+
+  // Plays one block after its fixtures preview. The League Cup runs through its
+  // own block-scoped driver (byes included); every other competition delegates
+  // to its existing per-fixture flow (each of which owns its result → training
+  // → Hub tail).
+  function playBlock(block: CalendarBlock, onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    if (block.fixtures.some(f => f.comp === 'cup')) { runCupBlock(block, onDone); return; }
+    if (eng.getState().league.playoffs) { void runPlayoffWeek(); return; }
+    if (eng.getCurrentEuropeanFixture()) { maybePlayEuropeanFixture(onDone); return; }
+    const next = eng.getCurrentFixture();
+    if (next) {
+      const home = allTeams.find(t => t.id === next.homeId);
+      const away = allTeams.find(t => t.id === next.awayId);
+      if (home && away) {
+        const playerSide: 'home' | 'away' = next.homeId === eng.getState().player.teamId ? 'home' : 'away';
+        onPlayRound(home, away, playerSide, next.round);
+      }
+      return;
+    }
+    runEndOfSeasonChain();
+  }
+
+  // The leg a cup block belongs to (knockout fixtures count as leg 2).
+  function cupLegOfBlock(block: CalendarBlock): 0 | 1 | 2 | null {
+    const ref = block.fixtures.find(f => f.comp === 'cup');
+    if (!ref || ref.comp !== 'cup') return null;
+    return ref.ref.kind === 'pool' ? ref.ref.fixture.leg : 2;
+  }
+
+  // League Cup — one matchday (date-clustered block) per Continue. The player
+  // plays (or assistant-sims) their fixture if they have one this block; the
+  // rest of the block's cup games are simmed; then the block results, a
+  // training week, and any international returns, before the Hub. A bye block
+  // skips the match cycle and goes straight to sim → results → training. The
+  // call-ups + assistant/direction decision fire once, at the break's first cup
+  // matchday (isCupBlockStart).
+  function runCupBlock(block: CalendarBlock, onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    if (eng.isCupBlockStart()) {
+      const begin = eng.beginInternationalBreak();
+      const proceed = (): void => showCupDecision(() => playCupBlockMatches(block, onDone));
+      if (begin) {
+        showInternationalCallUps(begin, proceed);
+        screenRouter.show('intl-callups');
+      } else {
+        proceed();
+      }
+      return;
+    }
+    playCupBlockMatches(block, onDone);
+  }
+
+  function playCupBlockMatches(block: CalendarBlock, onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    const blockEnd = block.endDate;
+    const ref = eng.getCupFixtureInBlock(blockEnd);
+
+    // After the player's fixture (or immediately, on a bye): sim the rest of
+    // this block's cup games, show the block results (the leg's results so far
+    // + pool tables), train, resolve any international returns, then Hub.
+    const afterPlayerFixture = (): void => {
+      void eng.simCupBlock(blockEnd).then(() => {
+        autosave(eng.toSavePayload());
+        const leg = cupLegOfBlock(block);
+        const toTraining = (): void => {
+          // Mark the leg recap shown once it's due so the existing end-of-leg
+          // recap path doesn't surface the same screen a second time.
+          const rr = eng.getCurrentCupRound();
+          if (rr) eng.markCupRoundShown(rr.roundKey);
+          autosave(eng.toSavePayload());
+          afterCupMatch(() => maybeResolveCupReturns(onDone));
+        };
+        if (leg !== null) {
+          showCupResults(leg, toTraining);
+          screenRouter.show('cup-results');
+        } else {
+          toTraining();
+        }
+      });
     };
 
-    // Show the week's fixtures ("This Week") before playing — except on the
-    // cup recap / international-return admin steps and the European
-    // round-recap step, which carry no fixtures to preview; those advance
-    // straight through their existing recap screens.
-    const cupStep = eng.getCupBreakStep();
-    const isRecapStep = (cupStep != null && cupStep !== 'play_fixture')
-      || (!eng.getCurrentEuropeanFixture() && eng.getCurrentEuropeanRound() != null);
-    const block = eng.getNextBlock();
-    if (block && !isRecapStep) {
-      showMatchdayPreview(block, dispatch, () => goHub('back'));
-      screenRouter.show('matchday');
+    if (ref && eng.getState().player.cupManageLive) {
+      eng.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? blockEnd));
+      onPlayCupMatch(ref, afterPlayerFixture);
+    } else if (ref) {
+      eng.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? blockEnd));
+      void eng.runPlayerCupFixtureHeadless(ref).then(afterPlayerFixture);
     } else {
-      dispatch();
+      eng.advanceCupCalendar(blockEnd);
+      afterPlayerFixture();
     }
+  }
+
+  // After a cup block's training: if the break's cup games are all done and the
+  // manager's internationals are still away, process their returns before the
+  // Hub (mirrors the legacy resolve_returns step, folded into the block tail).
+  function maybeResolveCupReturns(onDone: () => void): void {
+    const eng = gameEngine;
+    if (!eng) { onDone(); return; }
+    if (eng.getCupBreakStep() === 'resolve_returns') {
+      const window = eng.getBreakWindow();
+      const summary = window ? eng.resolveInternationalWindow(window) : undefined;
+      autosave(eng.toSavePayload());
+      if (summary) {
+        showInternationalBreak(summary, onDone);
+        screenRouter.show('international-break');
+        return;
+      }
+    }
+    onDone();
   }
 
   function onPlayRound(homeTeam: RawTeamInput, awayTeam: RawTeamInput, playerSide: 'home' | 'away', round: number): void {

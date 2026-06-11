@@ -119,11 +119,36 @@ Every other club's cup fixtures are always simulated headless (`simRestOfCupLeg`
 / `simDueCupKnockouts`, skipping the player's team). All cup teams exclude
 players on international duty and injured players.
 
-## Weekly flow + cursor (`getCupBreakStep`)
+## Block-driven matchdays (the unified Continue cycle)
 
-The cup break is no longer a single headless block — it is a sequence of game
-weeks driven from the Hub. `GameCoordinator.getCupBreakStep()` returns the next
-action, in priority order:
+Since the unified calendar landed, the cup is driven **one date-clustered block
+per Continue** from `main.ts`'s `onContinue` → `playBlock` → `runCupBlock`,
+matching every other competition's rhythm (preview → play/sim → results →
+training → Hub). Each cup matchday is a block; **byes are first-class** — a
+block in which the manager's club isn't playing still runs as its own Continue
+(preview → sim the block → leg results so far → training → Hub).
+
+Two block-scoped coordinator helpers back this:
+- **`getCupFixtureInBlock(blockEnd)`** — the player's playable cup fixture dated
+  on or before `blockEnd` (this block only); **null on a bye** (their next
+  fixture is in a later block). Block-scoped sibling of `getCurrentCupFixture`.
+- **`simCupBlock(blockEnd)`** — sims the block's non-player cup games
+  (`simRestOfCupLeg` up to `blockEnd`), then seeds + sims the knockout if the
+  leg-2 pool just completed. Block-scoped sibling of `simDueCupFixtures`.
+
+`runCupBlock` fires the call-ups + assistant/direction decision once at the
+break's first cup matchday (`isCupBlockStart`), plays/assistant-sims the player's
+fixture (or skips it on a bye), then `simCupBlock` → `CupResultsScreen` (leg
+results so far + pool tables; the leg recap is marked shown via
+`getCurrentCupRound` → `markCupRoundShown` so it doesn't double-surface) →
+`runCupMatchdayTraining` → international returns (folded into the block tail).
+
+### Legacy cursor (`getCupBreakStep`) — still the recap / returns safety net
+
+`GameCoordinator.getCupBreakStep()` still returns the next action, in priority
+order, and `onContinue` falls through to the legacy `onPlayCupStep` driver for
+its `advance_round` (end-of-leg recap) and `resolve_returns` steps (and a reload
+mid-break re-enters cleanly through it):
 
 - `play_fixture` — the manager has a due cup fixture (`getCurrentCupFixture`,
   pool or knockout). Played live or assistant-simmed per `cupManageLive`.

@@ -191,6 +191,17 @@ export class InternationalBreakCoordinator {
     return null;
   }
 
+  // The player's playable cup fixture dated on or before `blockEnd` — i.e.
+  // their fixture in the CURRENT block only. Null on a bye (their next fixture
+  // falls in a later block) or when nothing is due. Block-scoped sibling of
+  // getCurrentCupFixture so each cup matchday is one Continue, byes included.
+  getCupFixtureInBlock(blockEnd: string): CupFixtureRef | null {
+    const ref = this.getCurrentCupFixture();
+    if (!ref) return null;
+    const date = ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? '');
+    return date && date <= blockEnd ? ref : null;
+  }
+
   // The earliest cup round (leg / KO stage) whose fixtures are all resolved
   // and not yet shown to the player. Mirrors getCurrentEuropeanRound.
   getCurrentCupRound(): CupRoundRef | null {
@@ -310,6 +321,20 @@ export class InternationalBreakCoordinator {
     // Complete the whole leg (unbounded date) — this is the catch-up pass that
     // resolves byes / non-player fixtures so the leg can close.
     await this.simRestOfCupLeg(leg, '9999-12-31');
+    if (leg === 2) this.maybeSeedCupKnockout();
+    if (leg === 2) await this.simDueCupKnockouts();
+    this.maybeFireCupLegDevelopment(leg);
+  }
+
+  // Block-scoped simDueCupFixtures: sim every non-player cup fixture in the
+  // active leg dated on or before `blockEnd` (the byes / other games of this
+  // matchday), then seed + sim the knockout if the leg-2 pool just completed.
+  // Lets each cup matchday resolve as its own Continue without jumping the
+  // whole leg ahead.
+  async simCupBlock(blockEnd: string): Promise<void> {
+    const leg = this.activeCupLeg();
+    if (leg === null) { await this.simDueCupKnockouts(); return; }
+    await this.simRestOfCupLeg(leg, blockEnd);
     if (leg === 2) this.maybeSeedCupKnockout();
     if (leg === 2) await this.simDueCupKnockouts();
     this.maybeFireCupLegDevelopment(leg);

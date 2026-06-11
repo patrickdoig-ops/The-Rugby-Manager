@@ -596,6 +596,10 @@ export class GameCoordinator {
     return this.intlBreak.getCurrentCupFixture();
   }
 
+  getCupFixtureInBlock(blockEnd: string): CupFixtureRef | null {
+    return this.intlBreak.getCupFixtureInBlock(blockEnd);
+  }
+
   getCurrentCupRound(): CupRoundRef | null {
     return this.intlBreak.getCurrentCupRound();
   }
@@ -631,6 +635,11 @@ export class GameCoordinator {
 
   async simDueCupFixtures(): Promise<void> {
     await this.intlBreak.simDueCupFixtures();
+    eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  async simCupBlock(blockEnd: string): Promise<void> {
+    await this.intlBreak.simCupBlock(blockEnd);
     eventBus.emit('game:weekAdvanced', { state: this.state });
   }
 

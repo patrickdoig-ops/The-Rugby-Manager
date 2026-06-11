@@ -292,7 +292,7 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
   // Next Match tile in place of a days-away countdown so the tile reads the
   // same every week regardless of which competition is next.
   const COMP_CHIP: Record<NextMatchInfo['compKey'], { label: string; color: string }> = {
-    league:         { label: 'PREMIERSHIP',     color: '#1f9d4d' },
+    league:         { label: 'LEAGUE',          color: '#1f9d4d' },
     cup:            { label: 'LEAGUE CUP',      color: '#c8821a' },
     europeanCup:    { label: 'EUROPEAN CUP',    color: '#2f6fd0' },
     europeanShield: { label: 'EUROPEAN SHIELD', color: '#8a5fd0' },

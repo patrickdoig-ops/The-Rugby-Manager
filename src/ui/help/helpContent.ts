@@ -74,7 +74,7 @@ const HELP_TOPICS = {
     title: 'The Hub',
     purpose: 'Your home base between matches. Everything you manage — squad, tactics, training, transfers and the club — branches from here.',
     features: [
-      { label: 'Next Match card', desc: 'Shows your upcoming fixture, venue and recent form for both sides — the same format for every competition, with a colour-coded chip naming the competition (Premiership, League Cup, European or Playoffs).' },
+      { label: 'Next Match card', desc: 'Shows your upcoming fixture, venue and recent form for both sides — the same format for every competition, with a colour-coded chip naming the competition (League, League Cup, European or Playoffs).' },
       { label: 'Inbox banner', desc: 'Your assistant’s briefings — injuries, expiring contracts and news that need attention.' },
       { label: 'Six tiles', desc: 'Squad, Tactics, Competitions, Training, Contracts & Transfers, and Club open the management screens.' },
       { label: 'Continue', desc: 'The main button — always reads “Continue”. Advances the game by one step, whether that’s a league match, a cup tie, a European fixture or a playoff, and starts the build-up.' },

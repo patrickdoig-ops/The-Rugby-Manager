@@ -730,9 +730,17 @@ On any knock-on: possession flips, scrum awarded, dropping player −0.45. The `
 
 **Authored choreography (Phase Animator JSONs)**
 
-If a Phase Animator JSON is registered for the play type, `applyChoreography()` overlays it onto the `PhaseResult` before it is returned. The registry key is `"prevPhase:outcomeKey"` (e.g. `"SCRUM:crash_ball"`, `"LINEOUT:out_the_back"`), stored in `FIRST_PHASE_CHOREOGRAPHIES` in `src/engine/balance/firstPhaseChoreography.ts`.
+If a Phase Animator JSON is registered for the play type, the authored frame is overlaid onto the `PhaseResult` before it is returned, stored in `FIRST_PHASE_CHOREOGRAPHIES` in `src/engine/balance/firstPhaseChoreography.ts`.
 
-`applyChoreography` does the following:
+**Module.** The pipeline lives in `src/engine/choreography/applyChoreography.ts` as separately-reviewable typed stages, shared by both handlers (the transform third is no longer duplicated). `FirstPhaseEvent` calls `applyFirstPhaseChoreography(res, parsedChoreo, { state, dir, attackSide, goCrashBall })` (full reconciliation); `ScrumEvent` calls `applyScrumChoreography(res, parsedChoreo, state, dir, attackSide)` (frame transform only — the wheel has a static ball and no outcome to reconcile). The stages:
+- `computeFrame` → flip flags (`flipX`/`flipY`) + live anchor offset (`dx`/`dy`) + real side strings.
+- `transformEntities` → maps every authored keyframe onto the live pitch, swaps paired slots on a single-axis reflection, filters slots (first phase: backs only; scrum: forwards only), and collects the ball path.
+- `spliceBallEvents` → injects the authored ball path into the event stream (replacing procedural repositions before the carry, or appending when there's no carry/penalty).
+- `truncateToOutcome` → cuts the authored timeline back to where the engine outcome lands and rescales `t` to `[0,1]` (the min-distance + tolerance scan).
+- `extendForOffloads` → procedurally appends offload pass/run keyframes past the authored end.
+- `reconcileTryY` → on a try, the authored grounding y overrides the procedural `tryLandingY` (and the try-location commentary band).
+
+Concretely the pipeline does the following:
 1. **Parses the authored anchor** — the ball's `t = 0` keyframe position (`authoredAnchorX`, `authoredAnchorY`) plus the attack direction inferred from the attacking #10's depth relative to the ball (`authoredAttacksTop`). Also computes `authoredNearTop = authoredAnchorY >= 50`.
 2. **Computes flip flags** — `flipX = authoredAttacksTop !== attacksTop`, `flipY = authoredNearTop !== nearTop`. Both can fire independently.
 3. **Computes the live offset** — `dx = state.ball.x − anchorX`, `dy = state.ball.y − anchorY` (after applying flips to the anchor). Every authored coordinate is shifted by this delta so the entire move slides to wherever the engine's ball actually started, anchored to the real set-piece position rather than the authored canvas origin.
@@ -748,7 +756,7 @@ Narration outcome keys for authored first-phase plays:
 
 The authored ball path **replaces** the procedural `emitSweepHops` lateral movement for that play. The engine still resolves the outcome (dominant tackle / line break / play on / etc.) and the `CARRY_RESOLVED` event is preserved — the choreography system only replaces the in-phase ball-path keyframes, never the final ball position or outcome logic.
 
-**Lookup key.** `FIRST_PHASE_CHOREOGRAPHIES` is keyed by the exact string its consumer looks up — NOT a uniform `prevPhase:outcomeKey` scheme. First-phase plays are looked up by the **bare `playType`** (`FirstPhaseEvent.applyChoreography` sets `choreoKey = playType`), so they register under bare keys. The scrum **wheel** is looked up by `ScrumEvent` under the literal `'SCRUM:wheel'`. A prefixed key for a bare-key consumer never resolves and silently leaves the play on procedural animation.
+**Lookup key.** `FIRST_PHASE_CHOREOGRAPHIES` is keyed by the exact string its consumer looks up — NOT a uniform `prevPhase:outcomeKey` scheme. First-phase plays are looked up by the **bare `playType`** (`FirstPhaseEvent` passes `FIRST_PHASE_CHOREOGRAPHIES[playType]` into `applyFirstPhaseChoreography`), so they register under bare keys. The scrum **wheel** is looked up by `ScrumEvent` under the literal `'SCRUM:wheel'`. A prefixed key for a bare-key consumer never resolves and silently leaves the play on procedural animation.
 
 Currently registered choreographies:
 

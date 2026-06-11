@@ -17,7 +17,7 @@ follow the doc-sync table in `CLAUDE.md`, and bump `src/version.ts` (src-touchin
 | WP4.1 | ◑ partial | Shared `swapPairedSlot` helper extracted + both engine sites refactored. The fuller transform unification (`flipPoint`/`anchorPoint` across all 5 sites) is **not** done. |
 | WP4.2 | ✅ done | `placeFormation` swaps paired slots on single-axis reflection. **Skips `defenderIsAttacker` frames** (unverified parity). **NEEDS OWNER EYEBALL** on both touchlines/directions. |
 | WP6.1 | ✅ done | DESIGN.md drift fixes (chaserEl, key convention). |
-| **WP3.1** | ⏳ not started | Large behaviour-preserving refactor of the 390-line `applyChoreography`. Runs only in live (non-silent) mode, so `verify` can't catch a regression — do it with the dev server open and eyeball an authored crash-ball / out-the-back / wheel before+after. |
+| **WP3.1** | ✅ done | `applyChoreography` extracted to typed stages in `src/engine/choreography/applyChoreography.ts`, shared by both handlers. Behaviour-preserving: silent-score golden unchanged + 192-case `transformEntities` equivalence sweep (0 mismatches). |
 | **WP3.2** | ⏳ deferred | Needs new cross-tick engine state (the set-piece origin isn't tracked past the tick that sets `nextPhase = FirstPhase`), so it is **not** the "additive" change first assumed — it touches the mutation boundary. No current registry entry benefits (only bare keys + the separately-handled `SCRUM:wheel`). Do alongside authoring the first per-predecessor variant. |
 | **WP5.1** | ✅ done | Baked tables extracted to `src/ui/pitchFormations.ts`; behaviour-neutral (silent-score golden unchanged). |
 | **WP5.2** | ✅ done | Pure `transitionDirective(event, currentPhase)` → `{ snap, hold, preserveKeys }` in `pitchChoreography.ts`; `PitchPlayers.applyBeat` consumes it. Behaviour-preserving. |
@@ -170,20 +170,27 @@ this plan's commit and will drift.
 ## WP3 — Authored-play pipeline hardening (3 commits)
 *(Priority raised: the owner will author more backs moves in the Phase Animator.)*
 
-### 3.1 Extract `applyAuthoredChoreography` from the phase handlers
-- **Where:** `FirstPhaseEvent.ts` — `applyChoreography` is a ~390-line closure doing five
-  jobs; `ScrumEvent.ts` `applyScrumChoreography` duplicates the transform third of it.
-- **Change:** new module `src/engine/choreography/` with typed, separately reviewable
-  functions: `transformEntities` (flipX/flipY + anchor dx/dy + paired-slot swap),
-  `spliceBallEvents`, `truncateToOutcome` (the min-distance + tolerance scan — preserve the
-  documented algorithm exactly), `extendForOffloads`, `reconcileTryY`. `FirstPhaseEvent` and
-  `ScrumEvent` both consume it. Replace the `any` casts with the real `MatchEvent` union
-  narrowings. **Behaviour-preserving** — verify with `npm run verify` (determinism must not
-  shift; this code runs only when `!silent`, so determinism scripts won't see it — also
-  eyeball an authored crash-ball/out-the-back/wheel in the dev server before and after).
-- **Doc sync:** new subsection in `docs/match-engine.md` (authored choreography module);
-  update the pointers in `docs/DESIGN.md` §15.7 and `docs/phase-animator.md` §9. Update the
-  playbook's "engine-side pipeline" rows.
+### 3.1 Extract `applyAuthoredChoreography` from the phase handlers ✅ DELIVERED
+- **Where:** `FirstPhaseEvent.ts` — `applyChoreography` was a ~390-line closure doing five
+  jobs; `ScrumEvent.ts` `applyScrumChoreography` duplicated the transform third of it.
+- **Done:** new module `src/engine/choreography/applyChoreography.ts` with typed, separately
+  reviewable stages: `computeFrame`, `transformEntities` (flipX/flipY + anchor dx/dy +
+  paired-slot swap), `spliceBallEvents`, `truncateToOutcome` (min-distance + tolerance scan,
+  preserved verbatim), `extendForOffloads`, `reconcileTryY`, plus the two orchestrators
+  `applyFirstPhaseChoreography` / `applyScrumChoreography`. `FirstPhaseEvent` keeps a thin
+  closure with its old `(res, playType, dirOverride?)` signature; `ScrumEvent` calls the
+  scrum orchestrator. `any` casts replaced with `MatchEvent` union narrowings.
+- **Behaviour-preservation evidence:** the pipeline mutates `res.events` (suppressBallMove,
+  the spliced ball path, truncation, and the try-Y reconciliation that feeds conversion
+  difficulty), so `checkSilentScores` exercises it — **golden hash unchanged** (`0fc665cd…`).
+  The only surface the golden can't see (the initial `choreography[]` build) was checked
+  with a throwaway sweep harness comparing the extracted `transformEntities` against a
+  faithful copy of the original arithmetic across **192 orientation cases — 0 mismatches**.
+  (Plan note "runs only when !silent" was inaccurate — it runs in silent too, which is why
+  the golden covers it.)
+- **Doc sync done:** `docs/match-engine.md` § "Authored choreography" rewritten with the
+  module + stage list; `docs/DESIGN.md` §15.7 + `docs/phase-animator.md` table + playbook
+  engine-pipeline row updated.
 
 ### 3.2 Predecessor-qualified registry keys
 - **Where:** `balance/firstPhaseChoreography.ts` keys (`'crash_ball'`, `'out_the_back'`,

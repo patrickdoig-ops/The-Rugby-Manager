@@ -41,9 +41,10 @@ Two pipelines exist (both are kept, by owner decision):
   `PitchPlayers.ts`.
 - **Engine pipeline** — Phase Animator JSON parsed into
   `src/engine/balance/firstPhaseChoreography.ts` (`FIRST_PHASE_CHOREOGRAPHIES`), applied by
-  `applyChoreography` in `src/engine/events/FirstPhaseEvent.ts` (and
-  `applyScrumChoreography` in `ScrumEvent.ts`), consumed via `GameEvent.choreography` +
-  authored `t` on `GameEvent.movements`.
+  the typed stages in `src/engine/choreography/applyChoreography.ts` —
+  `applyFirstPhaseChoreography` (from `FirstPhaseEvent.ts`) and `applyScrumChoreography`
+  (from `ScrumEvent.ts`) — consumed via `GameEvent.choreography` + authored `t` on
+  `GameEvent.movements`.
 
 | Phase / outcome | Placement source | Motion driver |
 |---|---|---|

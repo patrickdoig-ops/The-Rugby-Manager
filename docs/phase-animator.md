@@ -292,7 +292,7 @@ export and how to bake it.
 
 | Phase | Seam | Where in code |
 |---|---|---|
-| **FirstPhase** (crash ball, out the back, kick decision) | `applyChoreography()` — Phase Animator JSON ingested into `FIRST_PHASE_CHOREOGRAPHIES` in `firstPhaseChoreography.ts`; backs (slots 9–15) animated per-keyframe; forwards skipped; ball path replaces `emitSweepHops`; entire move anchored to live ball position via `dx`/`dy` offset | `src/engine/balance/firstPhaseChoreography.ts`, `src/engine/events/FirstPhaseEvent.ts` |
+| **FirstPhase** (crash ball, out the back, kick decision) | `applyFirstPhaseChoreography()` — Phase Animator JSON ingested into `FIRST_PHASE_CHOREOGRAPHIES` in `firstPhaseChoreography.ts`; backs (slots 9–15) animated per-keyframe; forwards skipped; ball path replaces `emitSweepHops`; entire move anchored to live ball position via `dx`/`dy` offset | `src/engine/balance/firstPhaseChoreography.ts`, `src/engine/choreography/applyChoreography.ts`, `src/engine/events/FirstPhaseEvent.ts` |
 | **Breakdown** (7 outcomes) | `placeFormation` with a `Formation` offset table | `BREAKDOWN_CLEAN`, `BREAKDOWN_SLOW_BALL`, etc. |
 | **BoxKick** (announce + 5 outcomes) | `placeFormation` | `BOX_KICK_ANNOUNCE`, `BOX_KICK_FORMS` |
 | **KickOff** (announce + chase) | Bespoke `from`/`to` slot tables | `KICKOFF_RECV`, `KICKOFF_KICK` |

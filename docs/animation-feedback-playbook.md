@@ -56,7 +56,8 @@ Two pipelines exist (both are kept, by owner decision):
 | DropOut22 other outcomes | `travelingKickLayout` | kick arc |
 | Penalty kick_to_touch / _close / tap_and_kick_dead | `PENALTY_*` formations | touch lob (`kickFindsTouch`) |
 | Penalty tap_and_go | `PENALTY_TAP_AND_GO` + carrier flagged `isCarrier` | follower rides `movements` |
-| ConversionKick / Penalty at goal | `conversionLayout` (`CONV_ABS`) | kick-flight overlay (`triggerKickFlight`) |
+| ConversionKick | `conversionLayout` (`CONV_ABS`) | kick-flight overlay (`triggerKickFlight`) |
+| Penalty at goal (KickAtGoal beats, emitted under phase=Penalty) | `kickAtGoalLayout` (defending team retreated ≥10m goal-side, `isPenaltyGoalKick` keys) | kick-flight overlay |
 | Scrum | `scrumLayout` + `SCRUM_ROWS` / `SCRUM_*_BACKS`; `SCRUM:wheel` authored entries override | SH sweep + choreography loop |
 | Lineout | `lineoutLayout` (procedural) | ball touchline override (`cachedEventPhase`) |
 | Maul | `maulLayout` + `MAUL_ATK_ROWS` (`MAUL_HOOKER_DX`) | Layer-3 glide as a bound unit — never the follower |

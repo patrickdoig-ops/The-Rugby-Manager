@@ -37,6 +37,11 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const decision = decideKick({ state, attackTeam, attackOnField });
   if (decision.kick) {
     const res = buildKickTransition(decision, MatchPhase.FirstPhase, { state, attackTeam, attackOnField });
+    // A scrum-half kick routes to BoxKick and is taken from the set-piece mark itself —
+    // there is no sweep out to the fly-half. So don't overlay the kick_decision (9→10)
+    // choreography: its authored ball path would both animate the ball out to the #10
+    // channel and (since it splices BALL_REPOSITIONED) relocate the kick origin there.
+    if (decision.kicker.id === SLOT.SCRUM_HALF) return res;
     return applyChoreography(res, 'kick_decision', attackDir(state));
   }
 

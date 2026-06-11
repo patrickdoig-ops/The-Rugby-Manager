@@ -754,7 +754,7 @@ Narration outcome keys for authored first-phase plays:
 - `crash_ball` — Crash Ball path (existing key)
 - `out_the_back` — Out the Back / wide play path (existing key)
 - `wide_pass` — Wide Play intro variant (added to `PhaseOutcomeKey` to support the wide backs move narration step)
-- `kick_decision` — If the kick gate fires and a `kick_decision` choreography is registered, the authored animation is applied to the kick transition.
+- `kick_decision` — If the kick gate fires and a `kick_decision` choreography is registered, the authored animation is applied to the kick transition — but **only for a fly-half (TacticalKick) kick**. A scrum-half kick routes to `BoxKick` and is taken from the set-piece mark itself, so `handleFirstPhase` skips the overlay (its authored ball path sweeps 9→10, which would both mis-animate the ball and, because it splices `BALL_REPOSITIONED`, relocate the box-kick origin into the #10 channel).
 
 The authored ball path **replaces** the procedural `emitSweepHops` lateral movement for that play. The engine still resolves the outcome (dominant tackle / line break / play on / etc.) and the `CARRY_RESOLVED` event is preserved — the choreography system only replaces the in-phase ball-path keyframes, never the final ball position or outcome logic.
 

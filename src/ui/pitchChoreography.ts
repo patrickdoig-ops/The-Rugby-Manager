@@ -180,6 +180,13 @@ export function choreograph(
     if (form) return placeFormation(event, state, attacksTop, prevBallX, prevBallY, form.form);
     return travelingKickLayout(event, state, attacksTop, prevBallX, prevBallY);
   }
+  // A penalty kicked at goal: the KickAtGoal micro-phase emits its beats under
+  // phase=Penalty (kicker_steps_up / kicker_compose / kick_for_goal / miss). Show the
+  // goal-kick formation with the defending team retreated 10m+ toward their try line.
+  if (event.phase === MatchPhase.Penalty && isPenaltyGoalKick(event)) {
+    return kickAtGoalLayout(event, state, attacksTop);
+  }
+
   // A penalty kicked to touch: full 30-player formation — the kicking pack clustered at
   // the mark, the defenders dropped back to cover the kick — anchored on the kick origin
   // (the previous beat's ball = the penalty mark, same anchor the kicker used before).
@@ -639,6 +646,55 @@ function dropOutLayout(
   };
   fill(kickOn, kickSide, kickTbl, isAnnounce);   // kicker is the on-ball actor on announce
   fill(recvOn, recvSide, recvTbl, isReceive);    // catcher is the on-ball actor on receive
+  return out;
+}
+
+// The KickAtGoal micro-phase (a penalty shot at goal) emits its beats under phase=Penalty
+// with these narration keys. A bare `miss` is a goal-kick miss (a kick-to-touch miss is
+// `kick_to_touch_missed`); a conversion miss carries phase=ConversionKick, not Penalty.
+const PENALTY_GOAL_KICK_KEYS = new Set(['kicker_steps_up', 'kicker_compose', 'kick_for_goal', 'miss']);
+function isPenaltyGoalKick(event: GameEvent): boolean {
+  return event.narration.steps.some(
+    s => (s.kind === 'announcement' || s.kind === 'phase_outcome') && PENALTY_GOAL_KICK_KEYS.has((s as { key: string }).key),
+  );
+}
+
+// Penalty shot at goal: the kicker tees up at the mark, the rest of the kicking side holds
+// back behind the ball, and the WHOLE defending team is pushed at least 10m goal-side of the
+// ball (toward their own try line) — the laws require them 10m back and they can't charge a
+// kick at goal. A flat defending line, spread across the field, reads the retreat clearly.
+const PENALTY_GOAL_RETREAT = 12; // pitch units (≈m) the defenders sit goal-side of the ball
+function kickAtGoalLayout(event: GameEvent, state: MatchState, attacksTop: boolean): Placed[] {
+  const possSide: Side = event.side === 'home' ? 'h' : 'a';
+  const defSide: Side = possSide === 'h' ? 'a' : 'h';
+  const dir = attacksTop ? 1 : -1;   // +x toward the defending team's try line
+  const { ballX, ballY } = event;
+  const atkOn = onFieldPlayers(possSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(possSide));
+  const defOn = onFieldPlayers(defSide === 'h' ? state.homeTeam : state.awayTeam, state, possOf(defSide));
+
+  const out: Placed[] = [];
+  const kickerId = event.primaryPlayer?.id ?? -1;
+
+  // Kicking side: the kicker just behind the tee; everyone else holds back behind the ball.
+  let bi = 0;
+  for (const p of atkOn) {
+    if (p.id === kickerId) {
+      out.push(placed(p, possSide, state, clampX(ballX - dir * 3), clampY(ballY), false));
+    } else {
+      out.push(placed(p, possSide, state,
+        clampX(ballX - dir * (9 + Math.floor(bi / 2) * 4)),
+        clampY(ballY + fanLateral(bi)), false));
+      bi++;
+    }
+  }
+
+  // Defending side: a flat line ≥10m goal-side of the ball, spread across the field.
+  const defLineX = clampDefenderX(ballX + dir * PENALTY_GOAL_RETREAT, dir);
+  defOn.forEach((p, i) => {
+    const t = defOn.length > 1 ? i / (defOn.length - 1) : 0.5;
+    out.push(placed(p, defSide, state, defLineX, clampY(8 + t * 84), false));
+  });
+
   return out;
 }
 

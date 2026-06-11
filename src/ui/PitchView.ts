@@ -252,23 +252,39 @@ export function initPitchView(): void {
     const carrierFromStart = event.carrierFromStart ?? false;
     clearMovement();
     movementAnimating = true;
-    // Fit the whole path inside the beat window so the ball never lags the
-    // commentary; never faster than a readable floor.
+    // The whole walk fills the narration window so the ball is still moving while the
+    // last line is read (and never overruns into the next beat). Floored so a tiny
+    // line count can't make it instant.
     const beatWindow = stepMs * Math.max(1, lineCount);
-    const legMs = Math.max(LEG_FLOOR_MS, Math.min(stepMs, Math.round(beatWindow / kfs.length)));
+    const duration = Math.max(LEG_FLOOR_MS, beatWindow);
     const { w, h } = hostDims();
-    const final = kfs[kfs.length - 1];
+    const N = kfs.length;
+    const final = kfs[N - 1];
     const finalTop = toTop(final.x), finalLeft = toLeft(final.y);
-    // start (current position) then one keyframe per leg, all offset from the anchor.
-    const frames: Keyframe[] = [
-      { transform: offsetTransform(lastTop, lastLeft, finalTop, finalLeft, w, h) },
-      ...kfs.map(kf => {
-        const frame: Keyframe = { transform: offsetTransform(toTop(kf.x), toLeft(kf.y), finalTop, finalLeft, w, h) };
-        if (kf.t !== undefined) frame.offset = kf.t;
-        return frame;
-      }),
-    ];
-    const duration = legMs * kfs.length;
+
+    // Path points aligned with the frames: [current position, ...each leg]. Per-frame
+    // timing offsets: an authored `t` wins when present (keeps an authored timeline in
+    // sync); otherwise space by CUMULATIVE PATH DISTANCE so the ball travels at a
+    // near-constant speed instead of lurching — a 3-unit pass and a 25-unit sprint no
+    // longer take equal time. offsets[i] aligns with pathPts[i], so the carrier/tackler
+    // followers below share the exact same timing.
+    const pathPts = [{ x: fromTop(lastTop), y: fromLeft(lastLeft) }, ...kfs];
+    const hasAuthoredT = kfs.some(kf => kf.t !== undefined);
+    let offsets: number[];
+    if (hasAuthoredT) {
+      offsets = [0, ...kfs.map((kf, i) => kf.t ?? (i + 1) / N)];
+    } else {
+      const cum = [0];
+      for (let i = 1; i <= N; i++) {
+        cum[i] = cum[i - 1] + Math.hypot(pathPts[i].x - pathPts[i - 1].x, pathPts[i].y - pathPts[i - 1].y);
+      }
+      const total = cum[N] || 1;
+      offsets = cum.map(d => d / total);
+    }
+    const frames: Keyframe[] = pathPts.map((p, i) => ({
+      transform: offsetTransform(toTop(p.x), toLeft(p.y), finalTop, finalLeft, w, h),
+      offset: offsets[i],
+    }));
     runAnim(frames, duration, 'linear', finalTop, finalLeft);
 
     // When the beat carries an authored choreography, the carrier and dominant
@@ -283,8 +299,9 @@ export function initPitchView(): void {
     const carrierFinalLeft = finalLeft;
     let carrierFrames: Keyframe[];
 
-    const ballPath = [{ x: fromTop(lastTop), y: fromLeft(lastLeft) }, ...kfs];
-    const N = kfs.length;
+    // ballPath / offsets mirror the ball frames exactly, so the carrier rides the same
+    // distance-based timeline the ball runs on (shared `offsets` from above).
+    const ballPath = pathPts;
     const carrierPath = ballPath.map(p => ({
       top: toTop(clampX(p.x - fwd * CARRIER_BEHIND_BALL)),
       left: toLeft(p.y)
@@ -304,19 +321,19 @@ export function initPitchView(): void {
       // Direct pick-up (pick-and-go): rides the WHOLE ball path exactly in sync.
       carrierFrames = carrierPath.map((cp, i) => ({
         transform: offsetTransform(cp.top, cp.left, carrierFinalTop, carrierFinalLeft, w, h),
-        offset: i / N
+        offset: offsets[i]
       }));
     } else {
       // Passed carry: hold at the receive point, then follow the ball.
       const receiveCp = carrierPath[carryStartIdx];
       carrierFrames = [
         { transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: 0 },
-        ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: carryStartIdx / N }] : [])
+        ...(carryStartIdx > 0 ? [{ transform: offsetTransform(receiveCp.top, receiveCp.left, carrierFinalTop, carrierFinalLeft, w, h), offset: offsets[carryStartIdx] }] : [])
       ];
       for (let i = carryStartIdx + 1; i <= N; i++) {
         carrierFrames.push({
           transform: offsetTransform(carrierPath[i].top, carrierPath[i].left, carrierFinalTop, carrierFinalLeft, w, h),
-          offset: i / N
+          offset: offsets[i]
         });
       }
     }
@@ -337,7 +354,7 @@ export function initPitchView(): void {
           { transform: offsetTransform(tacklerFinalTop, tacklerFinalLeft, tacklerFinalTop, tacklerFinalLeft, w, h), offset: 1 }
         ];
       } else {
-        const carryStartPct = carryStartIdx / N;
+        const carryStartPct = offsets[carryStartIdx];
         const receiveCp = carrierPath[carryStartIdx];
         const tacklerReceiveTop = toTop(clampX(fromTop(receiveCp.top) + fwd * TACKLER_AHEAD));
         const tacklerReceiveLeft = receiveCp.left;
@@ -351,7 +368,7 @@ export function initPitchView(): void {
           const tTop = toTop(clampX(fromTop(carrierPath[i].top) + fwd * TACKLER_AHEAD));
           tacklerFrames.push({
             transform: offsetTransform(tTop, carrierPath[i].left, tacklerFinalTop, tacklerFinalLeft, w, h),
-            offset: i / N
+            offset: offsets[i]
           });
         }
       }
@@ -534,12 +551,9 @@ export function initPitchView(): void {
     if (event.choreography && event.choreography.length > 0) {
       const { w, h } = hostDims();
       const lineCount = event.narration.steps.length;
-      const beatWindow = stepMs * Math.max(1, lineCount);
-      let duration = beatWindow;
-      if (event.movements && event.movements.length > 0) {
-        const legMs = Math.max(LEG_FLOOR_MS, Math.min(stepMs, Math.round(beatWindow / event.movements.length)));
-        duration = legMs * event.movements.length;
-      }
+      // Fill the narration window — the same duration animateMovements gives the ball
+      // — so the choreographed dots stay locked to the ball on its authored `t` timeline.
+      const duration = Math.max(LEG_FLOOR_MS, stepMs * Math.max(1, lineCount));
       for (const ch of event.choreography) {
         const key = `${ch.side}:${ch.id}`;
         const el = field.querySelector(`[data-key="${key}"]`) as HTMLElement;

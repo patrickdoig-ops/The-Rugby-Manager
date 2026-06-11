@@ -1088,8 +1088,10 @@ Ball animation forms:
 - `animateKickArc` — straight-line travel with a `scale(1.5)` apex at offset 0.5 (reads as ball in the air)
 - `animateMovements` — multi-leg carry: `GameEvent.movements[]` gives the path; one WAAPI keyframe per leg
 - `runAnim` — the underlying primitive both use; commits the anchor, creates the animation, wires `onfinish`
-- Lineout→Maul: ball travels from lineout mark to the hooker at the tail of the maul (dx=7.5)
-- Lineout→FirstPhase: 2-leg path — lineout mark → #9's stored position → first-phase ball position (uses `lineoutSHTop/Left` cached on the previous lineout beat)
+- Lineout→Maul: ball travels from lineout mark to the hooker at the tail of the maul (dx=`MAUL_HOOKER_DX`)
+- Lineout→FirstPhase: the engine's own `GameEvent.movements[]` path (see "FirstPhase ball never invents its own path" below) — no UI-side waypoints
+
+**`animateMovements` pacing (the walk fills the narration window at near-constant speed).** The whole walk runs for `duration = max(LEG_FLOOR_MS, stepMs · lineCount)` — i.e. it fills the beat's narration window, so the ball is still moving while the last line is read and never overruns into the next beat (the next beat's `clearMovement` would cut it). The per-keyframe `offset`s come from one of two schemes, **never mixed within a walk**: if any leg carries an authored `t` (a Phase Animator timeline), the authored `t`s are used as-is; otherwise (procedural play) `offset[i] = cumulativeDistance_i / totalPathDistance`, so a short pass and a long sprint within one walk take time proportional to their length instead of an equal `1/N` slice (which made the ball lurch between slow and fast legs). The carrier and dominant-tackler followers consume the **same `offsets` array**, so they stay frame-locked to the ball; the choreography loop uses the same `duration` so authored dots stay locked to the ball on its `t` timeline. All presentation pacing constants live in `src/ui/pitchAnimConstants.ts`.
 
 #### Layer 2 — Individual dot animation (WAAPI, `PitchView.ts`)
 

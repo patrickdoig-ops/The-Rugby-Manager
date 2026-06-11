@@ -6,9 +6,9 @@
 // tiles, the settings cog, and the primary CTA (`onContinue`) all receive
 // live callbacks.
 
-import type { GameCoordinator, EuropeanFixtureRef, EuropeanRoundRef, CupFixtureRef } from '../game/GameCoordinator';
+import type { GameCoordinator, EuropeanRoundRef } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
-import type { Fixture, GameState } from '../types/gameState';
+import type { GameState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
 import { onScreenShow } from './ScreenRouter';
 import { recentForm } from '../game/teamStats';
@@ -90,6 +90,18 @@ const TILES: TileSpec[] = [
   { id: 'hub-tile-club',                 ariaLabel: 'Club',                     label: 'Club',                   iconKey: 'club',                 handlerKey: 'onClub' },
 ];
 
+// Normalised descriptor for the Hub's Next Match tile — every competition is
+// reduced to this shape so the tile renders identically (league format) each
+// week, differing only by the colour-coded competition chip.
+interface NextMatchInfo {
+  homeId: string;
+  awayId: string;
+  compKey: 'league' | 'cup' | 'europeanCup' | 'europeanShield' | 'playoff';
+  stageLabel: string;
+  venue?: string;
+  neutralVenue?: boolean;
+}
+
 export function initHubScreen(opts: InitHubScreenOpts): { refresh: () => void } {
   const el = document.getElementById('hub');
   if (!el) return { refresh: () => {} };
@@ -144,15 +156,66 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
         <h1 id="hub-team-name">${playerTeam.name}</h1>
       </div>
 
-      ${playoffsActive
-        ? playoffsHtml(playoffs!, teamsById, playerTeam.id, playerPlayoffMatch)
-        : cupStep
-          ? cupBreakHtml(state, cupStep, cupFixture, teamsById, playerTeam.id)
-          : europeanFixture
-            ? europeanNextMatchHtml(europeanFixture, teamsById, playerTeam.id, state.calendar.date)
-            : europeanRound
-              ? europeanRoundCtaHtml(europeanRound)
-              : nextMatchHtml(nextFixture, state, teamsById, playerTeam.id)}
+      ${(() => {
+          const myId = playerTeam.id;
+          // Priority: playoffs → League Cup → European → league. Every actual
+          // fixture renders through the one shared tile; non-match states
+          // (recaps, returns, season complete) get a simple status card.
+          if (playoffsActive) {
+            if (playoffs!.championTeamId !== null) {
+              const champ = teamsById.get(playoffs!.championTeamId);
+              return champ ? statusCardHtml('SEASON COMPLETE', `${champ.name} Champions`) : '';
+            }
+            if (playerPlayoffMatch && playerPlayoffMatch.homeId && playerPlayoffMatch.awayId) {
+              const isFinal = playerPlayoffMatch.kind === 'final';
+              return nextMatchTileHtml({
+                homeId: playerPlayoffMatch.homeId, awayId: playerPlayoffMatch.awayId,
+                compKey: 'playoff',
+                stageLabel: isFinal ? 'Final' : 'Semi-Final',
+                neutralVenue: isFinal,
+                venue: isFinal ? 'Twickenham' : undefined,
+              }, state, teamsById, myId);
+            }
+            const stage = playoffs!.semifinals.every(m => m.result) ? 'Final' : 'Semi-Finals';
+            return statusCardHtml(`PLAYOFFS · ${stage}`, 'You are not in this stage');
+          }
+          if (cupStep) {
+            if (cupStep === 'play_fixture' && cupFixture) {
+              const homeId = cupFixture.kind === 'pool' ? cupFixture.fixture.homeId : (cupFixture.match.homeId ?? '');
+              const awayId = cupFixture.kind === 'pool' ? cupFixture.fixture.awayId : (cupFixture.match.awayId ?? '');
+              const isFinal = cupFixture.kind === 'knockout' && cupFixture.stage === 'final';
+              const stageLabel = cupFixture.kind === 'knockout' ? (isFinal ? 'Final' : 'Semi-Final') : 'Pool Stage';
+              return nextMatchTileHtml({ homeId, awayId, compKey: 'cup', stageLabel, neutralVenue: isFinal }, state, teamsById, myId);
+            }
+            const blockName = state.league.results.length === 0 ? 'Pre-Season' : 'International Break';
+            const line = cupStep === 'resolve_returns' ? 'Internationals returning' : 'Cup results';
+            return statusCardHtml(`LEAGUE CUP · ${blockName}`, line);
+          }
+          if (europeanFixture) {
+            const ef = europeanFixture;
+            const compKey: NextMatchInfo['compKey'] = ef.competition === 'europeanCup' ? 'europeanCup' : 'europeanShield';
+            let homeId: string, awayId: string, stageLabel: string, isFinal = false;
+            if (ef.kind === 'pool') {
+              homeId = ef.fixture.homeId; awayId = ef.fixture.awayId;
+              stageLabel = `Pool Round ${ef.fixture.round}`;
+            } else {
+              homeId = ef.match.homeId ?? ''; awayId = ef.match.awayId ?? '';
+              isFinal = ef.stage === 'final';
+              stageLabel = ef.stage === 'r16' ? 'Round of 16' : ef.stage === 'quarterfinal' ? 'Quarter-Final' : ef.stage === 'semifinal' ? 'Semi-Final' : 'Final';
+            }
+            return nextMatchTileHtml({ homeId, awayId, compKey, stageLabel, neutralVenue: isFinal }, state, teamsById, myId);
+          }
+          if (europeanRound) return europeanRoundCtaHtml(europeanRound);
+          if (nextFixture) {
+            return nextMatchTileHtml({
+              homeId: nextFixture.homeId, awayId: nextFixture.awayId,
+              compKey: 'league',
+              stageLabel: ROUND_LABELS[nextFixture.round] ?? `Round ${nextFixture.round}`,
+              venue: nextFixture.venue,
+            }, state, teamsById, myId);
+          }
+          return `<div id="hub-next-match"><div class="hub-nm-complete">Season complete</div></div>`;
+        })()}
 
       ${(() => {
           const sk = `${state.player.teamId}:${state.seed}`;
@@ -213,79 +276,6 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
     el!.querySelector<HTMLButtonElement>('#hub-play-next')?.addEventListener('click', () => opts.onContinue());
   }
 
-  function playoffsHtml(
-    playoffs: import('../types/gameState').PlayoffState,
-    byId: Map<string, RawTeamInput>,
-    playerId: string,
-    playerMatch: import('../types/gameState').PlayoffMatch | null,
-  ): string {
-    // Champion already crowned but the user hasn't been through the
-    // end-of-season chain yet — surface that explicitly so the CTA is
-    // self-explanatory.
-    if (playoffs.championTeamId !== null) {
-      const champion = byId.get(playoffs.championTeamId);
-      if (champion) {
-        return `
-          <div id="hub-next-match">
-            <div class="hub-nm-label">SEASON COMPLETE</div>
-            <div class="hub-nm-body">
-              <div class="hub-nm-fixture" style="justify-content:center">
-                ${crestHtml(champion, 'nm-crest')}
-                <span class="hub-nm-name">${champion.name} Champions</span>
-              </div>
-            </div>
-          </div>`;
-      }
-    }
-    const stageLabel = playoffs.semifinals.every(m => m.result) ? 'FINAL' : 'SEMI-FINALS';
-    const subline = playerMatch
-      ? (playerMatch.kind === 'final'
-          ? 'Season Final · Twickenham'
-          : `Semi-Final · ${playerMatch.homeSeed} v ${playerMatch.awaySeed}`)
-      : 'You are not in this stage';
-    // Surface the player's pending match (if any), otherwise a static
-    // "Playoffs in progress" card. Crests rendered only when both teams
-    // are known.
-    if (playerMatch && playerMatch.homeId && playerMatch.awayId) {
-      const home = byId.get(playerMatch.homeId);
-      const away = byId.get(playerMatch.awayId);
-      if (!home || !away) return '';
-      const isHome = playerMatch.homeId === playerId;
-      const venueLabel = playerMatch.kind === 'final'
-        ? 'NEUTRAL'
-        : (isHome ? 'HOME' : 'AWAY');
-      const venueName = playerMatch.kind === 'final'
-        ? 'TWICKENHAM'
-        : (isHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
-      return `
-        <div id="hub-next-match">
-          <div class="hub-nm-label">${stageLabel} · ${formatDateShort(playerMatch.date)}</div>
-          <div class="hub-nm-body">
-            <div class="hub-nm-fixture">
-              <div class="hub-nm-side hub-nm-side--home${isHome ? ' hub-nm-side--me' : ''}">
-                ${crestHtml(home, 'nm-crest')}
-                <span class="hub-nm-name">${home.shortName}</span>
-              </div>
-              <span class="hub-nm-vs">vs</span>
-              <div class="hub-nm-side hub-nm-side--away${!isHome ? ' hub-nm-side--me' : ''}">
-                <span class="hub-nm-name">${away.shortName}</span>
-                ${crestHtml(away, 'nm-crest')}
-              </div>
-            </div>
-            <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
-            <div class="hub-nm-subline">${subline}</div>
-          </div>
-        </div>`;
-    }
-    return `
-      <div id="hub-next-match">
-        <div class="hub-nm-label">LEAGUE PLAYOFFS · ${stageLabel}</div>
-        <div class="hub-nm-body">
-          <div class="hub-nm-meta">${subline}</div>
-        </div>
-      </div>`;
-  }
-
   // The Hub's one and only call-to-action. Always reads "Continue" — the
   // competition-specific preview lives in the panel above; the button is
   // uniform across league / League Cup / European / playoff so every game
@@ -298,31 +288,54 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
       </button>`;
   }
 
-  function nextMatchHtml(fixture: Fixture | null, state: GameState, byId: Map<string, RawTeamInput>, playerId: string): string {
-    if (!fixture) {
-      return `<div id="hub-next-match"><div class="hub-nm-complete">Season complete</div></div>`;
-    }
-    const home = byId.get(fixture.homeId);
-    const away = byId.get(fixture.awayId);
-    if (!home || !away) return '';
-    const playerHome = fixture.homeId === playerId;
-    const venueLabel = playerHome ? 'HOME' : 'AWAY';
-    const venueName = (fixture.venue ?? home.stadium.split('(')[0].trim()).toUpperCase();
+  // Competition chip — colour-coded by competition, shown top-right of the
+  // Next Match tile in place of a days-away countdown so the tile reads the
+  // same every week regardless of which competition is next.
+  const COMP_CHIP: Record<NextMatchInfo['compKey'], { label: string; color: string }> = {
+    league:         { label: 'PREMIERSHIP',     color: '#1f9d4d' },
+    cup:            { label: 'LEAGUE CUP',      color: '#c8821a' },
+    europeanCup:    { label: 'EUROPEAN CUP',    color: '#2f6fd0' },
+    europeanShield: { label: 'EUROPEAN SHIELD', color: '#8a5fd0' },
+    playoff:        { label: 'PLAYOFFS',        color: '#d23b3b' },
+  };
 
+  function compChip(key: NextMatchInfo['compKey']): string {
+    const c = COMP_CHIP[key];
+    return `<span class="hub-nm-countdown" style="background:${c.color};border-color:${c.color};color:#fff">${c.label}</span>`;
+  }
+
+  // Simple non-match status card (cup recap, internationals returning, season
+  // complete, playoffs you're not in) — no fixture, so no tile / chip.
+  function statusCardHtml(label: string, line: string): string {
+    return `
+      <div id="hub-next-match">
+        <div class="hub-nm-label">${label}</div>
+        <div class="hub-nm-body">
+          <div class="hub-nm-fixture" style="justify-content:center;gap:0.5rem">
+            <span class="hub-nm-name" style="font-size:1.05rem">${line}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // The single Next Match tile — used for every competition so the Hub looks
+  // the same each week. League format: crests + recent-form pips + venue, with
+  // a colour-coded competition chip (not a countdown) top-right.
+  function nextMatchTileHtml(info: NextMatchInfo, state: GameState, byId: Map<string, RawTeamInput>, playerId: string): string {
+    const home = byId.get(info.homeId);
+    const away = byId.get(info.awayId);
+    if (!home || !away) return '';
+    const playerHome = info.homeId === playerId;
+    const venueLabel = info.neutralVenue ? 'NEUTRAL' : (playerHome ? 'HOME' : 'AWAY');
+    const venueName = (info.venue ?? (playerHome ? home : away).stadium.split('(')[0].trim()).toUpperCase();
     const homeFormHtml = renderFormPipStrip(recentForm(home.id, state.league.results), 'sm');
     const awayFormHtml = renderFormPipStrip(recentForm(away.id, state.league.results), 'sm');
-
-    // Kick-off countdown — derived from fixture.date vs the user's
-    // calendar.date. Hidden when the fixture has no date (legacy gen
-    // fixtures fall back to +7d steps with no per-round dates).
-    const kickoffChip = countdownChip(state.calendar.date, fixture.date);
-
     return `
       <div id="hub-next-match">
         <div class="hub-nm-label">
           <span class="hub-nm-title">Next Match</span>
-          <span class="hub-nm-sub">${ROUND_LABELS[fixture.round] ?? `Round ${fixture.round}`} · ${formatDateShort(state.calendar.date)}</span>
-          ${kickoffChip}
+          <span class="hub-nm-sub">${info.stageLabel} · ${formatDateShort(state.calendar.date)}</span>
+          ${compChip(info.compKey)}
         </div>
         <div class="hub-nm-body">
           <div class="hub-nm-fixture">
@@ -339,137 +352,6 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
                 <span class="hub-nm-name">${away.shortName}</span>
                 ${awayFormHtml}
               </div>
-              ${crestHtml(away, 'nm-crest')}
-            </div>
-          </div>
-          <div class="hub-nm-meta">${venueLabel} · ${venueName}${fixture.venueCapacity ? ` · ${fixture.venueCapacity.toLocaleString()}` : ''}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  function countdownChip(todayIso: string, fixtureDate: string | undefined): string {
-    if (!fixtureDate) return '';
-    const today = new Date(todayIso).getTime();
-    const target = new Date(fixtureDate).getTime();
-    if (isNaN(today) || isNaN(target)) return '';
-    const days = Math.round((target - today) / 86_400_000);
-    if (days < 0) return '';
-    let label: string;
-    if (days === 0) label = 'TODAY';
-    else if (days === 1) label = 'TOMORROW';
-    else label = `IN ${days} DAYS`;
-    return `<span class="hub-nm-countdown">${label}</span>`;
-  }
-
-  function cupBreakHtml(
-    state: GameState,
-    step: 'play_fixture' | 'advance_round' | 'resolve_returns',
-    cupFixture: CupFixtureRef | null,
-    byId: Map<string, RawTeamInput>,
-    playerId: string,
-  ): string {
-    const block = state.league.results.length === 0 ? 'PRE-SEASON' : 'INTERNATIONAL BREAK';
-    if (step === 'play_fixture' && cupFixture) {
-      const homeId = cupFixture.kind === 'pool' ? cupFixture.fixture.homeId : (cupFixture.match.homeId ?? '');
-      const awayId = cupFixture.kind === 'pool' ? cupFixture.fixture.awayId : (cupFixture.match.awayId ?? '');
-      const home = byId.get(homeId);
-      const away = byId.get(awayId);
-      const stage = cupFixture.kind === 'knockout'
-        ? (cupFixture.stage === 'final' ? 'Final' : 'Semi-Final')
-        : 'Pool Stage';
-      if (home && away) {
-        const playerHome = homeId === playerId;
-        const venueLabel = playerHome ? 'HOME' : 'AWAY';
-        return `
-          <div id="hub-next-match">
-            <div class="hub-nm-label">LEAGUE CUP · ${stage} · ${block}</div>
-            <div class="hub-nm-body">
-              <div class="hub-nm-fixture">
-                ${crestHtml(home, 'hub-nm-crest')}
-                <span class="hub-nm-name">${home.shortName}</span>
-                <span class="hub-nm-v">v</span>
-                <span class="hub-nm-name">${away.shortName}</span>
-                ${crestHtml(away, 'hub-nm-crest')}
-              </div>
-              <div class="hub-nm-meta">${venueLabel} · ${(playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase()}</div>
-            </div>
-          </div>
-        `;
-      }
-    }
-    const label = step === 'resolve_returns' ? 'Internationals returning' : 'Cup results';
-    return `
-      <div id="hub-next-match">
-        <div class="hub-nm-label">LEAGUE CUP · ${block} · ${state.calendar.seasonLabel}</div>
-        <div class="hub-nm-body">
-          <div class="hub-nm-fixture" style="justify-content:center;gap:0.5rem">
-            <span class="hub-nm-name" style="font-size:1.05rem">${label}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function europeanNextMatchHtml(euroFix: EuropeanFixtureRef, byId: Map<string, RawTeamInput>, playerId: string, calendarDate: string): string {
-    const compName = euroFix.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
-    if (euroFix.kind === 'pool') {
-      const { fixture } = euroFix;
-      const home = byId.get(fixture.homeId);
-      const away = byId.get(fixture.awayId);
-      if (!home || !away) return '';
-      const playerHome = fixture.homeId === playerId;
-      const venueLabel = playerHome ? 'HOME' : 'AWAY';
-      const venueName = (playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
-      const kickoffChip = fixture.date ? countdownChip(calendarDate, fixture.date) : '';
-      return `
-        <div id="hub-next-match">
-          <div class="hub-nm-label">
-            <span>${compName.toUpperCase()} · POOL ${fixture.poolId} · ROUND ${fixture.round}${fixture.date ? ` · ${formatDateShort(fixture.date)}` : ''}</span>
-            ${kickoffChip}
-          </div>
-          <div class="hub-nm-body">
-            <div class="hub-nm-fixture">
-              <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
-                ${crestHtml(home, 'nm-crest')}
-                <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
-              </div>
-              <span class="hub-nm-vs">vs</span>
-              <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
-                <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
-                ${crestHtml(away, 'nm-crest')}
-              </div>
-            </div>
-            <div class="hub-nm-meta">${venueLabel} · ${venueName}</div>
-          </div>
-        </div>
-      `;
-    }
-    // Knockout
-    const { stage, match } = euroFix;
-    const stageLabel = stage === 'r16' ? 'ROUND OF 16' : stage === 'quarterfinal' ? 'QUARTER-FINAL' : stage === 'semifinal' ? 'SEMI-FINAL' : 'FINAL';
-    const home = match.homeId ? byId.get(match.homeId) : null;
-    const away = match.awayId ? byId.get(match.awayId) : null;
-    if (!home || !away) return '';
-    const playerHome = match.homeId === playerId;
-    const venueLabel = playerHome ? 'HOME' : 'AWAY';
-    const venueName = (playerHome ? home : away).stadium.split('(')[0].trim().toUpperCase();
-    const kickoffChip = match.date ? countdownChip(calendarDate, match.date) : '';
-    return `
-      <div id="hub-next-match">
-        <div class="hub-nm-label">
-          <span>${compName.toUpperCase()} · ${stageLabel}${match.date ? ` · ${formatDateShort(match.date)}` : ''}</span>
-          ${kickoffChip}
-        </div>
-        <div class="hub-nm-body">
-          <div class="hub-nm-fixture">
-            <div class="hub-nm-side hub-nm-side--home${playerHome ? ' hub-nm-side--me' : ''}">
-              ${crestHtml(home, 'nm-crest')}
-              <div class="hub-nm-side-info"><span class="hub-nm-name">${home.shortName}</span></div>
-            </div>
-            <span class="hub-nm-vs">vs</span>
-            <div class="hub-nm-side hub-nm-side--away${!playerHome ? ' hub-nm-side--me' : ''}">
-              <div class="hub-nm-side-info"><span class="hub-nm-name">${away.shortName}</span></div>
               ${crestHtml(away, 'nm-crest')}
             </div>
           </div>

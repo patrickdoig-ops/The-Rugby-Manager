@@ -21,7 +21,7 @@ follow the doc-sync table in `CLAUDE.md`, and bump `src/version.ts` (src-touchin
 | **WP3.2** | ⏳ deferred | Needs new cross-tick engine state (the set-piece origin isn't tracked past the tick that sets `nextPhase = FirstPhase`), so it is **not** the "additive" change first assumed — it touches the mutation boundary. No current registry entry benefits (only bare keys + the separately-handled `SCRUM:wheel`). Do alongside authoring the first per-predecessor variant. |
 | **WP5.1** | ✅ done | Baked tables extracted to `src/ui/pitchFormations.ts`; behaviour-neutral (silent-score golden unchanged). |
 | **WP5.2** | ✅ done | Pure `transitionDirective(event, currentPhase)` → `{ snap, hold, preserveKeys }` in `pitchChoreography.ts`; `PitchPlayers.applyBeat` consumes it. Behaviour-preserving. |
-| **WP5.3** | ✅ shipped | `appendFormationDrift` — off-ball dots ease toward a ball-anchored `BREAKDOWN_CLEAN` frame on PhasePlay beats (`DRIFT_WEIGHT = 0.25`). Presentation-only (golden unchanged). **NEEDS OWNER EYEBALL** to tune `DRIFT_WEIGHT` and confirm the shape reads right. |
+| **WP5.3** | ✅ shipped | `appendFormationDrift` — off-ball dots ease toward a ball-anchored `BREAKDOWN_CLEAN` frame on PhasePlay beats (`DRIFT_WEIGHT = 0.4`, raised from 0.25 after the 0.25 pass still read as frozen). Presentation-only (golden unchanged). **NEEDS OWNER EYEBALL.** |
 | **WP5** | ✅ done | Between-ruck drift (owner-requested). WP5.1 + WP5.2 + WP5.3 all shipped; `DRIFT_WEIGHT` is the live-tuning dial. |
 | **WP6.2** | ⏳ not started | Probe sync assertions (teleport / carrier-contact / channel-exclusivity). Needs the headless-Chromium probe harness. |
 

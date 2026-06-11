@@ -51,4 +51,4 @@ export const SCRUM_SH_INFIELD_START = 9;
 // A lerp weight — low enough that the shape eases (never snaps), high enough that the
 // defensive line visibly keeps re-forming goal-side of an advancing ball over a few
 // phases. Presentation only.
-export const DRIFT_WEIGHT = 0.25;
+export const DRIFT_WEIGHT = 0.4;

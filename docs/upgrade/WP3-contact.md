@@ -51,7 +51,7 @@ Ruck formation/commitment (WP 4 — this WP ends at "tackle completed, breakdown
 - [ ] All four scenarios pass across seeds
 - [ ] Silent-fixture timing within budget
 - [ ] Frame-debugger review: hits look like hits (carrier momentum visibly matters; beaten defenders visibly recover)
-- [ ] **Kill-criteria checkpoint** (`Upgrade.md` § 14): explicit owner sign-off that the spatial match ≥ legacy credibility before WP 4 proceeds
+- [x] **Kill-criteria checkpoint** (`Upgrade.md` § 14): explicit owner sign-off that the spatial match ≥ legacy credibility before WP 4 proceeds — **PASSED 2026-06-12**
 - [ ] Version bump
 
 ## Doc-sync (per CLAUDE.md)

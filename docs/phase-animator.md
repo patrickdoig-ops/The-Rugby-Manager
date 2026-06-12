@@ -87,7 +87,7 @@ covering 14 phase types (BOX_KICK, BREAKDOWN, CONVERSION_KICK, DROP_OUT_22,
 FIRST_PHASE, KICK_OFF, KICK_RETURN, LINEOUT, MAUL, PENALTY, PHASE_PLAY, SCRUM,
 TACTICAL_KICK, TRY_SCORED).
 
-### Mode toggle — Single phases / Transitions
+### Mode toggle — Single phases / Transitions / Frame debugger
 
 A segmented toggle above the dropdown switches what's listed:
 
@@ -98,10 +98,50 @@ A segmented toggle above the dropdown switches what's listed:
 - **Transitions** — every `(phase, outcome, predecessor)` pairing (all ~349 samples).
   Loading one **seeds player start positions from the predecessor phase** so you can
   author the blend between two phases. Use this later, once the single phases are done.
+- **Frame debugger** — read-only playback of a captured 30-agent **frame stream** from
+  the spatial engine. Not authoring — observation. See § 4.1 below.
 
 The rest of this section describes the labels you'll see in each mode.
 
-### Single-phase labels
+### 4.1 Frame debugger — the believability microscope
+
+The frame debugger is a **read-only** mode for inspecting the spatial engine's
+output (Spatial Engine Upgrade — `Upgrade.md` § 9; engine side in
+**`docs/match-engine.md`** § "Spatial substrate (dark)"). Instead of authoring
+keyframes, it plays back a **captured frame stream** — one snapshot per 10 Hz
+micro-tick of all 30 agents + the ball — so "the 13 looks lost" stops being a
+guess and becomes *scrub to tick 47 and read his decision annotations*.
+
+Selecting **Frame debugger** swaps the keyframe-authoring controls for the
+frame-stream panel and timeline. The authored dots are hidden; a dedicated 30-dot
+overlay (positional identity: dots 1–15 = home slots 1–15, 16–30 = away slots
+1–15) plus a ball dot are driven straight from the loaded frames.
+
+**Loading a stream.** Drop a frame-stream JSON into the file input. Accepted shapes:
+the bare `Frame[]` array, `{ frames: [...] }`, or a probe dump
+`{ frameStreams: [{ label, frames }] }` (the first stream is shown). Generate one with:
+
+```
+npm run probe -- --frames     # → harness/frames.json (frame stream + annotations)
+```
+
+This runs the dark-mode `SpatialSimulator` over a demonstrative scenario **with
+decision annotations enabled** and writes `harness/frames.json`. (A dev-build
+match capture writes the same shape.)
+
+**Playback.** The bottom row gains a frame timeline: a **scrub slider** over the
+micro-ticks, **▶ Play / ⏸ / ⏹**, a **speed** select (0.25× / 1× / 2× — 1× is real
+10 Hz time), and a `tick / total` readout. `Space` plays/pauses; `←` / `→` step a
+single tick.
+
+**Decision annotations.** When the capture recorded them — only in dev builds,
+behind the `world.recordAnnotations` flag, **never** in production or silent
+fixture paths — a dot carries a small green badge on ticks where it has an
+annotation. Click any dot to read, in the sidebar, which **control layer** drove
+it that tick (1 ROLE / 2 DECIDE / 3 REACT) and the leading utility options with
+their scores. In WP 1 the decision layer is a stub, so annotations only report
+that Layer 1 steered the agent to its target; WP 2+ surface real per-option
+scores here.
 
 In Single mode the label is just the phase and its outcome key(s):
 

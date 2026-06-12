@@ -120,11 +120,12 @@ For full module internals (AITacticalDirector, AISubstitutionDirector, CardHandl
 
 **All randomness flows through `src/utils/rng.ts`. Never call `Math.random()` directly in engine code.**
 
-Five isolated mulberry32 streams:
+Six isolated mulberry32 streams:
 - `rng(min, max)` — outcome stream; every in-play roll. Reset by `setMatchSeed(seed)` (called from the `MatchCoordinator` constructor).
 - `rngFormRaw()` — form stream; player form modifier at `initPlayer()`. Reset by `setMatchSeed`.
 - `pickRandom(arr)` / `commentaryChance(pct)` — commentary stream; flavour-text sampling. Reset by `setMatchSeed`.
 - `rngPosition(min, max)` — positioning stream; every lateral (Y-axis) draw — open-play sweep pass distances, kick launch angles, kick-off side bias (`src/engine/Lateral.ts`). Reset by `setMatchSeed`. Isolated so adding lateral ball movement cannot perturb an outcome roll.
+- `rngSpatial(min, max)` — spatial stream; every draw inside the spatial substrate (steering jitter, decision noise, kick dispersion). Reset by `setMatchSeed`. **Consumed only inside `src/engine/spatial/`** — `checkDeterminism.ts` scans `src/` and fails on any external consumer. Isolated so a spatial draw can never perturb the outcome/positioning/commentary streams of phases still on the legacy path (Spatial Engine Upgrade — `Upgrade.md` § 2.2).
 - `rngTransfer(min, max)` / `rngTransferRaw()` — career stream; contract seeding, aging-curve noise, retirement rolls, persona generation, manager-chat morale boost (`boostPlayerMorale`). Reset by `setCareerSeed(seed)` — independent of the match seed so a per-fixture derivation cannot perturb season-scope outcomes. Note: `boostPlayerMorale` is user-triggered (inbox button), so the stream offset varies with how many chats the manager initiates; this is intentional (career outcomes subtly reflect manager decisions). The `careerRngOffset` is snapshot at save time so load/reload is fully deterministic.
 
 Streams are independent — adding a commentary line cannot shift outcome rolls; adding a transfer event cannot shift a match. Pick the matching stream when adding a randomness consumer. Full details: **`docs/match-engine.md`** § "Determinism (Seeded RNG)".

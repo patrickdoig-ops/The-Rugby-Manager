@@ -69,6 +69,35 @@
   .seg-btn.active { background: var(--accent); color: #05140c; box-shadow: 0 1px 8px var(--accent-soft); }
   .seg-btn.active:hover { background: var(--accent-2); color: #05140c; }
 
+  /* Frame-debugger mode: hide the keyframe-authoring controls + the authored
+     dots/overlay so only the read-only frame stream is in view. */
+  body.frames-mode #authoringControls,
+  body.frames-mode #authoringControls2 { display: none; }
+  body.frames-mode #framesPanel { display: block !important; }
+  body.frames-mode #timeline > .tlrow:first-of-type,
+  body.frames-mode #tlbar,
+  body.frames-mode #timeline > .hint:first-of-type { display: none; }
+  body.frames-mode #frameTimeline { display: block !important; }
+  /* In frames mode the authored entity dots/ghosts/trails are hidden; the
+     frame overlay owns the pitch. */
+  body.frames-mode .dot:not(.fdot):not(.fball),
+  body.frames-mode .trail { display: none !important; }
+  #frameOverlay { position: absolute; inset: 0; z-index: 4; display: none; pointer-events: none; }
+  body.frames-mode #frameOverlay { display: block; }
+  .fdot { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
+          border: 2px solid rgba(255,255,255,.9); color: #fff; font: 800 9px/16px system-ui;
+          text-align: center; z-index: 4; pointer-events: auto; cursor: pointer;
+          box-shadow: 0 2px 6px rgba(0,0,0,.45); }
+  .fdot.home { background: var(--home); } .fdot.away { background: var(--away); }
+  .fdot.sel { outline: 3px solid var(--sel); outline-offset: 2px; z-index: 6; }
+  .fdot.anno::after { content: ''; position: absolute; top: -3px; right: -3px; width: 7px; height: 7px;
+          border-radius: 50%; background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+  .fball { position: absolute; width: 24px; height: 16px; margin: -8px 0 0 -12px; border-radius: 50%;
+           background: var(--ball); border: 2px solid #b9791a; z-index: 5; pointer-events: none; }
+  #annoBox { font: 11px/1.5 "JetBrains Mono", ui-monospace, monospace; color: var(--ink);
+             background: var(--bg2); border: 1px solid var(--line); border-radius: 7px;
+             padding: 8px 10px; margin-top: 8px; white-space: pre-wrap; min-height: 24px; }
+
   /* Pitch — portrait, matches the game: x = long axis (vertical, 100 at top), y = lateral. */
   #pitch { position: relative; aspect-ratio: 3 / 4; height: 100%; max-width: 100%;
            background: repeating-linear-gradient(var(--pitch1) 0 6.25%, var(--pitch2) 6.25% 12.5%);
@@ -169,7 +198,9 @@
     <div class="seg" id="modeToggle">
       <button class="seg-btn active" data-mode="single">Single phases</button>
       <button class="seg-btn" data-mode="transitions">Transitions</button>
+      <button class="seg-btn" data-mode="frames">Frame debugger</button>
     </div>
+    <div id="authoringControls">
     <select id="phaseSel"><option value="">— blank phase —</option></select>
     <p class="hint"><b>Single phases</b> — each distinct phase animation, authored on its own. <b>Transitions</b> — every predecessor→phase pairing, with players seeded from the previous phase. Pick one + Load phase, or drop your own <code>trace.json</code> (<code>npm run probe</code>):</p>
     <input type="file" id="traceFile" accept=".json" />
@@ -178,7 +209,19 @@
       <button id="resetForm">Reset formation</button>
     </div>
     <p class="hint" id="phaseInfo">No phase loaded.</p>
+    </div>
 
+    <div id="framesPanel" style="display:none">
+      <h2>Frame stream</h2>
+      <p class="hint">Load a captured 30-agent frame stream — <code>harness/frames.json</code> from <code>npm run probe&nbsp;--&nbsp;--frames</code>, or a dev-build match dump. Read-only playback: scrub the micro-ticks, play at speed, click a dot to read its decision annotations (when the capture recorded them behind <code>world.recordAnnotations</code>).</p>
+      <input type="file" id="framesFile" accept=".json" />
+      <p class="hint" id="framesInfo">No frame stream loaded.</p>
+      <h2>Decision annotation</h2>
+      <p class="hint" id="annoInfo">Click a dot to inspect why it moved this tick.</p>
+      <div id="annoBox"></div>
+    </div>
+
+    <div id="authoringControls2">
     <h2><span id="selSwatch" class="swatch"></span> Selected <span id="selName">ball</span></h2>
     <div class="btns">
       <button id="addKf" class="primary">Set keyframe @ playhead</button>
@@ -195,9 +238,10 @@
       <button id="importBtn">Import ↓</button>
     </div>
     <textarea id="io" placeholder="Exported animation JSON appears here; paste here + Import to reload."></textarea>
+    </div>
   </div>
 
-  <div id="stage"><div id="pitch"><div id="possIndicator"></div></div></div>
+  <div id="stage"><div id="pitch"><div id="possIndicator"></div><div id="frameOverlay"></div></div></div>
 
   <div id="timeline">
     <div class="tlrow">
@@ -213,6 +257,20 @@
     <div id="tlbar"><div id="playhead"></div></div>
     <p class="hint">Click the bar to scrub · drag any dot/ball to keyframe it · diamonds = the selected entity's keyframes, ticks = beats.<br>
     <span class="kbd">Space</span> play/pause · <span class="kbd">←</span> <span class="kbd">→</span> step (hold <span class="kbd">Shift</span> for bigger) · <span class="kbd">[</span> <span class="kbd">]</span> prev/next beat · <span class="kbd">Home</span> rewind</p>
+
+    <div id="frameTimeline" style="display:none">
+      <div class="tlrow">
+        <button id="fdPlay" class="primary">▶ Play</button>
+        <button id="fdStop">⏹</button>
+        <span class="pill">Speed
+          <select id="fdSpeed" style="width:auto;display:inline-block;border:none;background:transparent;padding:0 0 0 4px">
+            <option value="0.25">0.25×</option><option value="1" selected>1×</option><option value="2">2×</option>
+          </select></span>
+        <span class="pill">Tick <span id="fdTickLabel">0 / 0</span></span>
+      </div>
+      <input type="range" id="fdScrub" min="0" max="0" value="0" step="1" style="width:100%;margin:10px 0;accent-color:var(--accent)" />
+      <p class="hint">Read-only micro-tick playback (10 Hz). Scrub the slider or play; click a dot to read its decision annotations. <span class="kbd">Space</span> play/pause · <span class="kbd">←</span> <span class="kbd">→</span> step tick.</p>
+    </div>
   </div>
 </div>
 
@@ -729,6 +787,167 @@
     document.getElementById('phaseInfo').textContent = 'phases.js not found — start blank, or load a trace.json.';
   }
   render();
+})();
+</script>
+
+<!-- Frame debugger (Upgrade.md § 9) — the believability microscope. A read-only
+     playback view over a captured 30-agent frame stream (SpatialSimulator output,
+     dumped by `npm run probe -- --frames` or a dev-build match). Self-contained:
+     reuses the pitch coordinate mapping but owns its own dots/overlay/scrubber so
+     it never touches the keyframe-authoring IIFE above. -->
+<script>
+(() => {
+  // Same 0–100 → screen-% mapping as the authoring tool (kept in sync by hand;
+  // both mirror src/ui/pitchCoords.ts). x = long axis (100 at top), y = lateral.
+  const TOP0 = 8, TOPSPAN = 84, LEFT0 = 3.5, LEFTSPAN = 93;
+  const xToTop = x => TOP0 + (100 - x) / 100 * TOPSPAN;
+  const yToLeft = y => LEFT0 + y / 100 * LEFTSPAN;
+
+  const overlay = document.getElementById('frameOverlay');
+  const scrub = document.getElementById('fdScrub');
+  const tickLabel = document.getElementById('fdTickLabel');
+  const framesInfo = document.getElementById('framesInfo');
+  const annoInfo = document.getElementById('annoInfo');
+  const annoBox = document.getElementById('annoBox');
+
+  let frames = [];      // [{ t, ball:{x,y,h,carrierSlot?}, dots:[{x,y}], annotations? }]
+  let tick = 0;         // current micro-tick index into `frames`
+  let selected = null;  // selected dot index 0–29, or null
+  let playing = false, raf = 0, lastTs = 0, acc = 0;
+
+  // 30 dot elements + 1 ball, created once and reused. Identity is positional:
+  // index 0–14 = home slots 1–15, 15–29 = away slots 1–15 (the frame-stream
+  // contract, Upgrade.md § 8.1).
+  const dotEls = [];
+  const ballEl = document.createElement('div');
+  ballEl.className = 'fball';
+  function ensureDots() {
+    if (dotEls.length) return;
+    for (let i = 0; i < 30; i++) {
+      const el = document.createElement('div');
+      const home = i < 15;
+      el.className = 'fdot ' + (home ? 'home' : 'away');
+      el.textContent = String((i % 15) + 1);
+      const idx = i;
+      el.onclick = () => { selected = idx; renderFrame(); renderAnnotation(); };
+      overlay.appendChild(el);
+      dotEls.push(el);
+    }
+    overlay.appendChild(ballEl);
+  }
+
+  function renderFrame() {
+    ensureDots();
+    const f = frames[tick];
+    if (!f) return;
+    const anno = f.annotations || null;
+    for (let i = 0; i < 30; i++) {
+      const d = f.dots[i];
+      const el = dotEls[i];
+      if (!d) { el.style.display = 'none'; continue; }
+      el.style.display = 'block';
+      el.style.top = xToTop(d.x) + '%';
+      el.style.left = yToLeft(d.y) + '%';
+      el.classList.toggle('sel', i === selected);
+      el.classList.toggle('anno', !!(anno && anno[i]));
+    }
+    ballEl.style.top = xToTop(f.ball.x) + '%';
+    ballEl.style.left = yToLeft(f.ball.y) + '%';
+    tickLabel.textContent = `${tick} / ${frames.length ? frames.length - 1 : 0}`;
+    scrub.value = String(tick);
+  }
+
+  function renderAnnotation() {
+    const f = frames[tick];
+    if (selected == null) { annoInfo.textContent = 'Click a dot to inspect why it moved this tick.'; annoBox.textContent = ''; return; }
+    const slot = (selected % 15) + 1;
+    const side = selected < 15 ? 'home' : 'away';
+    annoInfo.textContent = `${side} #${slot} (dot ${selected}) @ tick ${tick}`;
+    const a = f && f.annotations ? f.annotations[selected] : null;
+    if (!a) { annoBox.textContent = 'No annotation recorded for this dot/tick.\n(Capture without world.recordAnnotations, or this agent had no active intent.)'; return; }
+    const lines = [`layer ${a.layer} (${a.layer === 1 ? 'ROLE' : a.layer === 2 ? 'DECIDE' : 'REACT'})`];
+    for (const s of (a.topScores || [])) lines.push(`  ${s.option}  →  ${s.score}`);
+    annoBox.textContent = lines.join('\n');
+  }
+
+  function setTick(t) {
+    tick = Math.max(0, Math.min(frames.length ? frames.length - 1 : 0, t | 0));
+    renderFrame();
+    renderAnnotation();
+  }
+
+  // A frame stream can be the bare array, or wrapped { frames: [...] }, or a
+  // probe dump { frameStreams: [{ label, frames }] } — take the first stream.
+  function extractFrames(json) {
+    if (Array.isArray(json)) return json;
+    if (Array.isArray(json.frames)) return json.frames;
+    if (Array.isArray(json.frameStreams) && json.frameStreams[0]) return json.frameStreams[0].frames || [];
+    return [];
+  }
+
+  document.getElementById('framesFile').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const json = JSON.parse(rd.result);
+        frames = extractFrames(json);
+        if (!frames.length) { framesInfo.textContent = 'No frames found in that JSON.'; return; }
+        const annoCount = frames.filter(f => f.annotations).length;
+        framesInfo.textContent = `Loaded ${frames.length} micro-ticks${annoCount ? `, ${annoCount} with annotations` : ' (no annotations)'}.`;
+        scrub.max = String(frames.length - 1);
+        selected = null; setTick(0);
+      } catch (err) { framesInfo.textContent = 'Bad JSON: ' + err.message; }
+    };
+    rd.readAsText(file);
+  };
+
+  scrub.oninput = () => setTick(+scrub.value);
+
+  function stop() { playing = false; cancelAnimationFrame(raf); document.getElementById('fdPlay').textContent = '▶ Play'; }
+  function play() {
+    if (!frames.length) return;
+    if (tick >= frames.length - 1) tick = 0;
+    playing = true; lastTs = 0; acc = 0;
+    document.getElementById('fdPlay').textContent = '⏸ Pause';
+    const speed = +document.getElementById('fdSpeed').value;
+    const tickMs = 100 / speed; // 10 Hz source, scaled by playback speed
+    const loop = ts => {
+      if (!playing) return;
+      if (!lastTs) lastTs = ts;
+      acc += ts - lastTs; lastTs = ts;
+      while (acc >= tickMs) {
+        acc -= tickMs;
+        if (tick >= frames.length - 1) { stop(); return; }
+        setTick(tick + 1);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+  }
+  document.getElementById('fdPlay').onclick = () => (playing ? stop() : play());
+  document.getElementById('fdStop').onclick = () => { stop(); setTick(0); };
+
+  // Hook the mode toggle: enter/leave frames mode by toggling the body class.
+  // (The authoring IIFE owns single/transitions; we only react to `frames`.)
+  let inFrames = false;
+  document.querySelectorAll('#modeToggle .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      inFrames = btn.dataset.mode === 'frames';
+      document.body.classList.toggle('frames-mode', inFrames);
+      if (inFrames) { ensureDots(); renderFrame(); }
+      else stop();
+    });
+  });
+
+  window.addEventListener('keydown', e => {
+    if (!inFrames) return;
+    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key === ' ') { e.preventDefault(); playing ? stop() : play(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); stop(); setTick(tick + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); stop(); setTick(tick - 1); }
+  });
 })();
 </script>
 </body>

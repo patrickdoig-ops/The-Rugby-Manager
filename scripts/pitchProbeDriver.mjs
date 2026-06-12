@@ -13,8 +13,17 @@
 //   harness/shot-<label>-<n>.png  # mid-animation screenshots
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
+
+// --frames: dump a captured spatial frame stream + annotations to
+// harness/frames.json (Upgrade.md § 9) for the Phase Animator's frame debugger.
+// The spatial substrate runs dark, so this needs no browser — delegate to the
+// tsx dump helper and exit.
+if (process.argv.includes('--frames')) {
+  const r = spawnSync('npx', ['tsx', 'scripts/dumpSpatialFrames.ts'], { stdio: 'inherit' });
+  process.exit(r.status ?? 1);
+}
 
 const PORT = process.env.PROBE_PORT || '5179';
 const BASE = `http://127.0.0.1:${PORT}/The-Rugby-Manager/pitch-probe.html`;

@@ -332,7 +332,7 @@ The coin-toss announcement key varies by match type: `occasion_kickoff_derby` / 
 
 ## Determinism (Seeded RNG)
 
-Match-scope randomness flows through four isolated mulberry32 streams in `src/utils/rng.ts`:
+Match-scope randomness flows through five isolated mulberry32 streams in `src/utils/rng.ts`:
 
 | Stream | Backing function | Consumers |
 |---|---|---|
@@ -340,8 +340,9 @@ Match-scope randomness flows through four isolated mulberry32 streams in `src/ut
 | `form` | `rngFormRaw()` | Random perturbation of the player form modifier in `initPlayer()` |
 | `commentary` | `pickRandom(arr)` | Commentary template selection in `CommentaryEngine.pick()` |
 | `positioning` | `rngPosition(min, max)` | Every lateral (Y-axis) draw: open-play sweep pass distances, kick launch angles, kick-off side bias — see "Lateral / Y-axis model" below |
+| `spatial` | `rngSpatial(min, max)` | Every draw inside the spatial substrate (`src/engine/spatial/` — steering jitter, decision noise, kick dispersion). **Consumed only inside `src/engine/spatial/`**; `checkDeterminism.ts` scans `src/` and fails on any external consumer. Isolated so a spatial draw can never perturb the outcome/positioning/commentary streams of phases still on the legacy path. See "Spatial substrate (dark)" below. |
 
-A fifth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
+A sixth stream — `transfer`, backed by `rngTransferRaw()` and seeded via `setCareerSeed(seed)` — covers season-scope randomness (contract seeding, age-curve jitter, retirement rolls). It lives in `src/utils/rng.ts` alongside the others but is consumed only by `src/game/` code; see **`docs/game-engine.md`** § Determinism. Match-engine code never touches it.
 
 The `positioning` stream is isolated so that adding realistic lateral ball movement cannot perturb any in-play outcome roll. The one deliberate exception where Y feeds an outcome is the goal-kick angle term (see below): a penalty taken from a wide swept position is harder, and a try grounded out wide is harder to convert. The try-landing jitter itself stays on the `outcome` stream (one `rng()` draw per try) so its stream offset is unchanged across this feature.
 
@@ -350,6 +351,28 @@ Each stream is seeded with its master seed XORed against a fixed constant, so ad
 The master seed is a 32-bit unsigned integer stored on `state.engine.seed`. It is set in the `MatchCoordinator` constructor — either passed via `opts.seed` or auto-generated via `Math.floor(Math.random() * 0x100000000)`. `setMatchSeed(seed)` is called **before** `initMatchState()` so player form initialisation is deterministic. Once set, the only `Math.random()` call in the engine is the seed-generation line itself.
 
 A match with a given seed is fully reproducible: identical event sequence, identical scores, identical fatigue trajectories.
+
+---
+
+## Spatial substrate (dark)
+
+The first stage of the Spatial Engine Upgrade (`Upgrade.md`, WP 1). It ships a 30-agent spatial micro-tick substrate that **runs dark** — it is *not* wired into `PhaseRouter`, no phase resolves through it, and it produces no `MatchEvent`s, so it has **zero gameplay effect** (telemetry and the silent-score golden hash are byte-identical to the pre-WP1 baseline). It exists to freeze the conventions — World lifecycle, iteration order, zero-allocation loop, frame capture, RNG discipline — that WPs 2–8 inherit.
+
+| Module | Responsibility |
+|---|---|
+| `src/engine/spatial/types.ts` | `Agent`, `SpatialBall`, `Vec2`, `Frame`, `AgentFrame`, `FrameMarker`, `FrameAnnotation` (`Upgrade.md` § 8.1). Plain objects — no ECS, no classes-with-behaviour for agents. Coordinates are the existing 0–100 space. |
+| `src/engine/spatial/World.ts` | The engine-internal `World`: a pre-allocated 30-agent array (**fixed order: home slots 1–15 then away slots 1–15**) + ball + reused scratch vectors. `buildWorld(state)` allocates once; `resetWorld(world, state)` re-initialises in place (no reallocation) from `MatchState` via `onFieldPlayers`. `captureFrame(world, t)` snapshots positions into a `Frame`. The World is never part of `MatchState`, never saved, never range-checked. |
+| `src/engine/spatial/SteeringSystem.ts` | Pure `seek` / `arrive` / soft `separation`, each writing a desired velocity into a caller-supplied scratch vector (no allocation). |
+| `src/engine/spatial/MovementSystem.ts` | `step(world)`: per agent in the frozen order, `arrive` → ramp velocity under the accel cap → soft separation → integrate `pos += vel·dt` at 10 Hz → clamp to the pitch bands. |
+| `src/engine/spatial/SpatialSimulator.ts` | `run(world, ticks, silent, setIntent?)` drives the micro-tick loop and (live only) captures one `Frame` per tick. |
+
+**Iteration-order determinism contract (the frozen convention, `Upgrade.md` § 11).** One spatial evaluation order, fixed: **ShapeSolver (stub) → decision (stub) → steering → movement → contact (stub)**, agents iterated in **slot order, home then away** — mirroring the home-then-away convention in `FatigueAccumulator`. `World.agents` is laid out home 1–15 then away 1–15 and every system walks it in that index order. This order is inherited unchanged by WPs 2–8; reordering it is a determinism break. In WP 1 the decision and contact layers are stubs (the caller supplies fixed test targets via `setIntent`), `arrive` is folded into `MovementSystem.step` so steering→movement is one in-order pass, and contact is a no-op.
+
+**Zero allocation in the micro-tick loop.** The 30 agents and their pos/vel/intent vectors are allocated once in `buildWorld`; the loop reuses `world.scratchA`/`scratchB` and mutates in place. The only per-tick allocation is the `Frame`, and only on the live (non-silent) path — silent fixtures skip frame capture entirely (like `GameEvent.movements` today), so the substrate costs nothing in headless sims.
+
+**RNG.** All spatial randomness draws on the `rngSpatial` stream (reset by `setMatchSeed`); the substrate is the stream's only consumer (enforced by `checkDeterminism.ts`). In WP 1 the stub decision layer makes no draws, so the trajectory is purely a function of the authored setup — `checkDeterminism.ts` hashes the per-tick agent trajectory of a fixed stub World and asserts same-seed runs are identical. `scripts/checkSpatialScenarios.ts` (wired into `npm run verify`) runs authored World setups against predicates — WP 1 ships two smoke scenarios (an agent arrives at its target within tolerance; soft separation prevents two co-located agents stacking). Tuning lives in `src/engine/balance/spatialSteering.ts` (max speeds, accel caps, separation radius/strength; `deriveTopSpeed`/`deriveAccel` map `pace`/`agility`/fatigue → coord-units/s per `Upgrade.md` § 10).
+
+**Observability.** `SpatialSimulator` records per-tick decision annotations into each `Frame` **only when `world.recordAnnotations`** (a dev-only flag, never set in production or silent paths). `npm run probe -- --frames` dumps a captured frame stream + annotations to `harness/frames.json`; the Phase Animator's **frame debugger** mode loads it for scrub/playback/annotation inspection (see `docs/phase-animator.md`).
 
 **The `verify` check is self-consistency, not a frozen golden hash.** `checkDeterminism.ts` runs each fixture **twice** with the same seed and asserts the two snapshots (`state.events` + per-player matchStats) hash identically. So a *deterministic* change to event timing or ordering — e.g. deferring fatigue/injury commentary to the next break — passes fine: it just yields a new (still stable) hash. The printed hash is informational, not compared against a stored value. (The pinned snapshot in `checkSaveSchema.ts` is the separate save-shape guard.)
 

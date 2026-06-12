@@ -267,6 +267,10 @@
             <option value="0.25">0.25×</option><option value="1" selected>1×</option><option value="2">2×</option>
           </select></span>
         <span class="pill">Tick <span id="fdTickLabel">0 / 0</span></span>
+        <span class="pill" id="fdBeatPill" style="display:none">Beat
+          <button id="fdPrevBeat" style="padding:2px 7px">[</button>
+          <span id="fdBeatLabel" style="display:inline-block;min-width:2.5em;text-align:center">1 / 1</span>
+          <button id="fdNextBeat" style="padding:2px 7px">]</button></span>
       </div>
       <input type="range" id="fdScrub" min="0" max="0" value="0" step="1" style="width:100%;margin:10px 0;accent-color:var(--accent)" />
       <p class="hint">Read-only micro-tick playback (10 Hz). Scrub the slider or play; click a dot to read its decision annotations. <span class="kbd">Space</span> play/pause · <span class="kbd">←</span> <span class="kbd">→</span> step tick.</p>
@@ -348,6 +352,8 @@
   let ghostById = {};   // start/end ghosts for the ball
   let selectedId = 'ball';
   let beats = [];       // [{t,label}]
+  let frameStreams = []; // frame-debugger: all captured beats [{label, frames}]
+  let curStream = 0;     // index of the beat currently loaded for playback
   let phaseName = '(blank)';
   let playhead = 0;
   let playing = false;
@@ -563,8 +569,8 @@
     if (ev.code === 'Space')           { ev.preventDefault(); document.getElementById('playBtn').click(); }
     else if (ev.code === 'ArrowRight') { ev.preventDefault(); playhead = clamp(playhead + step, 0, 1); render(); }
     else if (ev.code === 'ArrowLeft')  { ev.preventDefault(); playhead = clamp(playhead - step, 0, 1); render(); }
-    else if (ev.key === ']')           { ev.preventDefault(); jumpBeat(1); }
-    else if (ev.key === '[')           { ev.preventDefault(); jumpBeat(-1); }
+    else if (ev.key === ']')           { ev.preventDefault(); if (document.body.classList.contains('frames-mode') && frameStreams.length > 1) loadStream(curStream + 1); else jumpBeat(1); }
+    else if (ev.key === '[')           { ev.preventDefault(); if (document.body.classList.contains('frames-mode') && frameStreams.length > 1) loadStream(curStream - 1); else jumpBeat(-1); }
     else if (ev.code === 'Home')       { ev.preventDefault(); document.getElementById('stopBtn').click(); }
   });
 
@@ -876,14 +882,34 @@
     renderAnnotation();
   }
 
-  // A frame stream can be the bare array, or wrapped { frames: [...] }, or a
-  // probe dump { frameStreams: [{ label, frames }] } — take the first stream.
-  function extractFrames(json) {
-    if (Array.isArray(json)) return json;
-    if (Array.isArray(json.frames)) return json.frames;
-    if (Array.isArray(json.frameStreams) && json.frameStreams[0]) return json.frameStreams[0].frames || [];
+  // A capture can be a bare frame array, a wrapped { frames: [...] }, or a probe
+  // dump { frameStreams: [{ label, frames }] } with many beats. Normalise to a
+  // list of streams so the debugger can step through every captured beat.
+  function extractStreams(json) {
+    if (Array.isArray(json)) return [{ label: '', frames: json }];
+    if (Array.isArray(json.frames)) return [{ label: json.label || '', frames: json.frames }];
+    if (Array.isArray(json.frameStreams)) return json.frameStreams;
     return [];
   }
+
+  // Load one beat (stream) into the playback timeline, wrapping at the ends.
+  function loadStream(i) {
+    if (!frameStreams.length) return;
+    curStream = (i + frameStreams.length) % frameStreams.length;
+    const st = frameStreams[curStream];
+    frames = st.frames || [];
+    const annoCount = frames.filter(f => f.annotations).length;
+    const multi = frameStreams.length > 1;
+    document.getElementById('fdBeatPill').style.display = multi ? '' : 'none';
+    document.getElementById('fdBeatLabel').textContent = `${curStream + 1} / ${frameStreams.length}`;
+    framesInfo.textContent = `Beat ${curStream + 1}/${frameStreams.length}${st.label ? ` — ${st.label}` : ''}: `
+      + `${frames.length} micro-ticks${annoCount ? `, ${annoCount} with annotations` : ''}.`;
+    scrub.max = String(Math.max(0, frames.length - 1));
+    selected = null; setTick(0);
+  }
+
+  document.getElementById('fdPrevBeat').onclick = () => loadStream(curStream - 1);
+  document.getElementById('fdNextBeat').onclick = () => loadStream(curStream + 1);
 
   document.getElementById('framesFile').onchange = e => {
     const file = e.target.files[0];
@@ -892,12 +918,11 @@
     rd.onload = () => {
       try {
         const json = JSON.parse(rd.result);
-        frames = extractFrames(json);
-        if (!frames.length) { framesInfo.textContent = 'No frames found in that JSON.'; return; }
-        const annoCount = frames.filter(f => f.annotations).length;
-        framesInfo.textContent = `Loaded ${frames.length} micro-ticks${annoCount ? `, ${annoCount} with annotations` : ' (no annotations)'}.`;
-        scrub.max = String(frames.length - 1);
-        selected = null; setTick(0);
+        frameStreams = extractStreams(json);
+        if (!frameStreams.length || !(frameStreams[0].frames || []).length) {
+          framesInfo.textContent = 'No frames found in that JSON.'; return;
+        }
+        loadStream(0);
       } catch (err) { framesInfo.textContent = 'Bad JSON: ' + err.message; }
     };
     rd.readAsText(file);

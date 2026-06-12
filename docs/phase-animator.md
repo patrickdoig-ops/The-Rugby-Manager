@@ -119,7 +119,7 @@ overlay (positional identity: dots 1–15 = home slots 1–15, 16–30 = away sl
 
 **Loading a stream.** Drop a frame-stream JSON into the file input. Accepted shapes:
 the bare `Frame[]` array, `{ frames: [...] }`, or a probe dump
-`{ frameStreams: [{ label, frames }] }` (the first stream is shown). Generate one with:
+`{ frameStreams: [{ label, frames }] }` carrying **every captured beat**. Generate one with:
 
 ```
 npm run probe -- --frames     # → harness/frames.json (frame stream + annotations)
@@ -133,6 +133,12 @@ match capture writes the same shape.)
 micro-ticks, **▶ Play / ⏸ / ⏹**, a **speed** select (0.25× / 1× / 2× — 1× is real
 10 Hz time), and a `tick / total` readout. `Space` plays/pauses; `←` / `→` step a
 single tick.
+
+**Stepping between beats.** A probe dump holds many beats (e.g. 10 PhasePlay
+carries). When more than one is loaded, a **Beat** pill appears with `[` / `]`
+buttons (and the matching keys) to step through every captured beat, showing
+`current / total` and the beat label. Each beat reloads the scrub timeline at
+tick 0 — so the whole capture is reviewable, not just the first carry.
 
 **Decision annotations.** When the capture recorded them — only in dev builds,
 behind the `world.recordAnnotations` flag, **never** in production or silent

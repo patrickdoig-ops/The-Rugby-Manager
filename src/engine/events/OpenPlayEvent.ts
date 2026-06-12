@@ -7,7 +7,7 @@ import type { MatchState } from '../../types/match';
 import type { Team } from '../../types/team';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay, resolveOpenPlaySpatial } from '../resolvers/OpenPlayResolver';
-import { runCarrySim } from '../spatial/CarrySim';
+import { runCarrySim, seedWorld } from '../spatial/CarrySim';
 import type { CarrySimResult } from '../spatial/CarrySim';
 import { BACKFIELD_COUNT } from '../balance';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
@@ -28,6 +28,30 @@ const FULL_BACKLINE = 7;  // jersey ids 9–15
 export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent, spatial, world, worldContinuation }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
+
+  // Cold-entry formation seed (Upgrade.md § 3; WP4). A freshly built/reset World
+  // is buildWorld's all-on-ball stub — snap it into a believable shape BEFORE any
+  // branch (kick, pick-and-go, carry) reads or leaves it, so a later continuation
+  // beat never inherits 30 dots piled on the ball. Cold builds happen ONLY on
+  // PhasePlay (ensureWorld restricts cold build+seed to the carry phase), so this
+  // is the single seam that guarantees every cold World is seeded. carrierSlot
+  // defaults to the scrum-half (base of the ruck) — the actual carry re-solves its
+  // corridor for the real carrier inside runCarrySim; this only gets agents OFF
+  // the ball into shape. (The carrier can't be picked earlier without perturbing
+  // the rng() draw order, so a fixed default keeps determinism.)
+  if (spatial && world && !worldContinuation) {
+    const defSideSeed: PossessionSide = attackSide === 'home' ? 'away' : 'home';
+    seedWorld(world, {
+      attackSide,
+      defendSide: defSideSeed,
+      attackDir: attackDir(state),
+      mark: { x: state.ball.x, y: state.ball.y },
+      defensiveLine: effDefensiveLine(state, defendTeam),
+      backfield: BACKFIELD_COUNT[effBackfieldDefence(state, defendTeam)],
+      defendDiscipline: defendTeam.tactics.discipline,
+      carrierSlot: SLOT.SCRUM_HALF,
+    });
+  }
 
   // Step 0 — Kick or carry decision (unified across PhasePlay / FirstPhase /
   // KickReturn). Director consumes attackingGamePlan + field zone today;
@@ -293,9 +317,6 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
       // biased by the same match-shaping factors on the spatial path.
       modShift: baseAttackMod - baseDefendMod,
       silent,
-      // The World persists across contiguous spatial phases (Upgrade.md § 3; WP4).
-      // ensureWorld marks a beat a continuation when it reused the existing World.
-      continuation: worldContinuation,
     });
     sim = s;
     if (!silent) frames = s.frames;

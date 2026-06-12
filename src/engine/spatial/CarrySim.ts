@@ -54,10 +54,6 @@ export interface CarrySimInput {
   // home advantage / team talk / tactics still bias line breaks (Upgrade.md §13).
   modShift: number;
   silent: boolean;
-  // True when the World carried over from the previous spatial beat (Upgrade.md
-  // § 3; WP4): skip the opening-formation seed so agents keep their positions and
-  // run the corridor from where they are — no teleport between contiguous beats.
-  continuation: boolean;
 }
 
 export interface CarrySimResult {
@@ -80,6 +76,21 @@ export interface CarrySimResult {
   ticksRun: number;
 }
 
+// Snap a COLD World (buildWorld/resetWorld leave every agent piled on the ball)
+// into a believable opening formation: defenders on their line, the carrier +
+// support pod in the corridor, the rest of the attack spread with width/depth.
+// Owned by the World lifecycle — handlePhasePlay calls this ONCE when a cold World
+// comes online, BEFORE any kick / pick-and-go / carry branch, so no branch can
+// leave an unseeded stub for a later continuation beat to inherit (the "30 dots
+// bloom out of the ball" bug). A continuation beat never calls this — it keeps the
+// positions carried over from the previous spatial beat (Upgrade.md § 3; WP4).
+export function seedWorld(world: World, params: ShapeParams): void {
+  solveDefence(world, params);
+  solveCarryCorridor(world, params);
+  solveAttackSpread(world, params);
+  seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
+}
+
 // Resolve a single PhasePlay carry spatially. `world` is the persistent World
 // owned by MatchCoordinator (built/reset/continued by ensureWorld); `state`
 // supplies the mark + on-field players for the solver params.
@@ -97,22 +108,15 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
 
   // Layer 1 setup: defenders to their slots (fold speed baked into pace), the
   // carry corridor for the carrier + support pod, then the placeholder spread
-  // for the remaining attackers (forward cluster + backline fan).
+  // for the remaining attackers (forward cluster + backline fan). The opening-
+  // formation SNAP is NOT here — it is owned by the World lifecycle (handlePhasePlay
+  // calls seedWorld once when a cold World comes online, before any kick / pick-
+  // and-go / carry branch). By the time runCarrySim runs, the World is always in
+  // shape: a cold beat was just seeded; a continuation beat carries its positions
+  // over from the previous spatial beat (Upgrade.md § 3; WP4 — nothing teleports).
   const roles = solveDefence(world, params);
   const carrier = solveCarryCorridor(world, params);
   solveAttackSpread(world, params);
-
-  // Seed the opening formation ONLY on a fresh beat (Upgrade.md § 3; WP4). On a
-  // fresh World (cold entry / post-invalidation rebuild) every agent is snapped
-  // off the ball onto its assigned target so the beat OPENS in a believable rugby
-  // shape instead of 30 dots piled on the ball (resetWorld's stub): defenders ON
-  // the line, the carrier near the mark, support + backs spread with width/depth.
-  // On a CONTINUATION beat the World was carried from the previous spatial beat —
-  // skip the snap so agents keep their current positions and run the new corridor
-  // from where they are: the defence is genuinely mid-fold, nothing teleports.
-  if (!input.continuation) {
-    seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
-  }
 
   // WP3 contact state — mutable across ticks, written into by the contact hook.
   // Pre-allocated: no allocation in the hot path.

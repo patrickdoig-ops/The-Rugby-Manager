@@ -82,10 +82,15 @@ const ROOT_SEED = 0xDEADBEEF;
 //
 // WP4 update: the breakdown now contests with the spatially-COMMITTED bodies
 // (RuckCommitment over the persistent World) instead of an rng-picked forward
-// set — same resolver formula, different (better-placed) participants. Outcomes
-// shift by design; every § 13 band stays in range (pts 23.56, tries 3.62,
-// TO 2.29, pen 12.16 on the 5-seed/450-fixture sweep).
-const GOLDEN = '24b3da815dde0ec03b5acbf3eb9a50d28f5e42a0908e8663a0d8014ab6f73c22';
+// set — same resolver formula, different (better-placed) participants.
+//
+// WP4 seeding fix: the cold-World formation seed moved from runCarrySim into the
+// World lifecycle (seedWorld, called once at handlePhasePlay cold entry) and
+// Breakdown no longer cold-builds — so kick / pick-and-go / carry beats all open
+// in a real formation instead of 30 dots blooming off the ball. Spatial positions
+// are now correct, which shifts outcomes again (by design); every § 13 band holds
+// (pts 24.32, tries 3.74, TO 2.18, pen 12.48, tackMade 67.5 on the 5-seed sweep).
+const GOLDEN = '4d363d2500e29db97957e06b885fd16ba47f8640fcec54b5d32ddbfbdc7949a5';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

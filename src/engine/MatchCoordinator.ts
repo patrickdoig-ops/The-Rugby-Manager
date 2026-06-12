@@ -902,14 +902,24 @@ export class MatchCoordinator {
     // A card/injury/sin-bin event (all bump cards.version) changed the on-field
     // set since the World was last built — invalidate.
     if (this.state.cards.version !== this.worldCardsVersion) this.worldDirty = true;
-    if (this.world === null) {
-      this.world = buildWorld(this.state);
-      this.worldDirty = false;
-      this.worldCardsVersion = this.state.cards.version;
-      return { world: this.world, continuation: false };
-    }
-    if (this.worldDirty) {
-      resetWorld(this.world, this.state);
+
+    // A COLD World (first ever, or invalidated) is the all-on-ball stub from
+    // buildWorld/resetWorld — it MUST be seeded into a believable formation before
+    // any spatial handler reads it. Only the carry phase (PhasePlay) carries the
+    // corridor context to seed it (runCarrySim snaps the shape on continuation ===
+    // false). A non-carry spatial phase (Breakdown) must NOT cold-build: doing so
+    // would hand commitRuck the unseeded stub AND leave the next PhasePlay to skip
+    // its seed (treating the stub as a continuation), flowering 30 dots off the
+    // ball. So Breakdown READS a clean World when one exists (the normal PhasePlay
+    // → Breakdown → PhasePlay continuation), else returns null so the breakdown
+    // falls back to its legacy participant pick and the next PhasePlay does the
+    // cold build + seed. (A breakdown reads post-carry positions — it cannot
+    // meaningfully precede the carry that creates them.)
+    const canSeed = this.state.phase === MatchPhase.PhasePlay;
+    if (this.world === null || this.worldDirty) {
+      if (!canSeed) return { world: null, continuation: false };
+      if (this.world === null) this.world = buildWorld(this.state);
+      else resetWorld(this.world, this.state);
       this.worldDirty = false;
       this.worldCardsVersion = this.state.cards.version;
       return { world: this.world, continuation: false };

@@ -28,7 +28,7 @@ import type { Position, PlayerInjury, RestObligation } from '../types/player';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
-import { selectionUnavailableIds } from '../game/internationalDutyEngine';
+import { selectionUnavailableIds, isPreSeasonCup } from '../game/internationalDutyEngine';
 import { playerOverall } from '../engine/RatingEngine';
 import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { averageRating } from '../game/seasonLeaderboards';
@@ -190,6 +190,22 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       if (r && r.firstName === p.firstName && r.lastName === p.lastName) {
         return (r.lionsReturnRound !== undefined && state.calendar.week < r.lionsReturnRound)
           ? r.lionsReturnRound
+          : undefined;
+      }
+    }
+    return undefined;
+  }
+
+  // The Premiership round a summer tour returnee becomes available (Round 1).
+  function summerTourStandDownFor(p: { firstName: string; lastName: string }): number | undefined {
+    const state = opts.getGameEngine().getState();
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return undefined;
+    for (const rid of club.squad) {
+      const r = state.career.roster[rid];
+      if (r && r.firstName === p.firstName && r.lastName === p.lastName) {
+        return (r.summerTourReturn && isPreSeasonCup(state))
+          ? 1
           : undefined;
       }
     }
@@ -561,11 +577,14 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       : '';
     const rest = !injury ? restObligationFor(p) : undefined;
     const lionsRound = !injury && !rest ? lionsStandDownFor(p) : undefined;
+    const summerTourRound = !injury && !rest && lionsRound === undefined ? summerTourStandDownFor(p) : undefined;
     const restBadge = rest
       ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${rest.eligibleRounds.join(', ')}">REST</span>`
       : lionsRound !== undefined
         ? `<span class="rest-badge" title="British &amp; Irish Lions — post-tour rest, unavailable until Round ${lionsRound}">REST</span>`
-        : '';
+        : summerTourRound !== undefined
+          ? `<span class="rest-badge" title="Summer Tour — post-tour rest, unavailable until Round ${summerTourRound}">REST</span>`
+          : '';
     const condition = conditionFor(p);
     const conditionCell = condition === null
       ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`

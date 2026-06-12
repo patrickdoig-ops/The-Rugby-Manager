@@ -88,6 +88,17 @@
   text-align: center;
 }
 
+#hub-date {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--rm-text-muted);
+  text-align: center;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
 .hub-standing-item {
   display: flex;
   flex-direction: column;

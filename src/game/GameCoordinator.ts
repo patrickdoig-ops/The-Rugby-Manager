@@ -59,7 +59,7 @@ import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './
 import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/europeanStories';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
-import { upcomingGap, upcomingGapFromDate, splitGapIntoPeriods } from './trainingCalendar';
+import { upcomingGap, upcomingGapFromDate, splitGapIntoPeriods, nextPlayableDate } from './trainingCalendar';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generateStaffPool } from './staffPoolGenerator';
@@ -608,8 +608,11 @@ export class GameCoordinator {
     this.intlBreak.markCupRoundShown(roundKey);
   }
 
-  advanceCupCalendar(toDate: string): void {
-    this.intlBreak.advanceCupCalendar(toDate);
+  async advanceMatchdayCalendar(toDate: string): Promise<void> {
+    if (toDate && toDate !== this.state.calendar.date) {
+      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
+    }
+    await this.advanceEuropeanCompetitions();
   }
 
   async recordPlayerCupPoolResult(
@@ -669,7 +672,7 @@ export class GameCoordinator {
   // its own span. Emits game:trainingApplied.
   runCupMatchdayTraining(weeks: TrainingPlan[]): TrainingWeekResult {
     const n = Math.max(1, weeks.length);
-    const { days } = upcomingGapFromDate(this.state.calendar.date, this.nextMatchdayDate());
+    const { days } = upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
     const spans = splitGapIntoPeriods(days, n);
     const acc = runTrainingPeriods(this.state, weeks, spans);
     eventBus.emit('game:trainingApplied', { state: this.state });
@@ -681,9 +684,16 @@ export class GameCoordinator {
   // European keeps its league-driven calendar.date, so a date-derived gap
   // isn't available). Emits game:trainingApplied.
   runEuropeanMatchdayTraining(weeks: TrainingPlan[]): TrainingWeekResult {
-    const acc = runTrainingPeriods(this.state, weeks, [7]);
+    const n = Math.max(1, weeks.length);
+    const { days } = upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
+    const spans = splitGapIntoPeriods(days, n);
+    const acc = runTrainingPeriods(this.state, weeks, spans);
     eventBus.emit('game:trainingApplied', { state: this.state });
-    return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: 1 };
+    return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: n };
+  }
+
+  europeanMatchdayGap(): { weeks: number; days: number } {
+    return upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
   }
 
   // The gap from the current cup matchday to the player's next matchday — used
@@ -692,34 +702,7 @@ export class GameCoordinator {
   // (which `upcomingGap`, keyed off calendar.week, would report). Mirrors the
   // span runCupMatchdayTraining itself recovers/develops over.
   cupMatchdayGap(): { weeks: number; days: number } {
-    return upcomingGapFromDate(this.state.calendar.date, this.nextMatchdayDate());
-  }
-
-  // Earliest date strictly after today among the player's remaining cup
-  // matchdays and the upcoming league round — the horizon for a cup matchday's
-  // training gap.
-  private nextMatchdayDate(): string {
-    const cur = this.state.calendar.date;
-    const dates: string[] = [];
-    const cup = this.state.league.premCup;
-    const playerId = this.state.player.teamId;
-    if (cup) {
-      for (const f of cup.fixtures) {
-        if (!f.result && (f.homeId === playerId || f.awayId === playerId) && f.date > cur) dates.push(f.date);
-      }
-      const ko = cup.knockout;
-      if (ko) for (const m of [ko.semifinals[0], ko.semifinals[1], ko.final]) {
-        if (!m.result && m.homeId && m.awayId && (m.homeId === playerId || m.awayId === playerId) && m.date > cur) dates.push(m.date);
-      }
-    }
-    let leagueDate: string | null = null;
-    for (const f of this.state.league.fixtures) {
-      if (f.round !== this.state.calendar.week || !f.date) continue;
-      if (leagueDate === null || f.date < leagueDate) leagueDate = f.date;
-    }
-    if (leagueDate && leagueDate > cur) dates.push(leagueDate);
-    dates.sort();
-    return dates[0] ?? leagueDate ?? cur;
+    return upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
   }
 
   // ===== Off-season market (Phases 2-7) =====

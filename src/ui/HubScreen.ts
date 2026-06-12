@@ -157,7 +157,7 @@ const poachThreatCount = (state.career.activePoachedIds ?? []).length;
         <h1 id="hub-team-name">${playerTeam.name}</h1>
       </div>
 
-      <div id="hub-date" style="text-align:center;color:#9aa0a6;font-size:0.85rem;margin:0 0 0.6rem">${formatDateMedium(state.calendar.date)}</div>
+      <div id="hub-date">${formatDateMedium(state.calendar.date)}</div>
 
       ${(() => {
           const myId = playerTeam.id;

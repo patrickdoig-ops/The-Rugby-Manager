@@ -96,10 +96,14 @@ const ROOT_SEED = 0xDEADBEEF;
 //
 // WP5 defensive spread: front-line slots that would clamp against a near touchline
 // at a wide ruck now redistribute to the OPEN side (capped at LINE_OPEN_REDIRECT_CAP)
-// instead of packing the touchline — the line spreads across the field. Outcomes
-// shift again (by design); every § 13 band holds (pts 23.48, tries 3.62, TO 2.15,
-// pen 12.60, tackMade 63.9, home-win 55.78 on the 5-seed/450-fixture sweep).
-const GOLDEN = 'cec49055373387c16ece661ca62c42f677af858ff97f3ec15f149b3bb9de3dfb';
+// instead of packing the touchline — the line spreads across the field.
+//
+// WP5 forward pods: the off-ball forwards now set up as PODS posted across the
+// field at the gain-line depth (receiving stations for the next phase) instead of
+// one loose cluster behind the ruck. Outcomes shift again (by design); every § 13
+// band holds (pts 23.69, tries 3.66, TO 2.14, pen 12.47, tackMade 64.1,
+// home-win 56.00 on the 5-seed/450-fixture sweep).
+const GOLDEN = '2bd83090f60c2dacd4f8d2cb881baab3c17b7dbba1bcd92fc5fdf06a1bafc0cc';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

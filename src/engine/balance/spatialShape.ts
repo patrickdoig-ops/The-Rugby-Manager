@@ -122,15 +122,21 @@ export const CARRY_CORRIDOR = {
 // the carrier + support pod targets); it stops every attacker opening on the
 // ball. Coordinates are oriented by attackDir so both possession sides and both
 // halves mirror correctly. All offsets are coord-units relative to the mark.
+// Forward pods (WP5): the off-ball forwards set up as PODS — small tight units
+// posted across the field at the gain-line depth as receiving stations for the
+// next phase — instead of one loose cluster. Pods fan toward the open side, each
+// pod wider; within a pod the 2-3 forwards bunch tightly. (Style-driven 1-3-3-1
+// vs 2-4-2 spacing is a follow-up; this is a fixed structure for now.)
+export const FORWARD_POD = {
+  podSize: 3,            // forwards per pod
+  podDepth: 4.0,         // pod centre this far behind the gain line
+  firstPodOffset: 6.0,   // |y| of the first (inside) pod from the mark
+  podSpacing: 12.0,      // lateral gap between pod centres
+  inPodSpread: 2.6,      // within-pod lateral step
+  inPodStagger: 1.4,     // within-pod along-axis depth step
+} as const;
+
 export const ATTACK_SPREAD = {
-  // Forward cluster: the non-pod forwards pack loosely just behind the mark
-  // (against attackDir = toward own line). `clusterDepth` is how far back the
-  // pack centres; `clusterSpread` is the lateral band they spread across, laid
-  // out alternating off the mark's y. A small along-axis stagger adds depth so
-  // they do not line up flat.
-  forwardClusterDepth: 4.0,
-  forwardClusterSpread: 9.0,
-  forwardClusterStagger: 2.5,
   // Backline: a fanning line set deeper than the forwards, each back further
   // from the mark laterally (toward the open side) and progressively deeper, so
   // the backs carry real width + depth behind the gain line. `firstOffset` is

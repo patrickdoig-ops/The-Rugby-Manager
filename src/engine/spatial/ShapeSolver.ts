@@ -30,6 +30,7 @@ import {
   OFFSIDE_TEAM_SCALE,
   CARRY_CORRIDOR,
   ATTACK_SPREAD,
+  FORWARD_POD,
   GAP_BREAK,
 } from '../balance/spatialShape';
 import { deriveFoldSpeedMult } from '../balance/spatialSteering';
@@ -240,30 +241,47 @@ export function reanchorSupport(world: World, carrier: Agent, p: ShapeParams): v
 // solveAttackSpread; in-place target update (no allocation). Corridor agents
 // (carrier + support pod) are skipped — they have their own re-anchors.
 export function reanchorAttack(world: World, carrier: Agent, p: ShapeParams): void {
+  layAttackShape(world, p, carrier.pos.x);
+}
+
+// Set an off-ball attacker's role + target (create or update in place — no
+// allocation on the per-tick path).
+function setAttackTarget(a: Agent, x: number, y: number): void {
+  a.role = 'idle';
+  if (a.intent.target) { a.intent.target.x = x; a.intent.target.y = y; }
+  else a.intent.target = { x, y };
+}
+
+// Lay the OFF-BALL attack shape (forward pods + backline) at depth behind the
+// gain line `gainX` (the mark at seed, the carrier's x per tick). Corridor agents
+// (carrier + support pod) are skipped — they have their own targets. Forwards set
+// up as PODS fanned to the open side; backs form an angled backline deeper + wider
+// per man. Deterministic: agents partitioned in slot-iteration order.
+function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
   const attackers = sideAgents(world, p.attackSide);
   const openSign = p.mark.y <= 50 ? 1 : -1;
-  const gainX = carrier.pos.x;
-  let fwdRank = 0;
-  let backRank = 0;
+  const offForwards: Agent[] = [];
+  const offBacks: Agent[] = [];
   for (const a of attackers) {
-    if (a.role === 'corridor') continue;
-    const t = a.intent.target;
-    if (!t) continue;
-    if (isForwardSlot(a.slot)) {
-      const pairRank = Math.floor(fwdRank / 2);
-      const sign = fwdRank % 2 === 0 ? 1 : -1;
-      const lateral = sign * (pairRank + 1) * (ATTACK_SPREAD.forwardClusterSpread / 2);
-      const stagger = pairRank * ATTACK_SPREAD.forwardClusterStagger;
-      t.x = clampX(gainX - p.attackDir * (ATTACK_SPREAD.forwardClusterDepth + stagger));
-      t.y = clampY(p.mark.y + lateral);
-      fwdRank++;
-    } else {
-      const lateral = openSign * (ATTACK_SPREAD.backFirstOffset + backRank * ATTACK_SPREAD.backLateralStep);
-      const depth = ATTACK_SPREAD.backDepth + backRank * ATTACK_SPREAD.backDepthStep;
-      t.x = clampX(gainX - p.attackDir * depth);
-      t.y = clampY(p.mark.y + lateral);
-      backRank++;
-    }
+    if (a.role === 'corridor' || a.slot === p.carrierSlot) continue;
+    (isForwardSlot(a.slot) ? offForwards : offBacks).push(a);
+  }
+  // Forwards → pods. Pod centres fan toward the open side; within a pod the
+  // members bunch tightly with a small lateral + depth stagger.
+  for (let i = 0; i < offForwards.length; i++) {
+    const podIndex = Math.floor(i / FORWARD_POD.podSize);
+    const inPod = i % FORWARD_POD.podSize;
+    const podY = p.mark.y + openSign * (FORWARD_POD.firstPodOffset + podIndex * FORWARD_POD.podSpacing);
+    const sign = inPod % 2 === 0 ? 1 : -1;
+    const lateral = sign * Math.ceil(inPod / 2) * FORWARD_POD.inPodSpread;
+    const depth = FORWARD_POD.podDepth + inPod * FORWARD_POD.inPodStagger;
+    setAttackTarget(offForwards[i], clampX(gainX - p.attackDir * depth), clampY(podY + lateral));
+  }
+  // Backs → angled backline off the open side, deeper + wider per man.
+  for (let i = 0; i < offBacks.length; i++) {
+    const lateral = openSign * (ATTACK_SPREAD.backFirstOffset + i * ATTACK_SPREAD.backLateralStep);
+    const depth = ATTACK_SPREAD.backDepth + i * ATTACK_SPREAD.backDepthStep;
+    setAttackTarget(offBacks[i], clampX(gainX - p.attackDir * depth), clampY(p.mark.y + lateral));
   }
 }
 
@@ -384,41 +402,10 @@ export function solveCarryCorridor(world: World, p: ShapeParams): Agent {
 // opening shape. All offsets are oriented by attackDir; the open side is the
 // wider half of the pitch from the mark so the backline always has room to run.
 export function solveAttackSpread(world: World, p: ShapeParams): void {
-  const attackers = sideAgents(world, p.attackSide);
-  // Open side = the touchline further from the mark (more room). +1 ⇒ toward
-  // y=100, -1 ⇒ toward y=0.
-  const openSign = p.mark.y <= 50 ? 1 : -1;
-
-  let fwdRank = 0;
-  let backRank = 0;
-  for (const a of attackers) {
-    if (a.intent.target) continue; // carrier or support pod already placed
-    if (isForwardSlot(a.slot)) {
-      // Loose forward cluster behind the mark, alternating off the mark's y with
-      // a small along-axis stagger so the pack is not flat.
-      const pairRank = Math.floor(fwdRank / 2);
-      const sign = fwdRank % 2 === 0 ? 1 : -1;
-      const lateral = sign * (pairRank + 1) * (ATTACK_SPREAD.forwardClusterSpread / 2);
-      const stagger = pairRank * ATTACK_SPREAD.forwardClusterStagger;
-      a.role = 'idle';
-      a.intent.target = {
-        x: clampX(p.mark.x - p.attackDir * (ATTACK_SPREAD.forwardClusterDepth + stagger)),
-        y: clampY(p.mark.y + lateral),
-      };
-      fwdRank++;
-    } else {
-      // Backline fans out toward the open side, each back wider + deeper — the
-      // classic angled backline carrying width + depth behind the gain line.
-      const lateral = openSign * (ATTACK_SPREAD.backFirstOffset + backRank * ATTACK_SPREAD.backLateralStep);
-      const depth = ATTACK_SPREAD.backDepth + backRank * ATTACK_SPREAD.backDepthStep;
-      a.role = 'idle';
-      a.intent.target = {
-        x: clampX(p.mark.x - p.attackDir * depth),
-        y: clampY(p.mark.y + lateral),
-      };
-      backRank++;
-    }
-  }
+  // Seed-time opening shape: same pod + backline layout as the per-tick re-anchor,
+  // anchored to the mark (the carrier opens AT the mark). seedFormation then snaps
+  // every off-ball attacker onto these targets.
+  layAttackShape(world, p, p.mark.x);
 }
 
 // ── Gap detection → line-break verdict (Upgrade.md § 5.2) ─────────────────

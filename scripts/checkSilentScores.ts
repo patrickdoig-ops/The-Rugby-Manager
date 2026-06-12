@@ -18,10 +18,17 @@
 // into GOLDEN below, and commit. Do this ONLY when an outcome change is
 // intentional — a surprise mismatch means a silent-path optimisation altered
 // the simulation.
+//
+// Timing assertion (Upgrade.md § 12): also asserts that the mean wall-clock
+// time per fixture stays below SILENT_FIXTURE_MEAN_MS + 250 ms so the spatial
+// engine build never silently blows the performance budget. Baseline is frozen
+// in spatialBaselines.ts.
 
 import { createHash } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
 import { simulateFixture } from '../src/game/simulateFixture.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
+import { SILENT_FIXTURE_MEAN_MS } from './spatialBaselines.js';
 
 import bathRaw         from '../src/data/team-bath.json' with { type: 'json' };
 import bristolRaw      from '../src/data/team-bristol.json' with { type: 'json' };
@@ -42,13 +49,14 @@ const TEAMS = [
 const ROOT_SEED = 0xDEADBEEF;
 
 // Pinned golden hash of the full result set. Regenerate intentionally only.
-// Re-baselined 2026-06 (three times): authored FIRST_PHASE try grounding y takes
+// Re-baselined 2026-06 (four times): authored FIRST_PHASE try grounding y takes
 // precedence over the procedural tryLandingY; the 5m try-leniency band was removed
-// (isTryScoredAt now requires reaching the line); and a scrum-half kick off first
+// (isTryScoredAt now requires reaching the line); a scrum-half kick off first
 // phase no longer routes through the kick_decision (9→10) choreography — so its
-// box kick originates from the set-piece mark, not the #10 channel. All shift
+// box kick originates from the set-piece mark, not the #10 channel; and kicking
+// balance tuning (reduced kick frequency + outside-22 touch probability). All shift
 // outcomes by design.
-const GOLDEN = '6b1b4e01720a518eb36926673fc7b8a40e08ba3f4999293768aab71dc6d0d146';
+const GOLDEN = 'd0380c0b25434c88582d8d7825adc10b4cc6fc9aa8b5084b6dcd2874da6bcb3e';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so
@@ -69,8 +77,11 @@ SPECS.push({ home: TEAMS[4], away: TEAMS[5], round: 102, opts: { homeFillRate: 0
 SPECS.push({ home: TEAMS[6], away: TEAMS[7], round: 103, opts: { homeFillRate: 1.0 } });
 
 const rows: string[] = [];
+const fixtureTimes: number[] = [];
 for (const s of SPECS) {
+  const t0 = performance.now();
   const r = await simulateFixture(s.home, s.away, ROOT_SEED, s.round, s.opts);
+  fixtureTimes.push(performance.now() - t0);
   rows.push(JSON.stringify({
     h: s.home.id, a: s.away.id, hs: r.homeScore, as: r.awayScore,
     hsum: r.snapshot.homeSummary, asum: r.snapshot.awaySummary,
@@ -88,3 +99,14 @@ if (actual === GOLDEN) {
   console.error('  If this change to outcomes is intentional, paste `actual` into GOLDEN and recommit.');
   process.exit(1);
 }
+
+// Timing assertion (Upgrade.md § 12): mean per-fixture wall-clock must stay
+// below the frozen baseline + 250 ms headroom.
+const meanFixtureMs = fixtureTimes.reduce((a, b) => a + b, 0) / fixtureTimes.length;
+const TIMING_BUDGET_MS = SILENT_FIXTURE_MEAN_MS + 250;
+if (meanFixtureMs > TIMING_BUDGET_MS) {
+  console.error(`SILENT FIXTURE TIMING EXCEEDED — mean ${meanFixtureMs.toFixed(1)} ms > budget ${TIMING_BUDGET_MS} ms (baseline ${SILENT_FIXTURE_MEAN_MS} ms + 250 ms headroom).`);
+  process.exit(1);
+}
+console.log(`OK: silent fixture timing — mean ${meanFixtureMs.toFixed(1)} ms per fixture (budget ${TIMING_BUDGET_MS} ms)`);
+

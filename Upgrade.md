@@ -298,14 +298,14 @@ Current telemetry is years of balance work — it is the **target distribution**
 
 | Metric | Baseline (frozen) | Band |
 |---|---|---|
-| Tries / match | 3.9 | ±0.5 |
-| Combined points | 25.3 | ±3 |
-| Penalties conceded / match | 9.9 | ±1.5 |
-| Tackles attempted / made | 56.2 / 54.4 | ±6 |
-| Carries / match | 32.9 | ±5 |
-| Turnovers won | 2.0 | ±0.5 |
-| Knock-ons | 2.4 | ±0.6 |
-| Home win share | 55.3% | ±5pp |
+| Tries / match | 4.0 | ±0.5 |
+| Combined points | 26.2 | ±3 |
+| Penalties conceded / match | 11.4 | ±1.5 |
+| Tackles attempted / made | 67.6 / 65.7 | ±6 |
+| Carries / match | 39.8 | ±5 |
+| Turnovers won | 2.5 | ±0.5 |
+| Knock-ons | 3.0 | ±0.6 |
+| Home win share | 51.6% | ±5pp |
 
 Plus new spatial-only metrics with bands from real Premiership data: line breaks/match (~10), defenders beaten (~25), offloads (~10), metres carried (~450/team). When spatial and legacy disagree, the question is "which matches real rugby?" — answered with the harness, never by feel alone.
 

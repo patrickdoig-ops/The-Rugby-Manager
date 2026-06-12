@@ -187,7 +187,7 @@ FullTime     → (terminal)
 ```
 
 Three carry phases share an evasion/collision resolver but have distinct player selection and structure:
-- **PhasePlay** — runs after Breakdown; optional pick-and-go branch (back row / prop drives 0-4m from the ruck base) rolls first, otherwise the hard-carry / out-the-back decision picks the carrier (weighted forward on the hard carry — back row + props heavy, locks second, hooker rare; fly-half → outside back on the wide path)
+- **PhasePlay** — runs after Breakdown; optional pick-and-go branch (back row / prop drives 0-4m from the ruck base) rolls first, otherwise the hard-carry / out-the-back decision picks the carrier (weighted forward on the hard carry — back row + props heavy, locks second, hooker rare; fly-half → outside back on the wide path). **Carry line breaks resolve spatially** (WP 2) — see "Spatial PhasePlay (WP 2)" under the Spatial substrate section; revert is a one-line `SPATIAL_PHASES` change.
 - **FirstPhase** — runs after Scrum or Lineout; carrier always #10; crash ball or wide play
 - **KickReturn** — runs after KickOff, BoxKick, or TacticalKick; catcher fields the kick, then a tactics-keyed pod-pickup roll may swap the carrier to a back-row pod runner before the run step
 
@@ -354,9 +354,9 @@ A match with a given seed is fully reproducible: identical event sequence, ident
 
 ---
 
-## Spatial substrate (dark)
+## Spatial substrate
 
-The first stage of the Spatial Engine Upgrade (`Upgrade.md`, WP 1). It ships a 30-agent spatial micro-tick substrate that **runs dark** — it is *not* wired into `PhaseRouter`, no phase resolves through it, and it produces no `MatchEvent`s, so it has **zero gameplay effect** (telemetry and the silent-score golden hash are byte-identical to the pre-WP1 baseline). It exists to freeze the conventions — World lifecycle, iteration order, zero-allocation loop, frame capture, RNG discipline — that WPs 2–8 inherit.
+The first stages of the Spatial Engine Upgrade (`Upgrade.md`). **WP 1** shipped the 30-agent micro-tick substrate dark (no wiring). **WP 2** wired the substrate into LIVE `PhasePlay` carry resolution: a drilled defensive line (slots, fold, backfield, offside) and a carry corridor, with spatial **line breaks** replacing the line-break/metres portion of `OpenPlayResolver` while every `MatchEvent` and telemetry band stays unchanged (see "Spatial PhasePlay (WP 2)" below). The substrate still freezes the conventions — World lifecycle, iteration order, zero-allocation loop, frame capture, RNG discipline — that WPs 3–8 inherit.
 
 | Module | Responsibility |
 |---|---|
@@ -365,6 +365,8 @@ The first stage of the Spatial Engine Upgrade (`Upgrade.md`, WP 1). It ships a 3
 | `src/engine/spatial/SteeringSystem.ts` | Pure `seek` / `arrive` / soft `separation`, each writing a desired velocity into a caller-supplied scratch vector (no allocation). |
 | `src/engine/spatial/MovementSystem.ts` | `step(world)`: per agent in the frozen order, `arrive` → ramp velocity under the accel cap → soft separation → integrate `pos += vel·dt` at 10 Hz → clamp to the pitch bands. |
 | `src/engine/spatial/SpatialSimulator.ts` | `run(world, ticks, silent, setIntent?)` drives the micro-tick loop and (live only) captures one `Frame` per tick. |
+| `src/engine/spatial/ShapeSolver.ts` (WP 2) | Layer-1 ROLE solver, DEFENCE half: `solveDefence` (line slots anchored at the mark, fold via `speedScale`, backfield, returns line roles), `solveCarryCorridor` (carrier + support pod targets), `detectGap` (lateral-dominant gap → line-break verdict + nearest line defender), `detectOffside` (creep → offside offender). Assigns destinations + `speedScale` only — never moves anyone. |
+| `src/engine/spatial/CarrySim.ts` (WP 2) | `runCarrySim(state, input)`: builds the World on PhasePlay entry, runs `solveDefence` + `solveCarryCorridor` + the micro-ticks, returns the plain-data verdict `{ lineBreak, tacklerSlot, spatialMetres, offsideOffenderSlot, frames }`. Discards the World on return (cross-phase persistence is WP 4). |
 
 **Iteration-order determinism contract (the frozen convention, `Upgrade.md` § 11).** One spatial evaluation order, fixed: **ShapeSolver (stub) → decision (stub) → steering → movement → contact (stub)**, agents iterated in **slot order, home then away** — mirroring the home-then-away convention in `FatigueAccumulator`. `World.agents` is laid out home 1–15 then away 1–15 and every system walks it in that index order. This order is inherited unchanged by WPs 2–8; reordering it is a determinism break. In WP 1 the decision and contact layers are stubs (the caller supplies fixed test targets via `setIntent`), `arrive` is folded into `MovementSystem.step` so steering→movement is one in-order pass, and contact is a no-op.
 
@@ -375,6 +377,24 @@ The first stage of the Spatial Engine Upgrade (`Upgrade.md`, WP 1). It ships a 3
 **Observability.** `SpatialSimulator` records per-tick decision annotations into each `Frame` **only when `world.recordAnnotations`** (a dev-only flag, never set in production or silent paths). `npm run probe -- --frames` dumps a captured frame stream + annotations to `harness/frames.json`; the Phase Animator's **frame debugger** mode loads it for scrub/playback/annotation inspection (see `docs/phase-animator.md`).
 
 **The `verify` check is self-consistency, not a frozen golden hash.** `checkDeterminism.ts` runs each fixture **twice** with the same seed and asserts the two snapshots (`state.events` + per-player matchStats) hash identically. So a *deterministic* change to event timing or ordering — e.g. deferring fatigue/injury commentary to the next break — passes fine: it just yields a new (still stable) hash. The printed hash is informational, not compared against a stored value. (The pinned snapshot in `checkSaveSchema.ts` is the separate save-shape guard.)
+
+### Spatial PhasePlay (WP 2)
+
+`PhasePlay` is the first phase to resolve through the spatial substrate. `PhaseRouter` holds a module-level `SPATIAL_PHASES = new Set([MatchPhase.PhasePlay])`; `resolvePhase` sets `ctx.spatial = SPATIAL_PHASES.has(state.phase)` and `handlePhasePlay` branches on it. **Reverting the spatial path is a one-line change** — remove `PhasePlay` from `SPATIAL_PHASES` and the legacy carry resolution resumes byte-identical (`Upgrade.md` § 3 hybrid contract).
+
+**What is replaced.** Only the **line-break verdict + line-break metres** portion of `OpenPlayResolver`. The pre-carry logic (kick decision, pick-and-go, interception, knock-on, obstruction, the wide/hard-carry split) and the post-carry logic (offload chain, try check, `CARRY_RESOLVED` emit, high-tackle, injury) are unchanged and shared with the legacy path. The legacy `resolveOpenPlay` (and `resolvePickAndGo`, the offload chain, FirstPhase/KickReturn/Maul) is **untouched**.
+
+**The seam.** Spatial decides WHERE contact happens and WHO tackles (nearest line defender); the legacy formula decides the contact OUTCOME. `handlePhasePlay` calls `runCarrySim(state, …)` (all draws on the isolated `rngSpatial` stream — it cannot perturb the `rng` outcome stream), then `resolveOpenPlaySpatial(carrier, defender, lineBreak, spatialMetres, …)`. That resolver draws the **same five `rng` rolls** the legacy collision path draws — evasion pair, collision pair, one metres draw — REGARDLESS of the spatial verdict (the line-break metres draw is consumed then discarded on a forced break), so contact carries stay byte-identical and the stream count is invariant. The nearest line defender (`runCarrySim().tacklerSlot`) replaces the channel-aware `pickPrimaryDefender` pick.
+
+**Line model + fold (`balance/spatialShape.ts`).** `DEFENSIVE_LINE` maps the tactic to lateral `slotSpacing` + `standOff` (blitz 5.5/2.0 tight & flat; drift 7.5/4.5 wide & deep; hybrid 6.5/3.0). `LINE_SLOT_COUNT = 12` front-line slots are laid out around the mark; the nearest defender to each slot is assigned greedily. `BACKFIELD_COUNT` (one_back 1, else 2) posts deep (`BACKFIELD_DEPTH = 22`, `BACKFIELD_SPREAD = 18`). Fold speed is `deriveFoldSpeedMult(stamina, positioning, fatigue)` (`balance/spatialSteering.ts`: weights 0.6/0.4, multiplier 0.45→1.0 × the fatigue curve) written onto the agent's `speedScale`, which `MovementSystem` applies to the arrive() speed — **slow folds leave the overlap** (the emergent payoff). `CARRY_CORRIDOR_TICKS = 22` micro-ticks per beat.
+
+**Gap detection → line break (`GAP_BREAK`).** Lateral-dominant: each line defender's effective gap is `|Δy| + max(0, behind)·behindWeight` (a defender the carrier ran past counts as beaten via `behindWeight = 0.6`). Break iff `min gap + noise ≥ threshold`, where `threshold = baseGapThreshold(18) − evasionGapSwing(4)·evasion + coverGapSwing(3.5)·cover − clampAbs(modShift·modGapWeight(0.35), 6)`. `evasion` = agility/pace blend (0–1), `cover` = positioning/tackling/pace blend (0–1), `modShift` = the legacy `attackMod − defendMod` (home advantage, team talk, tactics) so those still bias breaks, `noise` = `rngSpatial(0, noiseBand=5) − 2.5`. Line-break metres are pace-scaled on `rngSpatial`: slow carrier `[6,12]`, fast `[9,24]`, floor 5. The legacy hard-carry line-break upgrade is **skipped** on the spatial path (spatial owns every break).
+
+**Offside (`OFFSIDE`).** After the ticks, each line defender's effective creep = `(advance past the mark + baseCreep 2.2) × disciplineScale × OFFSIDE_TEAM_SCALE[tactic]`, where `disciplineScale` runs 1.8 (worst) → 0.35 (best) on a discipline+positioning blend and the team tactic scales risky 1.35 / balanced 1.0 / cautious 0.7. The tackler is excluded (he is legitimately advancing). The single worst creeper beyond `penaltyThreshold = 3.2` is rolled at `penaltyRollPct = 9%` into a `PENALTY_AWARDED` with offence `offside_at_ruck` — feeding the existing penalty pipeline (cards/TMO untouched). Low-discipline risky lines ping materially more (scenario-gated ≥3×).
+
+**Frames.** `runCarrySim` returns the captured micro-tick `Frame[]` on the live path; `PhaseResult.frames` → `GameEvent.frames` (a frozen scalar snapshot, same lifetime rule as `movements`; consumed by the renderer in WP 8). **Silent fixtures skip capture entirely** — telemetry/AI sims carry no frames and pay zero capture cost.
+
+**Calibration (`Upgrade.md` § 13).** All bands hold on 450 fixtures: tries 4.15, points 27.0, carries 39.5, penalties 12.1, knock-ons 3.0, home-win 53.6%. Four spatial scenarios gate the behaviour (fold overlap; 2-on-1; rush-kills-width; offside discipline) in `checkSpatialScenarios.ts`.
 
 ---
 

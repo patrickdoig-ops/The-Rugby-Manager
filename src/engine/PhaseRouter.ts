@@ -24,7 +24,16 @@ import { handleConversionKick } from './events/ConversionKickEvent';
 // with ctx.spatial = true, resolving carry line breaks through the spatial
 // World (SpatialSimulator) instead of the legacy resolver margin. Reverting a
 // phase to the legacy engine is a one-line change: remove it from this set.
-const SPATIAL_PHASES: ReadonlySet<MatchPhase> = new Set([MatchPhase.PhasePlay]);
+const SPATIAL_PHASES: ReadonlySet<MatchPhase> = new Set([MatchPhase.PhasePlay, MatchPhase.Breakdown]);
+
+// Single-sourced spatial-phase predicate (Upgrade.md § 3; WP4). MatchCoordinator
+// reads this to decide when to build/reuse the persistent World, so the set of
+// spatial phases is defined in exactly one place. Breakdown joined PhasePlay in
+// WP4: the ruck commitment heuristic measures the live World (carrier isolation,
+// committed-body count) to feed the BreakdownResolver inputs.
+export function isSpatialPhase(phase: MatchPhase): boolean {
+  return SPATIAL_PHASES.has(phase);
+}
 
 const PHASE_HANDLERS: Partial<Record<MatchPhase, (ctx: PhaseContext) => PhaseResult>> = {
   [MatchPhase.KickOff]:        handleKickOff,
@@ -61,7 +70,17 @@ export function draftEvent(state: MatchState, phase: MatchPhase): GameEvent {
   };
 }
 
-export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy, silent = false): GameEvent {
+export function resolvePhase(
+  state: MatchState,
+  kickOffStrategy: KickOffStrategy,
+  silent = false,
+  // The persistent spatial World (WP4) and whether it is a CONTINUATION of the
+  // previous spatial beat. Both default to the legacy/no-World path so every
+  // existing call site and the non-spatial phases stay byte-identical: a null
+  // World passed into a handler that never reads it changes no stream.
+  world: import('./spatial/World').World | null = null,
+  worldContinuation = false,
+): GameEvent {
   const attackTeam = state.possession === 'home' ? state.homeTeam : state.awayTeam;
   const defendTeam = state.possession === 'home' ? state.awayTeam : state.homeTeam;
   // Capture before the handler runs — possession may flip inside the handler.
@@ -90,6 +109,8 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     kickOffStrategy,
     silent,
     spatial: SPATIAL_PHASES.has(state.phase),
+    world,
+    worldContinuation,
   };
 
   const handler = PHASE_HANDLERS[state.phase];

@@ -29,6 +29,15 @@ export interface PhaseContext {
   // Removing the phase from SPATIAL_PHASES (the one-line revert) makes this
   // false and the legacy carry path resumes — byte-identical to pre-WP2.
   spatial: boolean;
+  // The persistent spatial World (Upgrade.md § 3 continuity rule; WP4). Owned by
+  // MatchCoordinator and threaded in via PhaseRouter so the World survives across
+  // contiguous spatial phases (PhasePlay → Breakdown → PhasePlay) — nothing
+  // teleports between beats. Null on the non-spatial / legacy path (a handler that
+  // never reads it is byte-identical). `worldContinuation` is true when the World
+  // was REUSED from the previous spatial beat (continue from current positions)
+  // and false when it was freshly (re)built this beat (seed the opening formation).
+  world?: import('../spatial/World').World | null;
+  worldContinuation: boolean;
 }
 
 export interface PhaseResult {

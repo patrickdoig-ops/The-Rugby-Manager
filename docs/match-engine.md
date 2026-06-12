@@ -459,6 +459,33 @@ Two regression scenarios in `checkSpatialScenarios.ts` guard both properties: (a
 
 **Calibration (WP 3).** `CONTACT_RADIUS = 2.2` was chosen by tuning to keep all `spatialBaselines.ts` bands passing. Post contact-timing fix all-seeds bands (450 fixtures): tries 3.67, points 23.87, pen 12.70 (ceiling 12.9), tackles-made 63.23, home-win 52.67%. Fifteen spatial scenarios gate behaviour including 5 WP 3 assertions plus 2 contact-timing regression guards.
 
+### World continuity (WP 4)
+
+Through WP 3 the World was built fresh on every PhasePlay beat and discarded on return — every beat OPENED with a freshly-seeded formation. WP 4 makes the World **persist across contiguous spatial phases** (`Upgrade.md` § 3 continuity rule) so the defence is genuinely mid-fold when the next carry starts and nothing teleports between beats.
+
+**One owner.** `MatchCoordinator` holds the single `private world: World | null` (alongside `clock`/`fatigue`). It is the only owner; `SpatialSimulator`/`CarrySim` receive it as a parameter. The World is **engine-internal** — never in `MatchState`, never serialised, **no save-schema change** (`Upgrade.md` § 3: the World is always reconstructable from `MatchState`).
+
+**Spatial-phase set.** `PhaseRouter` exports `isSpatialPhase(phase)` over the single-sourced `SPATIAL_PHASES = { PhasePlay, Breakdown }` (Breakdown joined in WP 4 so the ruck commitment heuristic — see "Breakdown commitment" — can measure the live World). `MatchCoordinator` reads `isSpatialPhase` to decide build-vs-reuse.
+
+**`ensureWorld()` (the lifecycle seam).** Called once per tick, immediately before `resolvePhase`, returning `{ world, continuation }`:
+- **Non-spatial phase** (scrum, lineout, penalty, kick-off, try, …): returns `null` and sets `worldDirty = true`. The handler gets a null World (its `rng()` stream is byte-identical), and because a staged contest / stoppage resets positions + possession, spatial play resuming afterward must REBUILD — the dirty flag forces it.
+- **Spatial phase, no World or dirty**: `buildWorld` (first ever) or `resetWorld` in place (post-invalidation) from `MatchState`; `continuation = false`.
+- **Spatial phase, live clean World**: reuse it; `continuation = true`.
+
+So the PhasePlay → Breakdown → PhasePlay sequence keeps ONE World alive untouched across the (spatial) Breakdown beat — exactly the continuity the rule demands.
+
+**`continuation` → skip the seed.** `runCarrySim(world, state, input)` now receives the World plus `input.continuation`. On a fresh beat (`false`) it seeds the opening formation as in WP 2 (`seedFormation` snaps every agent off the ball onto its assigned shape). On a continuation beat (`true`) it **skips `seedFormation`** — agents keep their current positions and run the new corridor from where the previous beat left them. The three solvers (`solveDefence`/`solveCarryCorridor`/`solveAttackSpread`) still run (they assign `intent.target`/`role` only — they never move anyone), so fold targets + the corridor are fresh, but no position teleports.
+
+**Invalidation (rebuild on next spatial beat).** `worldDirty` is set when an event changed agent identity or pitch orientation:
+- **Substitution** (voluntary, red-20 expiry, injury) — set at both `SUBSTITUTION_APPLIED` call sites; a slot's player changed.
+- **Card / injury / sin-bin return** — detected uniformly via a `state.cards.version` snapshot (`worldCardsVersion`): all of CARD_ISSUED / SIN_BIN_RETURNED / RED_20_EXPIRED / PLAYER_INJURED_IN_MATCH / INJURY_STRANDED bump `cards.version`, so a single comparison in `ensureWorld` catches the whole family (`onFieldPlayers` changed).
+- **`POSITION_SWAP`** — set in the bus handler; two slots swapped jerseys.
+- **Half-time** — set after `triggerHalfTime` (both the normal end-of-period path and the goal-kick-in-the-red path); attack direction flips, so the World is REBUILT (never mirrored in place).
+
+**Determinism.** `ensureWorld`/`buildWorld`/`resetWorld`/`seedFormation` draw NO random stream (they read `onFieldPlayers` + `baseStats` only), so threading the World perturbs neither the outcome (`rng`) nor the spatial (`rngSpatial`) stream order. The `rng` outcome stream stays byte-identical (the spatial verdict only selects which already-drawn branch is used). What DOES change is the spatial stream's *consumption pattern*: continuation beats run `detectContact`/`detectGap` from continued positions rather than a re-seeded formation — the intended WP 4 effect. All `Upgrade.md` § 13 bands re-validated and hold; the silent-score golden was regenerated (intentional outcome shift).
+
+**Calibration (WP 4 — World continuity).** Fast-mode bands (3 seeds, 270 fixtures): tries 3.79, points 24.47, pen 12.09, tackles-made 61.62, carries 39.60, turnovers 2.40, knock-ons 2.98, home-win 52.59% — all in band.
+
 ---
 
 ## Lateral / Y-axis model

@@ -20,15 +20,21 @@
 // MAX_TICKS_AFTER_BREAK cap). If no contact occurs across all ticks the gap
 // detection path runs (line break / no break as in WP2).
 //
-// World lifecycle is MINIMAL (Upgrade.md § 3 / WP2 deliverable 4): a fresh World
-// is built on entry and discarded on return. Cross-phase persistence is WP4.
+// World lifecycle is PERSISTENT (Upgrade.md § 3; WP4): the World is owned by
+// MatchCoordinator and passed IN. On a FRESH beat (cold entry / post-invalidation
+// rebuild — `continuation === false`) the opening formation is seeded as in WP2.
+// On a CONTINUATION beat (the World carried over from the previous spatial beat —
+// `continuation === true`) seedFormation is SKIPPED so agents keep their current
+// positions and run the new corridor from where the previous beat left them —
+// nothing teleports between contiguous spatial beats.
 
 import type { MatchState } from '../../types/match';
 import type { PossessionSide } from '../../types/engine';
 import type { DefensiveLine, Discipline } from '../../types/team';
 import { CARRY_CORRIDOR_TICKS, MAX_TICKS_AFTER_BREAK } from '../balance/spatialShape';
 import { LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST } from '../balance/spatialTackle';
-import { buildWorld, seedFormation, coupleBallToCarrier } from './World';
+import { seedFormation, coupleBallToCarrier } from './World';
+import type { World } from './World';
 import { run } from './SpatialSimulator';
 import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence } from './ShapeSolver';
 import { detectContact } from './ContactSystem';
@@ -48,6 +54,10 @@ export interface CarrySimInput {
   // home advantage / team talk / tactics still bias line breaks (Upgrade.md §13).
   modShift: number;
   silent: boolean;
+  // True when the World carried over from the previous spatial beat (Upgrade.md
+  // § 3; WP4): skip the opening-formation seed so agents keep their positions and
+  // run the corridor from where they are — no teleport between contiguous beats.
+  continuation: boolean;
 }
 
 export interface CarrySimResult {
@@ -70,11 +80,10 @@ export interface CarrySimResult {
   ticksRun: number;
 }
 
-// Resolve a single PhasePlay carry spatially. `state` supplies the on-field
-// players, ball position (the mark) and clock for the World build.
-export function runCarrySim(state: MatchState, input: CarrySimInput): CarrySimResult {
-  const world = buildWorld(state);
-
+// Resolve a single PhasePlay carry spatially. `world` is the persistent World
+// owned by MatchCoordinator (built/reset/continued by ensureWorld); `state`
+// supplies the mark + on-field players for the solver params.
+export function runCarrySim(world: World, state: MatchState, input: CarrySimInput): CarrySimResult {
   const params: ShapeParams = {
     attackSide: input.attackSide,
     defendSide: input.defendSide,
@@ -93,13 +102,17 @@ export function runCarrySim(state: MatchState, input: CarrySimInput): CarrySimRe
   const carrier = solveCarryCorridor(world, params);
   solveAttackSpread(world, params);
 
-  // Seed the opening formation: snap every agent off the ball onto its assigned
-  // target so the beat OPENS in a believable rugby shape instead of 30 dots
-  // piled on the ball (resetWorld's stub). Defenders start ON the line, the
-  // carrier near the mark, support + backs spread with width and depth. The
-  // defensive fold-overlap payoff still emerges from the carrier running the
-  // corridor against the formed line over the micro-ticks.
-  seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
+  // Seed the opening formation ONLY on a fresh beat (Upgrade.md § 3; WP4). On a
+  // fresh World (cold entry / post-invalidation rebuild) every agent is snapped
+  // off the ball onto its assigned target so the beat OPENS in a believable rugby
+  // shape instead of 30 dots piled on the ball (resetWorld's stub): defenders ON
+  // the line, the carrier near the mark, support + backs spread with width/depth.
+  // On a CONTINUATION beat the World was carried from the previous spatial beat —
+  // skip the snap so agents keep their current positions and run the new corridor
+  // from where they are: the defence is genuinely mid-fold, nothing teleports.
+  if (!input.continuation) {
+    seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
+  }
 
   // WP3 contact state — mutable across ticks, written into by the contact hook.
   // Pre-allocated: no allocation in the hot path.

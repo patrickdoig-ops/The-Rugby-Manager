@@ -37,7 +37,9 @@ import { FatigueAccumulator } from './FatigueAccumulator';
 import { CommentaryStreamer } from './CommentaryStreamer';
 import { buildDisplaySnapshot } from './displaySnapshot';
 import { detectEntry22Changes } from './Entry22Tracker';
-import { resolvePhase, draftEvent } from './PhaseRouter';
+import { resolvePhase, draftEvent, isSpatialPhase } from './PhaseRouter';
+import { buildWorld, resetWorld } from './spatial/World';
+import type { World } from './spatial/World';
 import { makeId, resetEventCounter } from './eventId';
 import { applyMatchEvent } from './applyMatchEvent';
 import { playerOverall } from './RatingEngine';
@@ -281,6 +283,23 @@ export class MatchCoordinator {
   private kickAtGoalHandler: KickAtGoalHandler;
   private clock: ClockController;
   private fatigue: FatigueAccumulator;
+  // The persistent spatial World (Upgrade.md § 3 continuity rule; WP4). Engine-
+  // internal substrate — never part of MatchState, never serialised, no save
+  // impact. Built lazily at the first spatial phase, then PERSISTS across
+  // contiguous spatial beats (PhasePlay → Breakdown → PhasePlay) so the defence
+  // is genuinely mid-fold when play resumes and nothing teleports. `worldDirty`
+  // forces a rebuild from MatchState on the next spatial beat after an event that
+  // changed agent identity/orientation: substitution, card, half-time (attack
+  // direction flips — rebuild, never mirror in place), POSITION_SWAP.
+  private world: World | null = null;
+  private worldDirty = false;
+  // The state.cards.version the live World was last (re)built against. A change —
+  // any card issued/returned, sin-bin expiry, injury, or injury-strand (all bump
+  // cards.version) means a player left/returned to the field, so onFieldPlayers
+  // changed and the World's agent set is stale → rebuild. Subs (voluntary),
+  // POSITION_SWAP, and half-time don't all bump cards.version, so they set
+  // worldDirty explicitly; this snapshot covers the card/injury family uniformly.
+  private worldCardsVersion = 0;
   private director: AITacticalDirector;
   private subDirector: AISubstitutionDirector;
   private streamer: CommentaryStreamer;
@@ -375,6 +394,9 @@ export class MatchCoordinator {
         }),
         eventBus.on('ui:positionSwap', ({ squadNum1, squadNum2 }) => {
           applyMatchEvent(this.state, { type: 'POSITION_SWAP', side: this.humanSide, squadNum1, squadNum2 });
+          // Two slots swapped jerseys — the World's per-slot agent identities are
+          // stale; rebuild on the next spatial beat (Upgrade.md § 3; WP4).
+          this.worldDirty = true;
         }),
       );
     }
@@ -491,6 +513,9 @@ export class MatchCoordinator {
       type: 'SUBSTITUTION_APPLIED',
       off, on: benchPlayer, teamSide: side, benchIdx, fieldIdx,
     });
+    // Forced sub (red-20 expiry / injury) also changes a slot's player — rebuild
+    // the World on the next spatial beat (Upgrade.md § 3; WP4).
+    this.worldDirty = true;
 
     const ev = buildAnnounce({
       key: replDoneKey,
@@ -545,6 +570,9 @@ export class MatchCoordinator {
       type: 'SUBSTITUTION_APPLIED',
       off, on: sub, teamSide: side, benchIdx, fieldIdx,
     });
+    // A slot's player changed — the World's agent for that slot is stale; rebuild
+    // it from MatchState on the next spatial beat (Upgrade.md § 3; WP4).
+    this.worldDirty = true;
 
     const subEvent: GameEvent = {
       id: makeId(),
@@ -840,6 +868,55 @@ export class MatchCoordinator {
     });
   }
 
+  // Resolve the persistent spatial World for the phase about to resolve
+  // (Upgrade.md § 3; WP4). Returns the World and whether this beat is a
+  // CONTINUATION (the World was reused from the previous spatial beat → continue
+  // from current positions) or a fresh (re)build (→ seed the opening formation).
+  //
+  //  • Non-spatial phase (scrum, lineout, kick, …) → return null. The World ref
+  //    is PRESERVED untouched (not torn down) so a non-spatial phase interleaving
+  //    two spatial beats — e.g. Breakdown between two PhasePlays — does not break
+  //    continuity. resolvePhase passes null, so the non-spatial handler's rng()
+  //    stream is byte-identical.
+  //  • Spatial phase, no World or dirty → build (first ever) or reset-in-place
+  //    (post-invalidation) from MatchState. continuation = false.
+  //  • Spatial phase, live clean World → reuse. continuation = true.
+  //
+  // ensureWorld touches NO random stream — buildWorld/resetWorld read
+  // onFieldPlayers + baseStats only (no rng draws of any kind), so it cannot
+  // perturb determinism. It runs before resolvePhase, never interleaved with
+  // handler draws. (The spatial micro-tick stream is consumed only inside the
+  // spatial substrate, never here — the World object is plain data to this file.)
+  private ensureWorld(): { world: World | null; continuation: boolean } {
+    if (!isSpatialPhase(this.state.phase)) {
+      // A non-spatial phase is resolving. Two cases:
+      //  • Breakdown is itself spatial (WP4) so never reaches here — the World
+      //    survives the PhasePlay → Breakdown → PhasePlay sequence untouched.
+      //  • Any OTHER non-spatial phase is a staged contest / stoppage (scrum,
+      //    lineout, penalty, kick-off, try, …). Spatial play resuming afterward
+      //    must REBUILD from MatchState (Upgrade.md § 3) — positions/possession
+      //    are reset by the set piece. Mark dirty so the next spatial beat rebuilds.
+      this.worldDirty = true;
+      return { world: null, continuation: false };
+    }
+    // A card/injury/sin-bin event (all bump cards.version) changed the on-field
+    // set since the World was last built — invalidate.
+    if (this.state.cards.version !== this.worldCardsVersion) this.worldDirty = true;
+    if (this.world === null) {
+      this.world = buildWorld(this.state);
+      this.worldDirty = false;
+      this.worldCardsVersion = this.state.cards.version;
+      return { world: this.world, continuation: false };
+    }
+    if (this.worldDirty) {
+      resetWorld(this.world, this.state);
+      this.worldDirty = false;
+      this.worldCardsVersion = this.state.cards.version;
+      return { world: this.world, continuation: false };
+    }
+    return { world: this.world, continuation: true };
+  }
+
   private async tickBody(): Promise<void> {
     this.tickTimeout = null;
     if (!this.state.engine.isRunning) return;
@@ -944,7 +1021,8 @@ export class MatchCoordinator {
     }
     this.subDirector.evaluate();
 
-    const event = resolvePhase(this.state, this.kickOffStrategy, this.silent);
+    const { world, continuation } = this.ensureWorld();
+    const event = resolvePhase(this.state, this.kickOffStrategy, this.silent, world, continuation);
     applyMatchEvent(this.state, { type: 'COMMENTARY_LOGGED', event });
 
     detectEntry22Changes(this.state);
@@ -1005,6 +1083,9 @@ export class MatchCoordinator {
     } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
       if (!this.state.clock.halfTimeDone) {
         this.clock.triggerHalfTime(this.state);
+        // Attack direction flips at half-time — REBUILD the World from MatchState
+        // next spatial beat (Upgrade.md § 3; WP4: rebuild, never mirror in place).
+        this.worldDirty = true;
         if (!this.state.engine.isRunning) return true;
       } else {
         await this.clock.endMatch(this.state);
@@ -1175,6 +1256,8 @@ export class MatchCoordinator {
     if (this.state.clock.clockInTheRed) {
       if (!this.state.clock.halfTimeDone) {
         this.clock.triggerHalfTime(this.state);
+        // Attack direction flips at half-time — rebuild the World (Upgrade.md § 3).
+        this.worldDirty = true;
         if (!this.state.engine.isRunning) return;
         // Run the half-time team talks (panel + pause in live mode, AI talks
         // only in silent mode) just like the normal end-of-period path —

@@ -25,7 +25,7 @@ import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effD
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
-export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent, spatial }: PhaseContext): PhaseResult {
+export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent, spatial, world, worldContinuation }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
@@ -279,8 +279,8 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   let frames: import('../spatial/types').Frame[] | undefined;
   let offsideOffender: Player | undefined;
   let sim: CarrySimResult | undefined;
-  if (spatial) {
-    const s = runCarrySim(state, {
+  if (spatial && world) {
+    const s = runCarrySim(world, state, {
       attackSide,
       defendSide: defSide,
       attackDir: direction,
@@ -293,6 +293,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
       // biased by the same match-shaping factors on the spatial path.
       modShift: baseAttackMod - baseDefendMod,
       silent,
+      // The World persists across contiguous spatial phases (Upgrade.md § 3; WP4).
+      // ensureWorld marks a beat a continuation when it reused the existing World.
+      continuation: worldContinuation,
     });
     sim = s;
     if (!silent) frames = s.frames;

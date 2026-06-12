@@ -203,7 +203,7 @@ npm run cap:ios   # cap:sync then `cap open ios` (opens the Xcode workspace — 
 npm run preview   # serve the dist/ folder locally
 npm run verify    # match determinism (scripts/checkDeterminism.ts) AND season determinism (scripts/checkSeasonDeterminism.ts) — both must pass
 npm run telemetry # balance/realism report — 450 fixtures, markdown to stdout. Not part of `verify`; run on demand when tuning. CI regenerates `telemetry/latest.md` on every push to main; don't edit it by hand.
-npm run probe     # headless-Chromium capture of 2D pitch animation — screenshots + dot traces → `harness/` (gitignored). Kill stale Vite first: `pkill -9 -f vite`. Traces carry jersey number only — no side/carrier flag; cross-reference `beats[].side` + `movements[]` to identify actors.
+npm run probe     # headless-Chromium capture of 2D pitch animation — screenshots + dot traces → `harness/` (gitignored), THEN runs sync assertions over the trace (teleport detector + channel-exclusivity = hard failures → exit 1; carrier-contact = soft warn). Re-analyse the last capture without recapturing: `node scripts/checkProbeTrace.mjs`. Kill stale Vite first (`pkill -9 -f vite`) or it serves a STALE bundle; if `pkill` is blocked, pass a fresh `PROBE_PORT` so it spawns its own. Each dot trace carries a stable `data-key` (`h:10`); each beat carries `primaryKey` (the carrier candidate).
 ```
 
 `npm run build` and `npm run verify` must both pass cleanly before every commit.

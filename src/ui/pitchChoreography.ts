@@ -150,10 +150,13 @@ export function choreograph(
       if (catcherDot) {
         // Run FROM their authored defensive-line placement...
         catcherDot.from = { x: catcherDot.x, y: catcherDot.y };
-        // ...TO the actual ball landing spot
+        // ...TO the actual ball landing spot. The catcher is driven by the chase seam
+        // (`from`) ONLY — NOT also `isCarrier`. A dot with both is fought over by the
+        // ball-walk follower and the chase seam (the channel-exclusivity invariant, caught
+        // by the probe assertion). The ball reaches the landing via the kick flight; the
+        // catcher just runs to meet it.
         catcherDot.x = clampX(event.ballX - fwd * CARRIER_BEHIND_BALL);
         catcherDot.y = clampY(event.ballY);
-        catcherDot.isCarrier = true;
       }
     }
 

@@ -306,6 +306,12 @@ export function lionsUnavailable(p: Player, week: number): boolean {
   return p.lionsReturnRound !== undefined && week < p.lionsReturnRound;
 }
 
+// True while a player who was on the summer tour is resting before the league starts.
+// Unavailable until Round 1.
+export function summerTourUnavailable(p: Player, week: number): boolean {
+  return !!p.summerTourReturn && week < 1;
+}
+
 // rosterIds in a club's squad who are unavailable for selection this round by
 // policy (PGA forced rest after international duty, or a Lions post-tour
 // stand-down). Treated exactly like injured players by the squad builders /
@@ -320,7 +326,7 @@ export function selectionUnavailableIds(state: GameState, clubId: string): Set<n
     // internationalDuty is only set during a break (when the sole matches are
     // cup matches), so excluding on-duty players here keeps them out of the
     // live cup XV without affecting league selection.
-    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || isSuspended(p, week) || p.internationalDuty || p.loanOut)) out.add(rid);
+    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || summerTourUnavailable(p, week) || isSuspended(p, week) || p.internationalDuty || p.loanOut)) out.add(rid);
   }
   return out;
 }

@@ -196,6 +196,22 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     return undefined;
   }
 
+  // The Premiership round a summer tour returnee becomes available (Round 1).
+  function summerTourStandDownFor(p: { firstName: string; lastName: string }): number | undefined {
+    const state = opts.getGameEngine().getState();
+    const club = state.career.clubs.find(c => c.id === state.player.teamId);
+    if (!club) return undefined;
+    for (const rid of club.squad) {
+      const r = state.career.roster[rid];
+      if (r && r.firstName === p.firstName && r.lastName === p.lastName) {
+        return (r.summerTourReturn && state.calendar.week < 1)
+          ? 1
+          : undefined;
+      }
+    }
+    return undefined;
+  }
+
   // Average match rating for a draft-row player. Returns null when the
   // player has no appearances this season — distinguishes "0.0 because
   // untouched" from a genuinely poor rating so the row can render an em
@@ -561,11 +577,14 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
       : '';
     const rest = !injury ? restObligationFor(p) : undefined;
     const lionsRound = !injury && !rest ? lionsStandDownFor(p) : undefined;
+    const summerTourRound = !injury && !rest && lionsRound === undefined ? summerTourStandDownFor(p) : undefined;
     const restBadge = rest
       ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${rest.eligibleRounds.join(', ')}">REST</span>`
       : lionsRound !== undefined
         ? `<span class="rest-badge" title="British &amp; Irish Lions — post-tour rest, unavailable until Round ${lionsRound}">REST</span>`
-        : '';
+        : summerTourRound !== undefined
+          ? `<span class="rest-badge" title="Summer Tour — post-tour rest, unavailable until Round ${summerTourRound}">REST</span>`
+          : '';
     const condition = conditionFor(p);
     const conditionCell = condition === null
       ? `<div class="sq-con sq-con--unrated" title="No condition data">—</div>`

@@ -19,6 +19,10 @@ export interface AgentSetup {
   y: number;
   pace?: number;
   agility?: number;
+  stamina?: number;
+  positioning?: number;
+  tackling?: number;
+  discipline?: number;
   fatigue?: number;
   target?: { x: number; y: number } | null;
 }
@@ -40,6 +44,11 @@ function makeAgent(side: PossessionSide, slot: number, s: AgentSetup): Agent {
     fatigueSnapshot: s.fatigue ?? 0,
     pace: s.pace ?? 10,
     agility: s.agility ?? 10,
+    stamina: s.stamina ?? 10,
+    positioning: s.positioning ?? 10,
+    tackling: s.tackling ?? 10,
+    discipline: s.discipline ?? 10,
+    speedScale: 1,
   };
 }
 
@@ -79,6 +88,49 @@ export function runScenario(world: World, ticks: number): World {
 
 export function dist(a: Vec2, b: Vec2): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+// ── WP2 carry scenario driver ─────────────────────────────────────────────
+// Builds a defensive shape + carry corridor from an authored World, runs the
+// micro-ticks, and returns the spatial line-break + offside verdict. Lets the
+// scenario suite assert fold-overlap / 2-on-1 / rush / offside behaviour against
+// the real ShapeSolver. The World here is authored directly (not from
+// MatchState), so the caller seeds agent positions/attrs to stage the picture.
+
+import { solveDefence, solveCarryCorridor, detectGap, detectOffside } from '../src/engine/spatial/ShapeSolver.js';
+import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
+import type { ShapeParams } from '../src/engine/spatial/ShapeSolver.js';
+
+export interface CarryScenarioResult {
+  lineBreak: boolean;
+  offsidePenalty: boolean;
+}
+
+// Resolve one authored carry: solve the defence + corridor, run the ticks, and
+// return the verdict. `params` overrides default mark/direction/tactics;
+// `modShift` is the net carry modifier the gap threshold reads (0 = neutral).
+export function runCarryScenario(
+  world: World,
+  params: Partial<ShapeParams> = {},
+  modShift = 0,
+): CarryScenarioResult {
+  const p: ShapeParams = {
+    attackSide: 'home',
+    defendSide: 'away',
+    attackDir: 1,
+    mark: { x: world.ball.pos.x, y: world.ball.pos.y },
+    defensiveLine: 'hybrid',
+    backfield: 2,
+    defendDiscipline: 'balanced',
+    carrierSlot: 1,
+    ...params,
+  };
+  const roles = solveDefence(world, p);
+  const carrier = solveCarryCorridor(world, p);
+  run(world, CARRY_CORRIDOR_TICKS, true);
+  const gap = detectGap(carrier, roles, modShift, p.attackDir);
+  const offside = detectOffside(roles, p, gap.nearestDefender);
+  return { lineBreak: gap.lineBreak, offsidePenalty: offside !== null };
 }
 
 // Hash every agent position at every tick of a dark-mode run — the trajectory

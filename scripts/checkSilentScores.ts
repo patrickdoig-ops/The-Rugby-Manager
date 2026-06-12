@@ -49,14 +49,13 @@ const TEAMS = [
 const ROOT_SEED = 0xDEADBEEF;
 
 // Pinned golden hash of the full result set. Regenerate intentionally only.
-// Re-baselined 2026-06 (four times): authored FIRST_PHASE try grounding y takes
-// precedence over the procedural tryLandingY; the 5m try-leniency band was removed
-// (isTryScoredAt now requires reaching the line); a scrum-half kick off first
-// phase no longer routes through the kick_decision (9→10) choreography — so its
-// box kick originates from the set-piece mark, not the #10 channel; and kicking
-// balance tuning (reduced kick frequency + outside-22 touch probability). All shift
-// outcomes by design.
-const GOLDEN = 'd0380c0b25434c88582d8d7825adc10b4cc6fc9aa8b5084b6dcd2874da6bcb3e';
+// Re-baselined 2026-06 (WP2): PhasePlay carries now resolve through the spatial
+// substrate (SpatialSimulator) — spatial gap detection replaces the legacy
+// line-break/metres portion of OpenPlayResolver, and a new offside-creep penalty
+// source feeds the penalty pipeline. Silent outcomes shift by design while every
+// § 13 telemetry band stays in range (checkSpatialBands). Reverting PhasePlay
+// from SPATIAL_PHASES restores the prior golden.
+const GOLDEN = '41d13aaf64be2390e5794316d33931e222d40066410aab05498245e448ded03f';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

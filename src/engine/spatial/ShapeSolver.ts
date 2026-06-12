@@ -205,6 +205,64 @@ export function reanchorDefence(roles: LineRole[], carrier: Agent, p: ShapeParam
   }
 }
 
+// Re-anchor the support pod each tick so it TRAILS the carrier — support runners
+// stay ONSIDE (never ahead of the ball, the way real cleaners follow the carry
+// into contact). Without this the pod targets a fixed point ahead of the mark and
+// a faster runner overtakes a slow carrier — the "support ahead of the ball /
+// offside at the breakdown" look. In-place target update (no allocation), mirror
+// of reanchorDefence. Support = the corridor-role attackers other than the carrier
+// (set by solveCarryCorridor); each holds its lateral channel and sits
+// supportDepth behind the carrier's current x along attackDir.
+export function reanchorSupport(world: World, carrier: Agent, p: ShapeParams): void {
+  const attackers = sideAgents(world, p.attackSide);
+  const trailX = clampX(carrier.pos.x - p.attackDir * CARRY_CORRIDOR.supportDepth);
+  for (const a of attackers) {
+    if (a === carrier || a.role !== 'corridor') continue;
+    const t = a.intent.target;
+    if (!t) continue;
+    t.x = trailX;  // y already encodes the runner's lateral channel beside the carrier
+  }
+}
+
+// Re-anchor the off-ball attack shape (forward cluster + backline fan) each tick
+// to hold its depth BEHIND THE LIVE GAIN LINE — the carrier's current x — instead
+// of the static mark. WP2 anchored the spread to the mark and solved it once; on a
+// continuation beat (no reseed) the shape then sat wherever it drifted from the
+// previous phase, frequently AHEAD of the ball (offside). Anchoring depth to the
+// carrier each tick keeps the whole attack onside as he advances: the shape
+// translates forward with the gain line, the backs hold their width (fan from the
+// mark's y), and a fast carrier (line break) simply pulls ahead of his support —
+// support that can't keep up falls legally behind. Same rank logic + constants as
+// solveAttackSpread; in-place target update (no allocation). Corridor agents
+// (carrier + support pod) are skipped — they have their own re-anchors.
+export function reanchorAttack(world: World, carrier: Agent, p: ShapeParams): void {
+  const attackers = sideAgents(world, p.attackSide);
+  const openSign = p.mark.y <= 50 ? 1 : -1;
+  const gainX = carrier.pos.x;
+  let fwdRank = 0;
+  let backRank = 0;
+  for (const a of attackers) {
+    if (a.role === 'corridor') continue;
+    const t = a.intent.target;
+    if (!t) continue;
+    if (isForwardSlot(a.slot)) {
+      const pairRank = Math.floor(fwdRank / 2);
+      const sign = fwdRank % 2 === 0 ? 1 : -1;
+      const lateral = sign * (pairRank + 1) * (ATTACK_SPREAD.forwardClusterSpread / 2);
+      const stagger = pairRank * ATTACK_SPREAD.forwardClusterStagger;
+      t.x = clampX(gainX - p.attackDir * (ATTACK_SPREAD.forwardClusterDepth + stagger));
+      t.y = clampY(p.mark.y + lateral);
+      fwdRank++;
+    } else {
+      const lateral = openSign * (ATTACK_SPREAD.backFirstOffset + backRank * ATTACK_SPREAD.backLateralStep);
+      const depth = ATTACK_SPREAD.backDepth + backRank * ATTACK_SPREAD.backDepthStep;
+      t.x = clampX(gainX - p.attackDir * depth);
+      t.y = clampY(p.mark.y + lateral);
+      backRank++;
+    }
+  }
+}
+
 // Lateral slot ys, centred on `centreY`, alternating out: 0, +s, -s, +2s, -2s …
 function lineSlotYs(centreY: number, count: number, spacing: number): number[] {
   const ys: number[] = [];
@@ -235,36 +293,57 @@ export function solveCarryCorridor(world: World, p: ShapeParams): Agent {
   const attackers = sideAgents(world, p.attackSide);
   const carrier = attackers.find(a => a.slot === p.carrierSlot) ?? attackers[0];
 
-  // Carrier target: up the corridor along attackDir, holding the mark's lateral
-  // line. carryReach sets how far ahead he aims each solve. Role 'corridor' tells
-  // seedFormation his OPENING start is the mark (his target is a RUN destination,
-  // not a formation slot — snapping pos onto it would teleport him downfield).
+  // Carrier target: run FORWARD from his CURRENT position along attackDir (not
+  // back to a fixed mark-relative point). On a fresh beat seedFormation has just
+  // snapped him onto the mark, so this equals mark + carryReach as before. On a
+  // CONTINUATION beat he carried over from the previous phase — often AHEAD of
+  // mark + carryReach (e.g. after a line break) — and a mark-relative target would
+  // make him run BACKWARD into his own support, stranding the whole attack ahead
+  // of the ball (offside). Anchoring the reach to his own position keeps him going
+  // forward and the re-anchored shape (reanchorAttack) onside behind him. He holds
+  // his current lateral lane. Role 'corridor' tells seedFormation his OPENING start
+  // is the mark (the target is a RUN destination, not a formation slot).
+  // The carrier ENGAGES FROM THE RUCK: snap him onto the mark each beat. On a
+  // fresh beat seedFormation does this anyway; on a CONTINUATION beat the nominal
+  // carrier is a different player sitting out in the shape — he comes to the
+  // breakdown to take the recycled ball (which is AT the mark). Without this he
+  // runs from wherever he was last phase, dragging the coupled ball backward and
+  // stranding the whole attack ahead of him (the offside / "ball goes backwards"
+  // look). The off-ball shape is NOT snapped — it continues, held onside behind
+  // him by reanchorAttack. In the continuity sequence the mark tracks the carrier,
+  // so this is a no-op there (no teleport); in a live match the NEW carrier
+  // legitimately arrives at the ruck.
+  carrier.pos.x = clampX(p.mark.x);
+  carrier.pos.y = clampY(p.mark.y);
+  carrier.vel.x = 0;
+  carrier.vel.y = 0;
   carrier.role = 'corridor';
   carrier.intent.target = { x: clampX(p.mark.x + p.attackDir * CARRY_CORRIDOR.carryReach), y: clampY(p.mark.y) };
 
-  // Support pod: nearest few attackers (by distance to the carrier) get targets
-  // slightly behind and lateral to the carrier, alternating sides. Role 'corridor'
-  // so seedFormation seeds their opening start just behind the mark at the same
-  // lateral channel as their target. Picked by current distance to the carrier;
-  // at beat start every attacker is on the ball so the pick is array-order stable.
+  // Support pod: the nearest few attackers to the breakdown follow the carry in.
+  // Seeded just BEHIND the mark; reanchorSupport then trails them behind the
+  // carrier each tick so they stay onside (never ahead of the ball).
   const support = attackers
     .filter(a => a !== carrier)
     .sort((a, b) => dist(a.pos, carrier.pos) - dist(b.pos, carrier.pos))
     .slice(0, CARRY_CORRIDOR.supportCount);
+  const supportSet = new Set(support);
   for (let i = 0; i < support.length; i++) {
     const pairRank = Math.floor(i / 2);
     const sign = i % 2 === 0 ? 1 : -1;
     const lateral = sign * (CARRY_CORRIDOR.supportLateralOffset + pairRank * CARRY_CORRIDOR.supportLateralStep);
     support[i].role = 'corridor';
     support[i].intent.target = {
-      x: clampX(p.mark.x + p.attackDir * (CARRY_CORRIDOR.carryReach - CARRY_CORRIDOR.supportDepth)),
+      x: clampX(p.mark.x - p.attackDir * CARRY_CORRIDOR.supportDepth),
       y: clampY(p.mark.y + lateral),
     };
   }
-  // Everyone else holds (no target) — solveAttackSpread fills the placeholder
-  // forward cluster + backline fan next; resetWorld left them role 'idle'.
+  // Everyone else is an off-ball shape agent. Reset any stale 'corridor' role left
+  // by a previous beat's pod so reanchorAttack (which skips 'corridor') drives them.
   for (const a of attackers) {
-    if (a !== carrier && !support.includes(a)) a.intent.target = null;
+    if (a === carrier || supportSet.has(a)) continue;
+    a.role = 'idle';
+    a.intent.target = null;
   }
   return carrier;
 }

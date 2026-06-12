@@ -36,7 +36,7 @@ import { LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST } from '../balance/spatialTackle'
 import { seedFormation, coupleBallToCarrier } from './World';
 import type { World } from './World';
 import { run } from './SpatialSimulator';
-import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence } from './ShapeSolver';
+import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence, reanchorSupport, reanchorAttack } from './ShapeSolver';
 import { detectContact } from './ContactSystem';
 import type { ShapeParams } from './ShapeSolver';
 import type { ContactOutcome } from './ContactSystem';
@@ -179,7 +179,15 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
 
   // We run tick-by-tick so we can enforce the MAX_TICKS_AFTER_BREAK cap. The
   // per-tick hooks are the same closures the WP2 path used (allocated once here).
-  const preMoveFn = () => reanchorDefence(roles, carrier, params);
+  // Re-anchor the whole picture to the live gain line each tick: the defensive
+  // line presses + folds onto the carrier, the support pod trails him, and the
+  // off-ball attack shape holds its depth BEHIND him — so the attack stays onside
+  // and the defence stays organised as the carry advances (WP5 continuous shape).
+  const preMoveFn = () => {
+    reanchorDefence(roles, carrier, params);
+    reanchorSupport(world, carrier, params);
+    reanchorAttack(world, carrier, params);
+  };
   const postMoveFn = () => coupleBallToCarrier(world, carrier);
 
   const allFrames: Frame[] = [];

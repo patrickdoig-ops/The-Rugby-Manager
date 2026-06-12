@@ -105,7 +105,7 @@ export function dist(a: Vec2, b: Vec2): number {
 // the real ShapeSolver. The World here is authored directly (not from
 // MatchState), so the caller seeds agent positions/attrs to stage the picture.
 
-import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence } from '../src/engine/spatial/ShapeSolver.js';
+import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence, reanchorSupport, reanchorAttack } from '../src/engine/spatial/ShapeSolver.js';
 import { coupleBallToCarrier, seedFormation } from '../src/engine/spatial/World.js';
 import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
 import { CONTACT_RADIUS, SEEDING_CLEAR_MARGIN, LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST } from '../src/engine/balance/spatialTackle.js';
@@ -463,7 +463,13 @@ export interface SequenceBeat {
   boundaryJump: number;  // max |pos(end of prev beat) − pos(start of this beat)|
   lineSpread: number;    // std-dev of active defenders' x (line raggedness)
   carrierX: number;
+  attackAhead: number;   // attacking teammates ahead of the carrier at beat end (offside)
 }
+
+// Tolerance (coord-units) for the onside check: a teammate within this far ahead
+// of the carrier is "level", not offside — covers the support pod sitting on his
+// shoulder and float-print noise. Beyond it counts as ahead of the ball.
+const ATTACK_ONSIDE_TOL = 1.0;
 
 export function continuitySequence(
   build: () => World,
@@ -506,7 +512,9 @@ export function continuitySequence(
       world,
       CARRY_CORRIDOR_TICKS,
       true,
-      () => reanchorDefence(roles, carrier, p),
+      // The full WP5 carry hooks: defence presses + folds, support trails the
+      // carrier, the off-ball attack holds its depth behind the gain line.
+      () => { reanchorDefence(roles, carrier, p); reanchorSupport(world, carrier, p); reanchorAttack(world, carrier, p); },
       () => coupleBallToCarrier(world, carrier),
     );
 
@@ -522,7 +530,19 @@ export function continuitySequence(
     }
     const mean = defXs.reduce((s, v) => s + v, 0) / defXs.length;
     const variance = defXs.reduce((s, v) => s + (v - mean) * (v - mean), 0) / defXs.length;
-    out.push({ boundaryJump, lineSpread: Math.sqrt(variance), carrierX: carrier.pos.x });
+
+    // Onside discipline: attacking teammates AHEAD of the carrier (past him along
+    // attackDir) at beat end — after the re-anchors have held shape all beat. The
+    // attack must stay BEHIND the ball; this is the machine guard against the
+    // "support / backline ahead of the carrier = offside" regression.
+    let attackAhead = 0;
+    const attBase = p.attackSide === 'home' ? 0 : AGENTS_PER_SIDE;
+    for (let i = 0; i < AGENTS_PER_SIDE; i++) {
+      const a = world.agents[attBase + i];
+      if (a.role === 'empty' || a.slot === p.carrierSlot) continue;
+      if ((a.pos.x - carrier.pos.x) * p.attackDir > ATTACK_ONSIDE_TOL) attackAhead++;
+    }
+    out.push({ boundaryJump, lineSpread: Math.sqrt(variance), carrierX: carrier.pos.x, attackAhead });
 
     mark = { x: carrier.pos.x, y: carrier.pos.y };  // play advances to the carrier
   }

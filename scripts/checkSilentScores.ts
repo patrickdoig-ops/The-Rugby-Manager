@@ -87,10 +87,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // WP4 seeding fix: the cold-World formation seed moved from runCarrySim into the
 // World lifecycle (seedWorld, called once at handlePhasePlay cold entry) and
 // Breakdown no longer cold-builds — so kick / pick-and-go / carry beats all open
-// in a real formation instead of 30 dots blooming off the ball. Spatial positions
-// are now correct, which shifts outcomes again (by design); every § 13 band holds
-// (pts 24.32, tries 3.74, TO 2.18, pen 12.48, tackMade 67.5 on the 5-seed sweep).
-const GOLDEN = '4d363d2500e29db97957e06b885fd16ba47f8640fcec54b5d32ddbfbdc7949a5';
+// in a real formation instead of 30 dots blooming off the ball.
+//
+// WP5 continuous onside shape: the carrier now ENGAGES FROM THE RUCK (snaps to the
+// mark each beat and runs forward from there), the support pod TRAILS him, and the
+// off-ball attack RE-ANCHORS behind the live gain line every tick — so the attack
+// stays onside instead of stranding the backline ahead of the ball. Positions and
+// thus outcomes shift again (by design); every § 13 band holds (pts 23.58, tries
+// 3.63, TO 2.13, pen 12.53, tackMade 64.9 on the 5-seed/450-fixture sweep).
+const GOLDEN = '3514da0e0c34c35db669bb5c46ebf40da59bdb69b603454e3d0dc6bd96f5e394';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

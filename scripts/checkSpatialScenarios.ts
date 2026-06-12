@@ -718,6 +718,46 @@ const scenarios: Scenario[] = [
       return null;
     },
   },
+  {
+    name: 'WP5: onside discipline — the attack holds its shape BEHIND the carrier across a sequence',
+    run: () => {
+      // A full 15-man attack runs a 6-phase same-way sequence. Each beat the carrier
+      // engages from the ruck and runs forward; the support pod trails him and the
+      // off-ball shape re-anchors behind the gain line. Assert the attack stays
+      // ONSIDE — at most a couple of teammates level/ahead at beat end, never the
+      // "whole backline ahead of the ball" regression the user flagged.
+      const MAX_AHEAD = 3;
+      // Loose opening attack: forwards near the ruck, backs deeper. seedFormation
+      // re-places them into the solved shape on beat 0; later beats continue.
+      const fullAttack = (): AgentSetup[] => {
+        const out: AgentSetup[] = [];
+        for (let i = 0; i < 15; i++) {
+          const isFwd = i < 8;
+          out.push({
+            x: 40 - (isFwd ? 3 : 8) - i * 0.4,
+            y: 50 + (i - 7) * 2,
+            pace: 75, agility: 70, stamina: 80, positioning: 70,
+            breakdown: isFwd ? 70 : 40, target: null,
+          });
+        }
+        return out;
+      };
+      for (const seed of SEEDS) {
+        setMatchSeed(seed);
+        const beats = continuitySequence(
+          () => buildScenarioWorld({ home: fullAttack(), away: bunchedLine(40, false), ball: { x: 40, y: 50 } }),
+          6,
+          { carrierSlot: 8 },  // a forward hits up from the base of the ruck
+        );
+        for (let b = 0; b < beats.length; b++) {
+          if (beats[b].attackAhead > MAX_AHEAD) {
+            return `attack offside at beat ${b}: ${beats[b].attackAhead} teammates ahead of the carrier (max ${MAX_AHEAD}) seed=0x${seed.toString(16)}`;
+          }
+        }
+      }
+      return null;
+    },
+  },
 ];
 
 let failed = 0;

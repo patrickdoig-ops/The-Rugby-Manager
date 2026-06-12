@@ -55,9 +55,11 @@ const ROOT_SEED = 0xDEADBEEF;
 // feeds the penalty pipeline. Also incorporates kicking tuning from main (balance/kicking.ts
 // + KickingResolver + TacticalKickEvent), authored FIRST_PHASE try grounding y precedence,
 // 5m try-leniency band removal, and scrum-half kick routing fix. All by design.
+// Re-baselined again: velocity-clamp fix in MovementSystem (post-separation vel clamped to
+// deriveTopSpeed × speedScale) tightens carry-corridor trajectories → slight outcome shift.
 // Silent outcomes shift by design while every § 13 telemetry band stays in range.
 // Reverting PhasePlay from SPATIAL_PHASES restores the spatial-only prior golden.
-const GOLDEN = '41d13aaf64be2390e5794316d33931e222d40066410aab05498245e448ded03f';
+const GOLDEN = '6c40b2aab524b13cbf0ceab526f782e2967c1eaddb4a49cda2b97d12c36f424d';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

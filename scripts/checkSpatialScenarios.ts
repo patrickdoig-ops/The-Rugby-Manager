@@ -17,6 +17,8 @@ import {
   dist,
 } from './spatialScenarioKit.js';
 import type { AgentSetup } from './spatialScenarioKit.js';
+import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
+import { deriveTopSpeed, SPATIAL_DT } from '../src/engine/balance/spatialSteering.js';
 
 setMatchSeed(0x5A7A1);
 
@@ -177,6 +179,55 @@ const scenarios: Scenario[] = [
       const highRate = offsideRate(() => buildScenarioWorld({ home: carrier, away: lineOf(90), ball: { x: 48, y: 50 } }), { mark: { x: 48, y: 50 }, defendDiscipline: 'cautious' }, 200);
       if (lowRate < 0.04) return `low-discipline offside rate only ${(lowRate * 100).toFixed(1)}% (want ≥4%)`;
       if (lowRate < highRate * 3) return `low-disc ${(lowRate * 100).toFixed(1)}% not materially > high-disc ${(highRate * 100).toFixed(1)}% (want ≥3×)`;
+      return null;
+    },
+  },
+
+  // ── Velocity-cap regression guard ────────────────────────────────────────
+  // Ensures no agent ever moves faster than its rated top speed × speedScale
+  // per tick. This catches the separation-runaway bug (no final vel clamp)
+  // before it reaches the watchability gate.
+  {
+    name: 'per-tick displacement never exceeds top-speed budget',
+    run: () => {
+      // A dense cluster: 15 home agents all stacked near one point (triggers
+      // worst-case separation accumulation) and 15 away agents evenly spread.
+      // Targets are the symmetric opposite so every agent is in full motion.
+      const home: AgentSetup[] = [];
+      for (let i = 0; i < 15; i++) {
+        home.push({ x: 50 + i * 0.05, y: 50 + i * 0.05, pace: 18, agility: 18, target: { x: 80, y: 20 } });
+      }
+      const away: AgentSetup[] = [];
+      for (let i = 0; i < 15; i++) {
+        away.push({ x: 20 + i * 4, y: 20 + i * 4, pace: 18, agility: 18, target: { x: 40, y: 70 } });
+      }
+      setMatchSeed(0xABCD1234);
+      const world = buildScenarioWorld({ home, away });
+
+      // Run tick by tick — record prev positions, step, measure displacement.
+      const TICKS = 60; // 6 s — enough for separation to saturate if unclamped
+      const EPSILON = 0.02; // float arithmetic tolerance
+      let maxDisp = 0;
+      let offenderSlot = -1;
+
+      for (let t = 0; t < TICKS; t++) {
+        // Snapshot all positions before the tick.
+        const prev = world.agents.map(a => ({ x: a.pos.x, y: a.pos.y }));
+        runSpatial(world, 1, true);
+        for (let i = 0; i < world.agents.length; i++) {
+          const a = world.agents[i];
+          const dx = a.pos.x - prev[i].x;
+          const dy = a.pos.y - prev[i].y;
+          const disp = Math.sqrt(dx * dx + dy * dy);
+          if (disp > maxDisp) { maxDisp = disp; offenderSlot = a.slot; }
+          // topSpeed × speedScale × SPATIAL_DT is the max legal displacement
+          const cap = deriveTopSpeed(a.pace, a.fatigueSnapshot) * a.speedScale * SPATIAL_DT;
+          if (disp > cap + EPSILON) {
+            return `agent slot ${a.slot} moved ${disp.toFixed(4)} units/tick at tick ${t} (cap ${cap.toFixed(4)}, excess ${(disp - cap).toFixed(4)})`;
+          }
+        }
+      }
+      void offenderSlot; // suppress unused-var for the slot that set maxDisp
       return null;
     },
   },

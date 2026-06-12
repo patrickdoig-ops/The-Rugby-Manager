@@ -15,6 +15,7 @@ import {
   SPATIAL_CLAMP_Y_MIN,
   SPATIAL_CLAMP_Y_MAX,
   deriveAccel,
+  deriveTopSpeed,
 } from '../balance/spatialSteering';
 import { arrive, separation } from './SteeringSystem';
 import type { World } from './World';
@@ -27,7 +28,9 @@ function clamp(v: number, lo: number, hi: number): number {
 // 1. desired velocity = arrive(target) (zero if no target),
 // 2. velocity ramps toward desired under the accel cap (·dt),
 // 3. soft separation push is added to the velocity,
-// 4. pos += vel·dt, then clamp to the pitch bands.
+// 4. velocity magnitude is clamped to deriveTopSpeed * speedScale so separation
+//    accumulation cannot drive an agent faster than its rated top speed,
+// 5. pos += vel·dt, then clamp to the pitch bands.
 export function step(world: World): void {
   const agents = world.agents;
   const desired = world.scratchA;
@@ -66,6 +69,19 @@ export function step(world: World): void {
     separation(agent, world, sep);
     agent.vel.x += sep.x;
     agent.vel.y += sep.y;
+
+    // Clamp final velocity to the agent's top-speed budget (deriveTopSpeed ×
+    // speedScale) so separation accumulation cannot drive an agent faster than
+    // its rated speed. Uses the same budget the steering layer caps desired vel
+    // to, multiplied by the per-beat fold-speed multiplier so gassed/folding
+    // defenders are correctly capped lower. Mutation in place — no allocation.
+    const topSpeed = deriveTopSpeed(agent.pace, agent.fatigueSnapshot) * agent.speedScale;
+    const velMagSq = agent.vel.x * agent.vel.x + agent.vel.y * agent.vel.y;
+    if (velMagSq > topSpeed * topSpeed) {
+      const inv = topSpeed / Math.sqrt(velMagSq);
+      agent.vel.x *= inv;
+      agent.vel.y *= inv;
+    }
 
     // Integrate and clamp.
     agent.pos.x = clamp(agent.pos.x + agent.vel.x * SPATIAL_DT, SPATIAL_CLAMP_X_MIN, SPATIAL_CLAMP_X_MAX);

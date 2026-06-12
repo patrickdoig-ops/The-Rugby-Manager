@@ -45,6 +45,20 @@ export interface Agent {
   // micro-tick loop never reaches back into the Player record.
   pace: number;
   agility: number;
+  // Snapshot of the ShapeSolver attributes (Upgrade.md § 5.2): fold work rate
+  // (stamina + positioning), cover (tackling), and offside discipline. Captured
+  // at build time alongside pace/agility so the solver never reaches back into
+  // the Player record either.
+  stamina: number;
+  positioning: number;
+  tackling: number;
+  discipline: number;
+  // Per-beat top-speed multiplier (1 = full). The ShapeSolver sets this below 1
+  // for a slowly-folding defender (derived work rate × fatigue) so MovementSystem
+  // scales his arrive() speed — slow folds leave overlaps (Upgrade.md § 5.2). It
+  // is independent of the pace-derived top speed so it bites even where the
+  // 1–20 steering clamp saturates the raw pace. Default 1; reset every build.
+  speedScale: number;
 }
 
 // The ball within the spatial world. `height` is a render-only scalar for kick

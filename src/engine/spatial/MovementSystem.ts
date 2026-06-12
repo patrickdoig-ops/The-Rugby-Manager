@@ -37,6 +37,13 @@ export function step(world: World): void {
 
     if (agent.intent.target) {
       arrive(agent, agent.intent.target, desired);
+      // Per-beat top-speed multiplier (ShapeSolver fold speed). 1 for every
+      // agent unless a slow fold scaled it down — applied to the desired
+      // velocity so a gassed defender folds in slower (Upgrade.md § 5.2).
+      if (agent.speedScale !== 1) {
+        desired.x *= agent.speedScale;
+        desired.y *= agent.speedScale;
+      }
     } else {
       desired.x = 0;
       desired.y = 0;

@@ -50,3 +50,4 @@ export * from './scouting';
 export * from './press';
 export * from './firstPhaseChoreography';
 export * from './spatialSteering';
+export * from './spatialShape';

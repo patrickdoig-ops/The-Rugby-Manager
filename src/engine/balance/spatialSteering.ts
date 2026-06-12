@@ -76,8 +76,43 @@ export function deriveAccel(agility: number, pace: number): number {
   return ACCEL_MIN + (ACCEL_MAX - ACCEL_MIN) * frac;
 }
 
+// ── Fold-speed derivation (Upgrade.md § 5.2 "Fold & press") ───────────────
+// After a tackle the line re-slots around the new mark. How fast a defender
+// folds is his derived WORK RATE — stamina + positioning — scaled by live
+// fatigue. Slow folds are where overlaps come from (the emergent payoff), so
+// this must be a real derivation, never a dice roll. The result is a top-speed
+// multiplier applied to the defender's seek speed when folding: a tireless,
+// well-positioned defender folds at full pace; a gassed, poorly-positioned one
+// crawls. Stats here are authored 1–100 (baseStats), unlike the 1–20 steering
+// attrs above — the ShapeSolver passes baseStats values straight through.
+
+// Weights on the two work-rate inputs (sum need not be 1; the fold-speed
+// formula normalises by their sum).
+export const FOLD_STAMINA_WEIGHT = 0.6;
+export const FOLD_POSITIONING_WEIGHT = 0.4;
+// Fold-speed multiplier at the worst (work rate 0) and best (work rate 100)
+// derived work rate, before fatigue scaling. A fraction of full seek speed.
+export const FOLD_SPEED_MIN_MULT = 0.45;
+export const FOLD_SPEED_MAX_MULT = 1.0;
+
+// Derive the fold-speed multiplier (0–1 of full seek speed) from a defender's
+// stamina + positioning (authored 1–100) and live fatigue. Fatigue reuses the
+// same FATIGUE_SPEED_FLOOR curve as deriveTopSpeed so a fold and a sprint
+// fatigue identically.
+export function deriveFoldSpeedMult(stamina: number, positioning: number, fatiguePct: number): number {
+  const sumW = FOLD_STAMINA_WEIGHT + FOLD_POSITIONING_WEIGHT;
+  const workRate = (FOLD_STAMINA_WEIGHT * clamp100(stamina) + FOLD_POSITIONING_WEIGHT * clamp100(positioning)) / sumW;
+  const frac = clamp01((workRate - 1) / 99);
+  const base = FOLD_SPEED_MIN_MULT + (FOLD_SPEED_MAX_MULT - FOLD_SPEED_MIN_MULT) * frac;
+  const fatigueScale = 1 - (1 - FATIGUE_SPEED_FLOOR) * clamp01(fatiguePct / 100);
+  return base * fatigueScale;
+}
+
 function clampAttr(v: number): number {
   return v < 1 ? 1 : v > 20 ? 20 : v;
+}
+function clamp100(v: number): number {
+  return v < 1 ? 1 : v > 100 ? 100 : v;
 }
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;

@@ -46,6 +46,11 @@ function makeAgent(side: PossessionSide): Agent {
     fatigueSnapshot: 0,
     pace: 10,
     agility: 10,
+    stamina: 10,
+    positioning: 10,
+    tackling: 10,
+    discipline: 10,
+    speedScale: 1,
   };
 }
 
@@ -104,17 +109,26 @@ function initSide(world: World, state: MatchState, team: Team, side: PossessionS
       // so we read the un-fatigued attribute here, not currentStats.
       agent.pace = player.baseStats.pace;
       agent.agility = player.baseStats.agility;
+      agent.stamina = player.baseStats.stamina;
+      agent.positioning = player.baseStats.positioning;
+      agent.tackling = player.baseStats.tackling;
+      agent.discipline = player.baseStats.discipline;
     } else {
       agent.pos.x = state.ball.x;
       agent.pos.y = state.ball.y;
       agent.fatigueSnapshot = 0;
       agent.pace = 10;
       agent.agility = 10;
+      agent.stamina = 10;
+      agent.positioning = 10;
+      agent.tackling = 10;
+      agent.discipline = 10;
     }
     agent.vel.x = 0;
     agent.vel.y = 0;
     agent.role = 'idle';
     agent.intent.target = null;
+    agent.speedScale = 1;
   }
 }
 

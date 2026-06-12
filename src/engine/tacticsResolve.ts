@@ -69,6 +69,16 @@ export function effDefensiveLine(state: MatchState, team: Team): DefensiveLine {
   return adv ? adv[zoneForSide(state, sideOf(state, team))] : team.tactics.defensiveLine;
 }
 
+// Effective attacking STYLE as a discrete bucket (for the spatial pod shape). The
+// advanced override is a continuous per-zone slider (0 = keep_it_tight … 1 =
+// wide_wide), bucketed into the three presets at the thirds.
+export function effAttackingStyle(state: MatchState, team: Team): AttackingStyle {
+  const adv = team.tactics.advanced?.attackingStyle;
+  if (!adv) return team.tactics.attackingStyle;
+  const t = adv[zoneForSide(state, sideOf(state, team))];
+  return t < 1 / 3 ? 'keep_it_tight' : t < 2 / 3 ? 'balanced' : 'wide_wide';
+}
+
 // ── Continuous slider dimensions — return the interpolated modifier value ──
 // Each takes the same per-bucket table the preset path reads (Record keyed by
 // the dimension's enum) and returns either the preset bucket value (no

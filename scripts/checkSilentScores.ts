@@ -100,10 +100,15 @@ const ROOT_SEED = 0xDEADBEEF;
 //
 // WP5 forward pods: the off-ball forwards now set up as PODS posted across the
 // field at the gain-line depth (receiving stations for the next phase) instead of
-// one loose cluster behind the ruck. Outcomes shift again (by design); every § 13
-// band holds (pts 23.69, tries 3.66, TO 2.14, pen 12.47, tackMade 64.1,
-// home-win 56.00 on the 5-seed/450-fixture sweep).
-const GOLDEN = '2bd83090f60c2dacd4f8d2cb881baab3c17b7dbba1bcd92fc5fdf06a1bafc0cc';
+// one loose cluster behind the ruck.
+//
+// WP5 style-driven pods: the pod spread is now keyed off the team's effective
+// attackingStyle — keep_it_tight keeps the pods near the ruck (~11 m wide),
+// wide_wide flings them to the edges (~21 m), balanced between (the previous
+// values, so a balanced team is unchanged). Outcomes shift for non-balanced teams
+// (by design); every § 13 band holds (pts 23.65, tries 3.65, TO 2.05, pen 12.58,
+// tackMade 64.7, home-win 55.56 on the 5-seed/450-fixture sweep).
+const GOLDEN = '069da501cbbd9f9993c88d01417efd5d446ddac8a003186d0e4592f5e05bd641';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

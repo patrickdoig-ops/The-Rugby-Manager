@@ -17,7 +17,7 @@
 // 0–100 pitch space (Upgrade.md § 2.6): x = long axis, y = lateral.
 
 import type { PossessionSide } from '../../types/engine';
-import type { DefensiveLine, Discipline } from '../../types/team';
+import type { DefensiveLine, Discipline, AttackingStyle } from '../../types/team';
 import { rngSpatial } from '../../utils/rng';
 import {
   DEFENSIVE_LINE,
@@ -52,6 +52,7 @@ export interface ShapeParams {
   backfield: 1 | 2;             // resolved BACKFIELD_COUNT for the tactic
   defendDiscipline: Discipline; // team discipline tactic (offside creep scale)
   carrierSlot: number;          // attacking matchday slot of the ball carrier
+  attackingStyle: AttackingStyle; // drives the forward-pod spread (WP5)
 }
 
 // One defender's resolved line role — used by the gap-detection and offside
@@ -266,12 +267,14 @@ function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
     if (a.role === 'corridor' || a.slot === p.carrierSlot) continue;
     (isForwardSlot(a.slot) ? offForwards : offBacks).push(a);
   }
-  // Forwards → pods. Pod centres fan toward the open side; within a pod the
+  // Forwards → pods. Pod centres fan toward the open side, spaced per attacking
+  // style (tight = near the ruck, wide = flung to the edges); within a pod the
   // members bunch tightly with a small lateral + depth stagger.
+  const podSpread = FORWARD_POD.spread[p.attackingStyle];
   for (let i = 0; i < offForwards.length; i++) {
     const podIndex = Math.floor(i / FORWARD_POD.podSize);
     const inPod = i % FORWARD_POD.podSize;
-    const podY = p.mark.y + openSign * (FORWARD_POD.firstPodOffset + podIndex * FORWARD_POD.podSpacing);
+    const podY = p.mark.y + openSign * (podSpread.firstPodOffset + podIndex * podSpread.podSpacing);
     const sign = inPod % 2 === 0 ? 1 : -1;
     const lateral = sign * Math.ceil(inPod / 2) * FORWARD_POD.inPodSpread;
     const depth = FORWARD_POD.podDepth + inPod * FORWARD_POD.inPodStagger;

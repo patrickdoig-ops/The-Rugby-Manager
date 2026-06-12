@@ -30,7 +30,7 @@
 
 import type { MatchState } from '../../types/match';
 import type { PossessionSide } from '../../types/engine';
-import type { DefensiveLine, Discipline } from '../../types/team';
+import type { DefensiveLine, Discipline, AttackingStyle } from '../../types/team';
 import { CARRY_CORRIDOR_TICKS, MAX_TICKS_AFTER_BREAK } from '../balance/spatialShape';
 import { LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST } from '../balance/spatialTackle';
 import { seedFormation, coupleBallToCarrier } from './World';
@@ -50,6 +50,7 @@ export interface CarrySimInput {
   backfield: 1 | 2;
   defendDiscipline: Discipline;
   carrierSlot: number;
+  attackingStyle: AttackingStyle;  // drives the forward-pod spread (WP5)
   // Net legacy carry modifier (attackMod − defendMod) the gap threshold reads so
   // home advantage / team talk / tactics still bias line breaks (Upgrade.md §13).
   modShift: number;
@@ -104,6 +105,7 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
     backfield: input.backfield,
     defendDiscipline: input.defendDiscipline,
     carrierSlot: input.carrierSlot,
+    attackingStyle: input.attackingStyle,
   };
 
   // Layer 1 setup: defenders to their slots (fold speed baked into pace), the

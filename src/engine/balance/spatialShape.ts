@@ -9,7 +9,7 @@
 // on the long axis ≈ 1 metre. `defensiveLine` is the rush/drift/shadow tactic;
 // it maps to lateral slot spacing + how far in front of the mark the line sets.
 
-import type { DefensiveLine } from '../../types/team';
+import type { DefensiveLine, AttackingStyle } from '../../types/team';
 
 // ── Defensive line slots (Upgrade.md § 5.2 "Line model") ──────────────────
 // Defenders fill slots on a line anchored at the breakdown/mark. Slots are laid
@@ -130,10 +130,17 @@ export const CARRY_CORRIDOR = {
 export const FORWARD_POD = {
   podSize: 3,            // forwards per pod
   podDepth: 4.0,         // pod centre this far behind the gain line
-  firstPodOffset: 6.0,   // |y| of the first (inside) pod from the mark
-  podSpacing: 12.0,      // lateral gap between pod centres
   inPodSpread: 2.6,      // within-pod lateral step
   inPodStagger: 1.4,     // within-pod along-axis depth step
+  // Attacking STYLE drives how far the pods spread across the field: keep_it_tight
+  // keeps them close to the ruck (forward-dominant, narrow), wide_wide flings them
+  // toward the edges (spread the ball), balanced between. `firstPodOffset` is the
+  // |y| of the inside pod from the mark; `podSpacing` the lateral gap between pods.
+  spread: {
+    keep_it_tight: { firstPodOffset: 4.5, podSpacing: 8.0 },
+    balanced:      { firstPodOffset: 6.0, podSpacing: 12.0 },
+    wide_wide:     { firstPodOffset: 9.0, podSpacing: 18.0 },
+  } as Record<AttackingStyle, { firstPodOffset: number; podSpacing: number }>,
 } as const;
 
 export const ATTACK_SPREAD = {

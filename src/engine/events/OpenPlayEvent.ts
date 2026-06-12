@@ -21,7 +21,7 @@ import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PC
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
-import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar, effGamePlanResidual } from '../tacticsResolve';
+import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effAttackingStyle, effDisciplineScalar, effStyleScalar, effGamePlanResidual } from '../tacticsResolve';
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
@@ -50,6 +50,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
       backfield: BACKFIELD_COUNT[effBackfieldDefence(state, defendTeam)],
       defendDiscipline: defendTeam.tactics.discipline,
       carrierSlot: SLOT.SCRUM_HALF,
+      attackingStyle: effAttackingStyle(state, attackTeam),
     });
   }
 
@@ -312,6 +313,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
       backfield: BACKFIELD_COUNT[effBackfieldDefence(state, defendTeam)],
       defendDiscipline: defendTeam.tactics.discipline,
       carrierSlot: ballCarrier.id,
+      attackingStyle: effAttackingStyle(state, attackTeam),
       // Net carry modifier the legacy resolver folds into its line-break margin
       // (home advantage, team talk, tactical evasion shifts) — keeps line breaks
       // biased by the same match-shaping factors on the spatial path.

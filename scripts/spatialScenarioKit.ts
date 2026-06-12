@@ -131,7 +131,7 @@ export function runCarryScenario(
     mark: { x: world.ball.pos.x, y: world.ball.pos.y },
     defensiveLine: 'hybrid',
     backfield: 2,
-    defendDiscipline: 'balanced',
+    defendDiscipline: 'balanced', attackingStyle: 'balanced',
     carrierSlot: 1,
     ...params,
   };
@@ -167,7 +167,7 @@ export function runCarryBallPath(
     mark: { x: world.ball.pos.x, y: world.ball.pos.y },
     defensiveLine: 'hybrid',
     backfield: 2,
-    defendDiscipline: 'balanced',
+    defendDiscipline: 'balanced', attackingStyle: 'balanced',
     carrierSlot: 1,
     ...params,
   };
@@ -379,7 +379,7 @@ export function minDefenderDistAtSeed(
     mark: { x: world.ball.pos.x, y: world.ball.pos.y },
     defensiveLine: 'blitz',  // worst case: shallowest standOff (2.0u)
     backfield: 2,
-    defendDiscipline: 'balanced',
+    defendDiscipline: 'balanced', attackingStyle: 'balanced',
     carrierSlot: 1,
     ...params,
   };
@@ -413,7 +413,7 @@ export function runCarryWithLaunchGrace(
     mark: { x: world.ball.pos.x, y: world.ball.pos.y },
     defensiveLine: 'blitz',
     backfield: 2,
-    defendDiscipline: 'balanced',
+    defendDiscipline: 'balanced', attackingStyle: 'balanced',
     carrierSlot: 1,
     ...params,
   };
@@ -485,7 +485,7 @@ export function continuitySequence(
     const p: ShapeParams = {
       attackSide: 'home', defendSide: 'away', attackDir: 1,
       mark, defensiveLine: 'hybrid', backfield: 2,
-      defendDiscipline: 'balanced', carrierSlot: 1, ...params,
+      defendDiscipline: 'balanced', attackingStyle: 'balanced', carrierSlot: 1, ...params,
     };
     const roles = solveDefence(world, p);
     const carrier = solveCarryCorridor(world, p);

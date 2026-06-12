@@ -509,7 +509,7 @@ const scenarios: Scenario[] = [
               mark,
               defensiveLine: 'hybrid',
               backfield: backfieldCount,
-              defendDiscipline: 'balanced',
+              defendDiscipline: 'balanced', attackingStyle: 'balanced',
               carrierSlot: 1,
             };
             const roles = solveDefence(world, p);
@@ -774,7 +774,7 @@ const scenarios: Scenario[] = [
       });
       const roles = solveDefence(world, {
         attackSide: 'home', defendSide: 'away', attackDir: 1, mark: { x: 50, y: markY },
-        defensiveLine: 'hybrid', backfield: 2, defendDiscipline: 'balanced', carrierSlot: 1,
+        defensiveLine: 'hybrid', backfield: 2, defendDiscipline: 'balanced', attackingStyle: 'balanced', carrierSlot: 1,
       });
       const lineYs = roles.filter(r => !r.isBackfield && r.agent.intent.target).map(r => r.agent.intent.target!.y);
       const openReach = Math.max(...lineYs) - markY;

@@ -306,10 +306,26 @@ export function lionsUnavailable(p: Player, week: number): boolean {
   return p.lionsReturnRound !== undefined && week < p.lionsReturnRound;
 }
 
+export function isPreSeasonCup(state: GameState): boolean {
+  if (state.league.results.length > 0) return false;
+  if (!state.league.fixtures || state.league.fixtures.length === 0) return false;
+  
+  let earliestR1: string | null = null;
+  for (const f of state.league.fixtures) {
+    if (f.round === 1 && f.date) {
+      if (!earliestR1 || f.date < earliestR1) {
+        earliestR1 = f.date;
+      }
+    }
+  }
+  
+  return earliestR1 ? state.calendar.date < earliestR1 : false;
+}
+
 // True while a player who was on the summer tour is resting before the league starts.
 // Unavailable until Round 1.
-export function summerTourUnavailable(p: Player, week: number): boolean {
-  return !!p.summerTourReturn && week < 1;
+export function summerTourUnavailable(p: Player, state: GameState): boolean {
+  return !!p.summerTourReturn && isPreSeasonCup(state);
 }
 
 // rosterIds in a club's squad who are unavailable for selection this round by
@@ -326,7 +342,7 @@ export function selectionUnavailableIds(state: GameState, clubId: string): Set<n
     // internationalDuty is only set during a break (when the sole matches are
     // cup matches), so excluding on-duty players here keeps them out of the
     // live cup XV without affecting league selection.
-    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || summerTourUnavailable(p, week) || isSuspended(p, week) || p.internationalDuty || p.loanOut)) out.add(rid);
+    if (p && (mustRestThisRound(p, state) || lionsUnavailable(p, week) || summerTourUnavailable(p, state) || isSuspended(p, week) || p.internationalDuty || p.loanOut)) out.add(rid);
   }
   return out;
 }

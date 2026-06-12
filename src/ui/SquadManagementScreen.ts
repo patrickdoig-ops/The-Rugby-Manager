@@ -28,7 +28,7 @@ import type { Position, PlayerInjury, RestObligation } from '../types/player';
 import { applyMatchdaySquad, extractMatchdaySquad } from '../game/playerSquad';
 import { selectBestMatchdaySquad } from '../game/autoSelect';
 import { buildTeamFromRoster } from '../game/rosterTeamBuilder';
-import { selectionUnavailableIds } from '../game/internationalDutyEngine';
+import { selectionUnavailableIds, isPreSeasonCup } from '../game/internationalDutyEngine';
 import { playerOverall } from '../engine/RatingEngine';
 import { oopSeverity, oopPenaltyPct, SLOT_POSITION } from '../engine/balance';
 import { averageRating } from '../game/seasonLeaderboards';
@@ -204,7 +204,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     for (const rid of club.squad) {
       const r = state.career.roster[rid];
       if (r && r.firstName === p.firstName && r.lastName === p.lastName) {
-        return (r.summerTourReturn && state.calendar.week < 1)
+        return (r.summerTourReturn && isPreSeasonCup(state))
           ? 1
           : undefined;
       }

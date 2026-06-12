@@ -11,7 +11,7 @@ export interface KickingResolution {
   touchProbability: number;        // 0–100; chance kick finds touch
 }
 
-export function resolveTacticalKick(kicker: Player): KickingResolution {
+export function resolveTacticalKick(kicker: Player, inOwn22: boolean): KickingResolution {
   const V = TACTICAL_KICK_VALUES;
   const kickScore = kicker.currentStats.kicking + rng(1, 20);
   const goodKick  = kickScore >= V.goodKickThreshold;
@@ -19,7 +19,9 @@ export function resolveTacticalKick(kicker: Player): KickingResolution {
     kickScore,
     distance:                goodKick ? rng(V.goodKickDistance[0], V.goodKickDistance[1]) : rng(V.poorKickDistance[0], V.poorKickDistance[1]),
     outOnTheFullProbability: goodKick ? V.goodKickOutOnFullProb : V.poorKickOutOnFullProb,
-    touchProbability:        goodKick ? V.goodKickTouchProb     : V.poorKickTouchProb,
+    touchProbability:        inOwn22
+      ? (goodKick ? V.goodKickTouchProb          : V.poorKickTouchProb)
+      : (goodKick ? V.goodKickTouchProbOutside22 : V.poorKickTouchProbOutside22),
   };
 }
 

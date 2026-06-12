@@ -27,6 +27,7 @@ import type { MatchState } from '../../types/match';
 import type { PossessionSide } from '../../types/engine';
 import type { DefensiveLine, Discipline } from '../../types/team';
 import { CARRY_CORRIDOR_TICKS, MAX_TICKS_AFTER_BREAK } from '../balance/spatialShape';
+import { LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST } from '../balance/spatialTackle';
 import { buildWorld, seedFormation, coupleBallToCarrier } from './World';
 import { run } from './SpatialSimulator';
 import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence } from './ShapeSolver';
@@ -112,9 +113,26 @@ export function runCarrySim(state: MatchState, input: CarrySimInput): CarrySimRe
   let ticksAfterBreak = 0;         // count ticks since the broken tackle
   let ticksRun = 0;
 
+  // Launch grace: snapshot the carrier's spawn position so the grace-distance
+  // gate can measure how far he has run from the carry start.
+  const carrierStartX = carrier.pos.x;
+  const carrierStartY = carrier.pos.y;
+
   // Contact hook: called each tick after postMove. Returns true to stop the loop.
   // Written as a closure that captures the mutable state above.
-  const contactHook = (_w: typeof world, _t: number): boolean => {
+  // Launch grace (WP3 contact-timing fix): contact is suppressed until the
+  // carrier has run at least LAUNCH_GRACE_TICKS ticks AND covered at least
+  // LAUNCH_GRACE_DIST from the carry start. This prevents instant/near-instant
+  // tackles when a defender is seeded very close to the carrier.
+  const contactHook = (_w: typeof world, t: number): boolean => {
+    // t is the tick index within the current run(world, 1, ...) call — always 0
+    // since we call run() with 1 tick at a time. Use ticksRun (incremented just
+    // before this call) as the elapsed tick count instead.
+    const elapsed = ticksRun;
+    const carrierDist = Math.hypot(carrier.pos.x - carrierStartX, carrier.pos.y - carrierStartY);
+    if (elapsed < LAUNCH_GRACE_TICKS || carrierDist < LAUNCH_GRACE_DIST) return false;
+    void t;
+
     const result = detectContact(world, carrier, roles);
     if (!result) return false;
 

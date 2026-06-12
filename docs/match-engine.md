@@ -449,7 +449,15 @@ Support beyond `MAX_SUPPORT_DIST = 15` gets near-zero probability (proximity ≤
 
 **Agent fields added (WP 3).** `Agent` gains `strength: number` (from `player.baseStats.strength`), `handling: number` (from `player.baseStats.handling`), and `recoveryLockout: boolean` (reset `false` every world build; set `true` by Phase 1 evasion win). `spatialScenarioKit.ts`'s `AgentSetup` gains matching optional fields (defaults: `strength=50`, `handling=50`).
 
-**Calibration (WP 3).** `CONTACT_RADIUS = 2.2` was chosen by tuning to keep all `spatialBaselines.ts` bands passing: tries 3.64/match, points 23.8, tackles-made 64.1/match, knock-ons 2.9, home-win 53.7%. Thirteen spatial scenarios gate behaviour including 5 WP 3 assertions: prop-at-speed dominant-carry majority, jackal-geometry evasion advantage, fatigued-defender dominance shift, offload proximity window, and beat-ends-at-contact frame count.
+**Contact-timing fix (WP 3 — post-ship).** Two guards prevent instant/near-instant tackles that break the "carry is a short run" visual contract:
+
+1. **Seeding clear-space guard** (`seedFormation`, `World.ts`). After every agent is snapped onto its formation slot, any defender within `CONTACT_RADIUS + SEEDING_CLEAR_MARGIN = 2.2 + 0.8 = 3.0` coord-units of the carrier is nudged away along `attackDir` to exactly `3.0` units. This prevents the diagnosed beat-2 = 1-tick / 0.0-path symptom (blitz standOff 2.0u placed defenders inside contact range before tick 0). The carrier always opens in clear space. Constant: `SEEDING_CLEAR_MARGIN = 0.8` in `src/engine/balance/spatialTackle.ts`.
+
+2. **Launch grace gate** (`CarrySim.ts`). The contact hook suppresses `detectContact` until the carrier has run at least `LAUNCH_GRACE_TICKS = 3` micro-ticks **AND** covered at least `LAUNCH_GRACE_DIST = 1.5` coord-units from the carry start. This represents the carrier receiving the ball and running onto it — the first few ticks of acceleration before the tackle can fire. Constants in `src/engine/balance/spatialTackle.ts`.
+
+Two regression scenarios in `checkSpatialScenarios.ts` guard both properties: (a) seeding guard — asserts minimum defender distance ≥ `CONTACT_RADIUS + SEEDING_CLEAR_MARGIN` after `seedFormation` across all SEEDS and marks; (b) launch grace — asserts no contact fires before `LAUNCH_GRACE_TICKS` ticks and `LAUNCH_GRACE_DIST` units of carrier travel.
+
+**Calibration (WP 3).** `CONTACT_RADIUS = 2.2` was chosen by tuning to keep all `spatialBaselines.ts` bands passing. Post contact-timing fix all-seeds bands (450 fixtures): tries 3.67, points 23.87, pen 12.70 (ceiling 12.9), tackles-made 63.23, home-win 52.67%. Fifteen spatial scenarios gate behaviour including 5 WP 3 assertions plus 2 contact-timing regression guards.
 
 ---
 

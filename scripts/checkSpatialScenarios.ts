@@ -19,6 +19,12 @@ import {
   buildContactWorld,
   contactRate,
   runContactWithMovement,
+  minDefenderDistAtSeed,
+  runCarryWithLaunchGrace,
+  CONTACT_RADIUS,
+  SEEDING_CLEAR_MARGIN,
+  LAUNCH_GRACE_TICKS,
+  LAUNCH_GRACE_DIST,
   dist,
 } from './spatialScenarioKit.js';
 import type { AgentSetup, ContactAgentSetup } from './spatialScenarioKit.js';
@@ -407,6 +413,93 @@ const scenarios: Scenario[] = [
       }
       const shortRate = shortBeats / total;
       if (shortRate < 0.5) return `only ${(shortRate * 100).toFixed(0)}% of beats ended early (want ≥50%)`;
+      return null;
+    },
+  },
+
+  // ── WP3 contact-timing fix regression guards ──────────────────────────────
+  // (a) Seeding guard: no defender within CONTACT_RADIUS + SEEDING_CLEAR_MARGIN
+  //     of the carrier at t=0 after seedFormation runs (instant-tackle prevention).
+  // (b) Launch grace: contact never fires before LAUNCH_GRACE_TICKS ticks AND
+  //     LAUNCH_GRACE_DIST units of carrier travel (no 1-tick instant tackles).
+  {
+    name: 'WP3 contact-timing: seeding guard — no defender within contact range at t=0',
+    run: () => {
+      // Run the full seeding pipeline (solveDefence + solveCarryCorridor +
+      // solveAttackSpread + seedFormation) with a BLITZ line (shallowest standOff
+      // 2.0u — worst case for instant-spawn contact) at a range of marks and
+      // lateral positions. Assert the minimum defender-to-carrier distance after
+      // seeding is always ≥ CONTACT_RADIUS + SEEDING_CLEAR_MARGIN for every trial.
+      const clearDist = CONTACT_RADIUS + SEEDING_CLEAR_MARGIN;
+      const marks = [
+        { x: 50, y: 50 }, { x: 30, y: 30 }, { x: 70, y: 70 },
+        { x: 40, y: 20 }, { x: 60, y: 80 },
+      ];
+      for (const seed of SEEDS) {
+        setMatchSeed(seed);
+        for (const mark of marks) {
+          const world = buildScenarioWorld({
+            home: [{ x: mark.x, y: mark.y, pace: 75, agility: 70, target: null }],
+            away: (() => {
+              const line: AgentSetup[] = [];
+              for (let i = 0; i < 15; i++) {
+                line.push({ x: mark.x + 2, y: mark.y - 35 + i * 5, pace: 72, agility: 60, tackling: 65, positioning: 65, stamina: 80, discipline: 60, target: null });
+              }
+              return line;
+            })(),
+            ball: { x: mark.x, y: mark.y },
+          });
+          const minDist = minDefenderDistAtSeed(world, {
+            mark,
+            defensiveLine: 'blitz',
+            carrierSlot: 1,
+          });
+          if (minDist < clearDist) {
+            return `blitz line seeded defender ${minDist.toFixed(3)}u from carrier at mark (${mark.x},${mark.y}) — within clear zone ${clearDist.toFixed(1)}u (seed=0x${seed.toString(16)})`;
+          }
+        }
+      }
+      return null;
+    },
+  },
+
+  {
+    name: 'WP3 contact-timing: launch grace — no instant tackle in first grace period',
+    run: () => {
+      // Run carries with a tight formation (blitz, defender close-seeded) over
+      // multiple seeds and marks. Assert that when contact fires, the carrier has
+      // always run at least LAUNCH_GRACE_TICKS ticks AND LAUNCH_GRACE_DIST units
+      // before the tackle. A 1-tick contact (the diagnosed bug) must never appear.
+      const marks = [
+        { x: 50, y: 50 }, { x: 35, y: 50 }, { x: 65, y: 50 },
+      ];
+      for (const seed of SEEDS) {
+        setMatchSeed(seed);
+        for (const mark of marks) {
+          const world = buildScenarioWorld({
+            home: [{ x: mark.x, y: mark.y, pace: 78, agility: 72, strength: 65, handling: 60, stamina: 78, positioning: 65, tackling: 60, discipline: 65, target: null }],
+            away: (() => {
+              const line: AgentSetup[] = [];
+              for (let i = 0; i < 15; i++) {
+                line.push({ x: mark.x + 3, y: mark.y - 35 + i * 5, pace: 75, agility: 62, tackling: 68, positioning: 68, stamina: 82, discipline: 65, strength: 68, target: null });
+              }
+              return line;
+            })(),
+            ball: { x: mark.x, y: mark.y },
+          });
+          const { contactTick, contactDist } = runCarryWithLaunchGrace(world, {
+            mark,
+            defensiveLine: 'blitz',
+            carrierSlot: 1,
+          });
+          if (contactTick !== null && contactTick < LAUNCH_GRACE_TICKS) {
+            return `contact fired at tick ${contactTick} < grace ${LAUNCH_GRACE_TICKS} (mark=(${mark.x},${mark.y}), seed=0x${seed.toString(16)})`;
+          }
+          if (contactDist !== null && contactDist < LAUNCH_GRACE_DIST) {
+            return `contact fired after only ${contactDist.toFixed(3)}u < grace dist ${LAUNCH_GRACE_DIST} (mark=(${mark.x},${mark.y}), seed=0x${seed.toString(16)})`;
+          }
+        }
+      }
       return null;
     },
   },

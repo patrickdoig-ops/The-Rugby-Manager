@@ -80,6 +80,23 @@ export const OFFLOAD = {
 // The spatial positions are in 0–100 pitch coords; 1 unit ≈ 1 metre.
 export const CONTACT_RADIUS = 2.2;
 
+// Seeding clear-space guard (WP3 contact-timing fix). When seedFormation snaps
+// defenders onto their line slots, any defender whose seeded position falls within
+// CONTACT_RADIUS + SEEDING_CLEAR_MARGIN of the carrier is nudged away along
+// attackDir so no defender can be inside contact range at t=0. A carry must
+// always START in space — an instant tackle at spawn is not a rugby play.
+// The margin adds a small buffer so the first tick of movement cannot
+// immediately re-enter contact range before the launch grace fires.
+export const SEEDING_CLEAR_MARGIN = 0.8;
+
+// Launch grace (WP3 contact-timing fix). Contact detection is suppressed until
+// the carrier has run at least LAUNCH_GRACE_TICKS micro-ticks AND covered at
+// least LAUNCH_GRACE_DIST coord-units from the carry start. This represents
+// the carrier receiving the ball and running onto it — a real rugby carry
+// always has a non-trivial engagement distance before the tackle fires.
+export const LAUNCH_GRACE_TICKS = 3;
+export const LAUNCH_GRACE_DIST  = 1.5;
+
 // How far behind the carrier a beaten defender is repositioned (recovery lockout).
 // He is physically behind play and must steer back. Along the attackDir axis.
 export const RECOVERY_LOCKOUT_DIST = 6.0;

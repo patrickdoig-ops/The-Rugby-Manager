@@ -15,6 +15,7 @@ import type { PossessionSide } from '../../types/engine';
 import { onFieldPlayers } from '../FieldPosition';
 import { STARTING_XV_MAX } from '../Slot';
 import { EMPTY_SLOT_PARK, FORMATION_STAGGER, CARRY_CORRIDOR } from '../balance/spatialShape';
+import { CONTACT_RADIUS, SEEDING_CLEAR_MARGIN } from '../balance/spatialTackle';
 import type { Agent, SpatialBall, Vec2, Frame } from './types';
 
 export const AGENTS_PER_SIDE = STARTING_XV_MAX; // 15
@@ -209,6 +210,35 @@ export function seedFormation(world: World, p: SeedParams): void {
     agent.pos.y = target.y + latSign * (FORMATION_STAGGER / 2);
     agent.vel.x = 0;
     agent.vel.y = 0;
+  }
+
+  // ── Seeding clear-space guard (WP3 contact-timing fix) ──────────────────
+  // After all agents are snapped onto their formation slots, ensure no defender
+  // is within CONTACT_RADIUS + SEEDING_CLEAR_MARGIN of the carrier at t=0.
+  // The carrier was seeded at the mark; defenders folding to a shallow standOff
+  // (blitz tactic: 2.0u) can land inside contact range before the carry starts.
+  // Nudge any such defender away along attackDir so every carry opens in space.
+  const clearDist = CONTACT_RADIUS + SEEDING_CLEAR_MARGIN;
+  // Find the carrier agent to get its seeded position.
+  let carrierX = clampX(p.mark.x);
+  let carrierY = clampY(p.mark.y);
+  for (const agent of world.agents) {
+    if (agent.role === 'corridor' && agent.slot === p.carrierSlot) {
+      carrierX = agent.pos.x;
+      carrierY = agent.pos.y;
+      break;
+    }
+  }
+  for (const agent of world.agents) {
+    if (agent.role === 'corridor' || agent.role === 'empty') continue;
+    const dx = agent.pos.x - carrierX;
+    const dy = agent.pos.y - carrierY;
+    const d = Math.hypot(dx, dy);
+    if (d < clearDist) {
+      // Nudge the defender away along attackDir until outside the clear zone.
+      // Move along x (the axis the defender should be ahead of the carrier on).
+      agent.pos.x = clampX(carrierX + p.attackDir * clearDist);
+    }
   }
 }
 

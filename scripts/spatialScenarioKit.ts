@@ -103,9 +103,10 @@ export function dist(a: Vec2, b: Vec2): number {
 // the real ShapeSolver. The World here is authored directly (not from
 // MatchState), so the caller seeds agent positions/attrs to stage the picture.
 
-import { solveDefence, solveCarryCorridor, detectGap, detectOffside, reanchorDefence } from '../src/engine/spatial/ShapeSolver.js';
-import { coupleBallToCarrier } from '../src/engine/spatial/World.js';
+import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence } from '../src/engine/spatial/ShapeSolver.js';
+import { coupleBallToCarrier, seedFormation } from '../src/engine/spatial/World.js';
 import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
+import { CONTACT_RADIUS, SEEDING_CLEAR_MARGIN, LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST } from '../src/engine/balance/spatialTackle.js';
 import type { ShapeParams } from '../src/engine/spatial/ShapeSolver.js';
 
 export interface CarryScenarioResult {
@@ -357,6 +358,98 @@ export function runContactWithMovement(
   }
   return { ticksRun, outcome, contactOccurred };
 }
+
+// ── WP3 contact-timing regression helpers ─────────────────────────────────
+
+// Run the full seeding pipeline (solveDefence + solveCarryCorridor +
+// solveAttackSpread + seedFormation) on an authored world and return the
+// minimum distance from the carrier to any non-corridor, non-empty defender
+// at t=0 (immediately after seeding, before any ticks). The seeding guard
+// asserts this is always ≥ CONTACT_RADIUS + SEEDING_CLEAR_MARGIN.
+export function minDefenderDistAtSeed(
+  world: World,
+  params: Partial<ShapeParams> = {},
+): number {
+  const p: ShapeParams = {
+    attackSide: 'home',
+    defendSide: 'away',
+    attackDir: 1,
+    mark: { x: world.ball.pos.x, y: world.ball.pos.y },
+    defensiveLine: 'blitz',  // worst case: shallowest standOff (2.0u)
+    backfield: 2,
+    defendDiscipline: 'balanced',
+    carrierSlot: 1,
+    ...params,
+  };
+  solveDefence(world, p);
+  const carrier = solveCarryCorridor(world, p);
+  solveAttackSpread(world, p);
+  seedFormation(world, { attackDir: p.attackDir, mark: p.mark, carrierSlot: p.carrierSlot });
+  // Measure minimum distance from carrier to any active defender.
+  let minDist = Infinity;
+  for (const a of world.agents) {
+    if (a.side === p.attackSide) continue;  // skip attackers
+    if (a.role === 'corridor' || a.role === 'empty') continue;
+    const d = Math.hypot(a.pos.x - carrier.pos.x, a.pos.y - carrier.pos.y);
+    if (d < minDist) minDist = d;
+  }
+  return minDist;
+}
+
+// Run a carry with the launch-grace gate active (mirroring CarrySim's contact
+// hook). Returns the tick index at which contact first fired, or null if the
+// carry completed without contact. Used to assert no contact fires before
+// LAUNCH_GRACE_TICKS ticks AND LAUNCH_GRACE_DIST units of carrier travel.
+export function runCarryWithLaunchGrace(
+  world: World,
+  params: Partial<ShapeParams> = {},
+): { contactTick: number | null; contactDist: number | null } {
+  const p: ShapeParams = {
+    attackSide: 'home',
+    defendSide: 'away',
+    attackDir: 1,
+    mark: { x: world.ball.pos.x, y: world.ball.pos.y },
+    defensiveLine: 'blitz',
+    backfield: 2,
+    defendDiscipline: 'balanced',
+    carrierSlot: 1,
+    ...params,
+  };
+  const roles = solveDefence(world, p);
+  const carrier = solveCarryCorridor(world, p);
+  solveAttackSpread(world, p);
+  seedFormation(world, { attackDir: p.attackDir, mark: p.mark, carrierSlot: p.carrierSlot });
+  const startX = carrier.pos.x;
+  const startY = carrier.pos.y;
+  let contactTick: number | null = null;
+  let contactDist: number | null = null;
+  let ticksRun = 0;
+  let stopped = false;
+  for (let t = 0; t < CARRY_CORRIDOR_TICKS && !stopped; t++) {
+    ticksRun++;
+    run(
+      world,
+      1,
+      true,
+      () => reanchorDefence(roles, carrier, p),
+      () => coupleBallToCarrier(world, carrier),
+    );
+    const elapsed = ticksRun;
+    const carrierDist = Math.hypot(carrier.pos.x - startX, carrier.pos.y - startY);
+    if (elapsed >= LAUNCH_GRACE_TICKS && carrierDist >= LAUNCH_GRACE_DIST) {
+      const result = detectContact(world, carrier, roles);
+      if (result && result.outcome !== 'broken_tackle') {
+        contactTick = elapsed;
+        contactDist = carrierDist;
+        stopped = true;
+      }
+    }
+  }
+  return { contactTick, contactDist };
+}
+
+// Re-export the constants so scenarios can reference the same values.
+export { CONTACT_RADIUS, SEEDING_CLEAR_MARGIN, LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST };
 
 // Hash every agent position at every tick of a dark-mode run — the trajectory
 // fingerprint that checkDeterminism.ts asserts is seed-stable.

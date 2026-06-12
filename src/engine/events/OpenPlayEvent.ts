@@ -25,6 +25,15 @@ import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effD
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
+// Collapse consecutive duplicate slots in a pass chain (so the scrum-half being
+// the carrier, or a wide path where the first receiver is the carrier, reads as
+// one pass rather than a zero-length self-pass).
+function dedupeChain(chain: number[]): number[] {
+  const out: number[] = [];
+  for (const s of chain) if (out.length === 0 || out[out.length - 1] !== s) out.push(s);
+  return out;
+}
+
 export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent, spatial, world, worldContinuation }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
@@ -314,6 +323,12 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
       defendDiscipline: defendTeam.tactics.discipline,
       carrierSlot: ballCarrier.id,
       attackingStyle: effAttackingStyle(state, attackTeam),
+      // The pass chain the ball sweeps along before the carry: ruck (scrum-half) →
+      // [fly-half on a wide play] → carrier. Dedupe consecutive equal slots so a
+      // path where the scrum-half / first receiver IS the carrier reads as one pass.
+      passChain: dedupeChain(goWide
+        ? [scrumHalf.id, carrier.id, ballCarrier.id]
+        : [scrumHalf.id, ballCarrier.id]),
       // Net carry modifier the legacy resolver folds into its line-break margin
       // (home advantage, team talk, tactical evasion shifts) — keeps line breaks
       // biased by the same match-shaping factors on the spatial path.

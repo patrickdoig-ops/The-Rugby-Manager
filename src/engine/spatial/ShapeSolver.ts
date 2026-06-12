@@ -33,6 +33,7 @@ import {
   FORWARD_POD,
   GAP_BREAK,
 } from '../balance/spatialShape';
+import { PASS_CHAIN } from '../balance/spatialDecision';
 import { deriveFoldSpeedMult } from '../balance/spatialSteering';
 import { isForwardSlot, SLOT } from '../Slot';
 import type { Agent } from './types';
@@ -360,12 +361,24 @@ export function solveCarryCorridor(world: World, p: ShapeParams): Agent {
   // him by reanchorAttack. In the continuity sequence the mark tracks the carrier,
   // so this is a no-op there (no teleport); in a live match the NEW carrier
   // legitimately arrives at the ruck.
-  carrier.pos.x = clampX(p.mark.x);
-  carrier.pos.y = clampY(p.mark.y);
+  // WHERE the carrier receives depends on who he is. A FORWARD engages from the
+  // ruck — snapped onto the mark (the recycled ball is there). A BACK receives the
+  // pass OUT WIDE in the backline, slightly behind the gain line, then runs onto
+  // the line — the pass phase (runCarrySim) sweeps the ball to him here, so a wide
+  // play's carry actually happens out wide instead of teleporting to the mark.
+  if (isForwardSlot(p.carrierSlot)) {
+    carrier.pos.x = clampX(p.mark.x);
+    carrier.pos.y = clampY(p.mark.y);
+  } else {
+    const openSign = p.mark.y <= 50 ? 1 : -1;
+    carrier.pos.x = clampX(p.mark.x - p.attackDir * PASS_CHAIN.receiveDepth);
+    carrier.pos.y = clampY(p.mark.y + openSign * PASS_CHAIN.receiveWidth);
+  }
   carrier.vel.x = 0;
   carrier.vel.y = 0;
   carrier.role = 'corridor';
-  carrier.intent.target = { x: clampX(p.mark.x + p.attackDir * CARRY_CORRIDOR.carryReach), y: clampY(p.mark.y) };
+  // Run FORWARD from wherever he received (the snap point above), holding his lane.
+  carrier.intent.target = { x: clampX(carrier.pos.x + p.attackDir * CARRY_CORRIDOR.carryReach), y: clampY(carrier.pos.y) };
 
   // Support pod: the nearest few attackers to the breakdown follow the carry in.
   // Seeded just BEHIND the mark; reanchorSupport then trails them behind the

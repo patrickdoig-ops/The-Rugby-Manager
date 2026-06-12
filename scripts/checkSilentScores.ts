@@ -104,11 +104,16 @@ const ROOT_SEED = 0xDEADBEEF;
 //
 // WP5 style-driven pods: the pod spread is now keyed off the team's effective
 // attackingStyle — keep_it_tight keeps the pods near the ruck (~11 m wide),
-// wide_wide flings them to the edges (~21 m), balanced between (the previous
-// values, so a balanced team is unchanged). Outcomes shift for non-balanced teams
-// (by design); every § 13 band holds (pts 23.65, tries 3.65, TO 2.05, pen 12.58,
-// tackMade 64.7, home-win 55.56 on the 5-seed/450-fixture sweep).
-const GOLDEN = '069da501cbbd9f9993c88d01417efd5d446ddac8a003186d0e4592f5e05bd641';
+// wide_wide flings them to the edges (~21 m), balanced between (the previous values).
+//
+// WP5 pass mechanics: a BACK carrier now receives the ball OUT WIDE in the backline
+// (the ball sweeps from the ruck through the backline to him before he runs),
+// instead of teleporting to the mark — so a wide play's carry happens out wide. The
+// pass sweep itself is frame-only (snapshot→sweep→restore, so live == silent), but
+// the wide receiving point changes the carry geometry → outcomes shift (by design);
+// every § 13 band holds (pts 24.59, tries 3.78, TO 2.02, pen 12.47, tackMade 63.6,
+// home-win 55.11 on the 5-seed/450-fixture sweep).
+const GOLDEN = '22c5a4ade657af9affe6d13c687d1568287d79c28fe2a07753267dbe010fd7bb';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

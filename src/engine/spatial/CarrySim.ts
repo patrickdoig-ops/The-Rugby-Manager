@@ -33,8 +33,9 @@ import type { PossessionSide } from '../../types/engine';
 import type { DefensiveLine, Discipline, AttackingStyle } from '../../types/team';
 import { CARRY_CORRIDOR_TICKS, MAX_TICKS_AFTER_BREAK } from '../balance/spatialShape';
 import { LAUNCH_GRACE_TICKS, LAUNCH_GRACE_DIST } from '../balance/spatialTackle';
-import { seedFormation, coupleBallToCarrier } from './World';
+import { seedFormation, coupleBallToCarrier, captureFrame, AGENTS_PER_SIDE } from './World';
 import type { World } from './World';
+import { PASS_CHAIN } from '../balance/spatialDecision';
 import { run } from './SpatialSimulator';
 import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence, reanchorSupport, reanchorAttack } from './ShapeSolver';
 import { detectContact } from './ContactSystem';
@@ -51,6 +52,11 @@ export interface CarrySimInput {
   defendDiscipline: Discipline;
   carrierSlot: number;
   attackingStyle: AttackingStyle;  // drives the forward-pod spread (WP5)
+  // The pass chain that prefixes the carry (WP5): attacking slots from the ruck to
+  // the carrier — e.g. [9, 10, carrierSlot] for a wide play, [9, carrierSlot] for a
+  // hard carry. The ball is swept along it before the carrier runs. Last entry is
+  // always the carrier; a length < 2 means no visible pass (pick-and-go style).
+  passChain: number[];
   // Net legacy carry modifier (attackMod − defendMod) the gap threshold reads so
   // home advantage / team talk / tactics still bias line breaks (Upgrade.md §13).
   modShift: number;
@@ -92,6 +98,58 @@ export function seedWorld(world: World, params: ShapeParams): void {
   seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
 }
 
+// Build the pass-sweep frames that PREFIX a carry (WP5): the ball travels from the
+// ruck (scrum-half) through the backline to the carrier (already at his receiving
+// point — out wide for a back, the mark for a forward). Frame-ONLY: it snapshots
+// the chain members it repositions and RESTORES them + the ball before returning,
+// so the carry runs from byte-identical state to the silent path (no rng, no
+// outcome impact — headless league sims stay in lockstep with live). Live-only
+// (the caller passes [] for silent). The carrier is never moved here (he stays at
+// the receiving point solveCarryCorridor set); only the upstream chain members are
+// posted for the sweep, then restored — so only those 1-2 dots reset at the
+// pass→carry seam (a within-beat visual the WP8 renderer will interpolate).
+function runPassPhase(world: World, params: ShapeParams, passChain: number[]): Frame[] {
+  if (passChain.length < 2) return [];
+  const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+  const base = params.attackSide === 'home' ? 0 : AGENTS_PER_SIDE;
+  const members = passChain.map(slot => world.agents[base + slot - 1]);
+  const carrier = members[members.length - 1];
+  const saved = members.map(a => ({ x: a.pos.x, y: a.pos.y, vx: a.vel.x, vy: a.vel.y }));
+  const savedBall = { x: world.ball.pos.x, y: world.ball.pos.y, slot: world.ball.carrierSlot };
+
+  // Post the upstream chain: scrum-half at the ruck, intervening receivers evenly
+  // along the line toward the carrier's lateral channel at linkDepth behind the line.
+  members[0].pos.x = clamp(params.mark.x, 2, 98);
+  members[0].pos.y = clamp(params.mark.y, 3, 97);
+  for (let i = 1; i < members.length - 1; i++) {
+    const frac = i / (members.length - 1);
+    members[i].pos.x = clamp(params.mark.x - params.attackDir * PASS_CHAIN.linkDepth, 2, 98);
+    members[i].pos.y = clamp(params.mark.y + (carrier.pos.y - params.mark.y) * frac, 3, 97);
+  }
+
+  // Sweep the ball through the chain, a frame per flight tick.
+  const frames: Frame[] = [];
+  let t = 0;
+  world.ball.carrierSlot = undefined;  // in flight
+  for (let i = 0; i < members.length - 1; i++) {
+    const from = members[i].pos, to = members[i + 1].pos;
+    for (let k = 1; k <= PASS_CHAIN.flightTicks; k++) {
+      const f = k / PASS_CHAIN.flightTicks;
+      world.ball.pos.x = from.x + (to.x - from.x) * f;
+      world.ball.pos.y = from.y + (to.y - from.y) * f;
+      frames.push(captureFrame(world, t++));
+    }
+  }
+
+  // RESTORE everything the sweep touched — the carry proceeds from identical state.
+  for (let i = 0; i < members.length; i++) {
+    members[i].pos.x = saved[i].x; members[i].pos.y = saved[i].y;
+    members[i].vel.x = saved[i].vx; members[i].vel.y = saved[i].vy;
+  }
+  world.ball.pos.x = savedBall.x; world.ball.pos.y = savedBall.y; world.ball.carrierSlot = savedBall.slot;
+  return frames;
+}
+
 // Resolve a single PhasePlay carry spatially. `world` is the persistent World
 // owned by MatchCoordinator (built/reset/continued by ensureWorld); `state`
 // supplies the mark + on-field players for the solver params.
@@ -119,6 +177,14 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
   const roles = solveDefence(world, params);
   const carrier = solveCarryCorridor(world, params);
   solveAttackSpread(world, params);
+
+  // PASS PHASE (WP5): on a live beat, prefix the carry with the ball sweeping from
+  // the ruck (scrum-half) through the backline to the carrier (positioned at his
+  // receiving point by solveCarryCorridor) — so a wide play visibly moves the ball
+  // across the backline before the carrier runs. Frame-only: it snapshots and
+  // RESTORES the chain members it repositions, so the carry runs from byte-identical
+  // state to the silent path (headless league sims stay in lockstep with live).
+  const passFrames = input.silent ? [] : runPassPhase(world, params, input.passChain);
 
   // WP3 contact state — mutable across ticks, written into by the contact hook.
   // Pre-allocated: no allocation in the hot path.
@@ -192,7 +258,7 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
   };
   const postMoveFn = () => coupleBallToCarrier(world, carrier);
 
-  const allFrames: Frame[] = [];
+  const allFrames: Frame[] = passFrames.slice();  // the pass sweep precedes the carry
   for (let t = 0; t < totalTicks && !stopped; t++) {
     ticksRun++;
     const { frames } = run(world, 1, input.silent, preMoveFn, postMoveFn, contactHook);

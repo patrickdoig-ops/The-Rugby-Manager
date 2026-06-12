@@ -42,13 +42,13 @@ const TEAMS = [
 const ROOT_SEED = 0xDEADBEEF;
 
 // Pinned golden hash of the full result set. Regenerate intentionally only.
-// Re-baselined 2026-06 (three times): authored FIRST_PHASE try grounding y takes
+// Re-baselined 2026-06 (four times): authored FIRST_PHASE try grounding y takes
 // precedence over the procedural tryLandingY; the 5m try-leniency band was removed
-// (isTryScoredAt now requires reaching the line); and a scrum-half kick off first
-// phase no longer routes through the kick_decision (9→10) choreography — so its
-// box kick originates from the set-piece mark, not the #10 channel. All shift
-// outcomes by design.
-const GOLDEN = '6b1b4e01720a518eb36926673fc7b8a40e08ba3f4999293768aab71dc6d0d146';
+// (isTryScoredAt now requires reaching the line); a scrum-half kick off first phase no
+// longer routes through the kick_decision (9→10) choreography — so its box kick originates
+// from the set-piece mark, not the #10 channel; and the kicking tuning merged from main
+// (balance/kicking.ts + KickingResolver + TacticalKickEvent) shifted kick outcomes. All by design.
+const GOLDEN = 'd0380c0b25434c88582d8d7825adc10b4cc6fc9aa8b5084b6dcd2874da6bcb3e';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

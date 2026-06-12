@@ -64,7 +64,12 @@ const ROOT_SEED = 0xDEADBEEF;
 // resolves against a formed line from frame 0, shifting break/tackle outcomes. By design;
 // every § 13 telemetry band stays in range. Reverting PhasePlay from SPATIAL_PHASES restores
 // the spatial-only prior golden.
-const GOLDEN = 'd37e1132b7225a9a99383fee3e3bd1d041016ce4e8676fa44f7373d16a54875c';
+// Re-baselined again (WP2 carry-watchability fixes): the ball now couples to the carrier each
+// micro-tick (Bug ②), the defensive line re-anchors onto the live carrier (Bug ③), and the
+// backfield sign is corrected so deep defenders post on the defenders' side (Bug ①). The
+// line's per-tick fold/press shifts the measured gap so break/tackle outcomes move. By
+// design; every § 13 telemetry band stays in range.
+const GOLDEN = '751a4c98faa8fb6d79e8ad5fa8dffad9862ee11dd4b19d0e3a06a38714e921c0';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

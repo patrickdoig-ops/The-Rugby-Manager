@@ -18,9 +18,9 @@ import type { MatchState } from '../../types/match';
 import type { PossessionSide } from '../../types/engine';
 import type { DefensiveLine, Discipline } from '../../types/team';
 import { CARRY_CORRIDOR_TICKS } from '../balance/spatialShape';
-import { buildWorld, seedFormation } from './World';
+import { buildWorld, seedFormation, coupleBallToCarrier } from './World';
 import { run } from './SpatialSimulator';
-import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside } from './ShapeSolver';
+import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence } from './ShapeSolver';
 import type { ShapeParams } from './ShapeSolver';
 import type { Frame } from './types';
 
@@ -81,9 +81,19 @@ export function runCarrySim(state: MatchState, input: CarrySimInput): CarrySimRe
   // corridor against the formed line over the micro-ticks.
   seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
 
-  // Run the micro-ticks. Targets are fixed for the beat (Layer 1 only in WP2;
-  // the decision/contact layers are WP3/WP5), so no per-tick intent callback.
-  const { frames } = run(world, CARRY_CORRIDOR_TICKS, input.silent);
+  // Run the micro-ticks with the two per-tick hooks (closures allocated ONCE
+  // here, never per tick — run() just invokes them):
+  //   • preMove  — re-anchor the defensive line onto the live carrier (Bug ③)
+  //                so the line presses/folds as he runs the corridor.
+  //   • postMove — couple the ball to the carrier's freshly-moved position so
+  //                the captured frame records the ball travelling with him (Bug ②).
+  const { frames } = run(
+    world,
+    CARRY_CORRIDOR_TICKS,
+    input.silent,
+    () => reanchorDefence(roles, carrier, params),
+    () => coupleBallToCarrier(world, carrier),
+  );
 
   // Post-tick verdicts. The gap's nearest defender (the tackler) is excluded
   // from the offside sweep — he is legitimately advancing onto the carrier.

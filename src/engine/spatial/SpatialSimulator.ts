@@ -30,26 +30,36 @@ export interface SpatialRunResult {
 
 // Run `ticks` micro-ticks over the World. `silent` mirrors the headless-fixture
 // flag: when true, no Frame is captured (the substrate runs at zero observation
-// cost). `setIntent` is the WP 1 stand-in for the decision layer — the caller
-// (scenario harness, determinism hash, probe) supplies per-tick targets via the
-// stub; WP 2 replaces it with the real ShapeSolver + DecisionSystem.
+// cost).
+//
+// Two optional per-tick hooks let the caller drive the live Layer-1 logic
+// in-loop without `run` importing the solver (WP2):
+//   • `preMove`  — runs BEFORE the movement step, in the frozen ShapeSolver slot
+//                  of the loop order. CarrySim uses it to RE-ANCHOR the defensive
+//                  line onto the moving carrier each tick (Bug ③).
+//   • `postMove` — runs AFTER the movement step and BEFORE frame capture, so its
+//                  writes are recorded this tick. CarrySim uses it to COUPLE the
+//                  ball to the carrier's freshly-moved position (Bug ②).
+// Both mutate the World in place — `run` never allocates per tick for them.
 export function run(
   world: World,
   ticks: number,
   silent: boolean,
-  setIntent?: (world: World, t: number) => void,
+  preMove?: (world: World, t: number) => void,
+  postMove?: (world: World, t: number) => void,
 ): SpatialRunResult {
   const frames: Frame[] = [];
   for (let t = 0; t < ticks; t++) {
-    // Layer 1 (ShapeSolver) + Layers 2–3 (decision) — stubbed in WP 1: the
-    // supplied callback assigns each agent's intent.target. No-op if absent.
-    if (setIntent) setIntent(world, t);
+    // Layer 1 (ShapeSolver) — re-anchor defenders onto the live carrier (Bug ③).
+    if (preMove) preMove(world, t);
 
     // Steering + movement: arrive() is applied per agent inside movementStep,
     // in the frozen slot order, followed by clamp + soft separation.
     movementStep(world);
 
-    // Contact (stub) — WP 3. No detection, no events in WP 1.
+    // Post-movement bookkeeping: couple the ball to the carrier (Bug ②) so the
+    // captured frame records the ball travelling with him. Then contact (WP3).
+    if (postMove) postMove(world, t);
 
     if (!silent) {
       const frame = captureFrame(world, t);

@@ -21,6 +21,7 @@ import type { DefensiveLine, Discipline } from '../../types/team';
 import { rngSpatial } from '../../utils/rng';
 import {
   DEFENSIVE_LINE,
+  DEFENCE_REANCHOR,
   LINE_SLOT_COUNT,
   BACKFIELD_DEPTH,
   BACKFIELD_SPREAD,
@@ -54,7 +55,7 @@ export interface ShapeParams {
 // One defender's resolved line role — used by the gap-detection and offside
 // passes after the micro-ticks. `slotY` is the lateral position of his slot on
 // the line; `isBackfield` exempts him from the offside plane.
-interface LineRole {
+export interface LineRole {
   agent: Agent;
   slotY: number;
   isBackfield: boolean;
@@ -79,9 +80,11 @@ export function solveDefence(world: World, p: ShapeParams): LineRole[] {
   // The line sets up `standOff` in FRONT of the mark (toward the attackers,
   // i.e. against attackDir from the defenders' view they face -attackDir).
   const lineX = p.mark.x + p.attackDir * cfg.standOff;
-  // Backfield posts behind the line toward the defending try line (along
-  // attackDir away from the attackers = -attackDir from the mark).
-  const backX = p.mark.x - p.attackDir * BACKFIELD_DEPTH;
+  // Backfield posts DEEP behind the line, toward the DEFENDING try line — the
+  // line the attackers are running AT, which sits at +attackDir from the mark
+  // (attackDir points toward the defenders' goal). So the backfield is +attackDir
+  // BEHIND the front line, never on the attackers' side of the mark.
+  const backX = p.mark.x + p.attackDir * BACKFIELD_DEPTH;
 
   // Pick the backfield defenders: the agents already deepest toward their own
   // line (largest -attackDir distance from the mark) — mirrors pickFullback
@@ -130,6 +133,46 @@ export function solveDefence(world: World, p: ShapeParams): LineRole[] {
   }
 
   return roles;
+}
+
+// ── Per-tick defensive re-anchor (Bug ③, Upgrade.md § 5.2) ────────────────
+// solveDefence runs ONCE before the loop, so its slot targets are static. This
+// runs INSIDE the micro-tick loop (SpatialSimulator's preMove hook) to re-anchor
+// the front line onto the LIVE carrier each tick so the defence visibly
+// advances/folds as he runs the corridor. Backfield roles are left alone (deep
+// kick cover, not the gain-line contest). ALLOCATION-FREE: mutates each role's
+// existing intent.target Vec2 in place — no per-tick object creation.
+//
+//   • lateral: each slot's y target chases the carrier's y, blended by the
+//     tactic's lateralTrack (drift slides most; blitz least), so the line folds
+//     across to the carrier's channel.
+//   • forward: the line presses UP toward the gain line, scaled by the tactic's
+//     forwardPress (blitz presses hard; drift little), bounded by pressCap past
+//     the opening line so it cannot rush past the mark — the offside sweep
+//     (measured against the FIXED mark after the loop) stays coherent.
+//
+// Per-tick top speed is still enforced by MovementSystem's velocity clamp, so a
+// pressing slot can never teleport — it accelerates onto the new target.
+export function reanchorDefence(roles: LineRole[], carrier: Agent, p: ShapeParams): void {
+  const cfg = DEFENSIVE_LINE[p.defensiveLine];
+  const openingLineX = p.mark.x + p.attackDir * cfg.standOff;
+  // How far the carrier has advanced past the mark along attackDir (≥0). The
+  // line presses forward in proportion to this, so it only pushes up as the
+  // carrier commits — never ahead of him at beat open.
+  const carrierAdvance = Math.max(0, (carrier.pos.x - p.mark.x) * p.attackDir);
+  const press = Math.min(DEFENCE_REANCHOR.pressCap, carrierAdvance * DEFENCE_REANCHOR.pressGain * cfg.forwardPress);
+  const targetLineX = clampX(openingLineX + p.attackDir * press);
+  for (const r of roles) {
+    if (r.isBackfield) continue;
+    const t = r.agent.intent.target;
+    if (!t) continue;
+    // Lateral: slide the slot's y toward the carrier's channel, blended by the
+    // tactic's lateralTrack. trackGain bounds how fast the slot chases per tick.
+    const dy = carrier.pos.y - r.slotY;
+    const slide = dy * cfg.lateralTrack * DEFENCE_REANCHOR.trackGain;
+    t.x = targetLineX;
+    t.y = clampY(r.slotY + slide);
+  }
 }
 
 // Lateral slot ys, centred on `centreY`, alternating out: 0, +s, -s, +2s, -2s …

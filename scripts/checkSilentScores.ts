@@ -58,8 +58,13 @@ const ROOT_SEED = 0xDEADBEEF;
 // Re-baselined again: velocity-clamp fix in MovementSystem (post-separation vel clamped to
 // deriveTopSpeed × speedScale) tightens carry-corridor trajectories → slight outcome shift.
 // Silent outcomes shift by design while every § 13 telemetry band stays in range.
-// Reverting PhasePlay from SPATIAL_PHASES restores the spatial-only prior golden.
-const GOLDEN = '6c40b2aab524b13cbf0ceab526f782e2967c1eaddb4a49cda2b97d12c36f424d';
+// Re-baselined again (WP2 initial-placement correction): beat-opening now SEEDS agents into
+// the ShapeSolver formation (defensive line + backfield, carrier + support corridor, attacker
+// placeholder spread) via seedFormation instead of piling all 30 on the ball — the carry
+// resolves against a formed line from frame 0, shifting break/tackle outcomes. By design;
+// every § 13 telemetry band stays in range. Reverting PhasePlay from SPATIAL_PHASES restores
+// the spatial-only prior golden.
+const GOLDEN = 'd37e1132b7225a9a99383fee3e3bd1d041016ce4e8676fa44f7373d16a54875c';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

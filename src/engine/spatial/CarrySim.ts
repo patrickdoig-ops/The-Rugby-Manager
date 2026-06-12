@@ -2,7 +2,8 @@
 // PhasePlay handler calls. It owns the WHOLE spatial half of a carry:
 //
 //   buildWorld → solveDefence (line/fold/backfield/offside setup) →
-//   solveCarryCorridor → run N micro-ticks → detectGap → detectOffside
+//   solveCarryCorridor → solveAttackSpread → seedFormation (snap to shape) →
+//   run N micro-ticks → detectGap → detectOffside
 //
 // and returns a plain-data verdict (line-break? + nearest line defender + metres
 // + an optional offside offender slot) plus the captured frame stream. ZERO
@@ -17,9 +18,9 @@ import type { MatchState } from '../../types/match';
 import type { PossessionSide } from '../../types/engine';
 import type { DefensiveLine, Discipline } from '../../types/team';
 import { CARRY_CORRIDOR_TICKS } from '../balance/spatialShape';
-import { buildWorld } from './World';
+import { buildWorld, seedFormation } from './World';
 import { run } from './SpatialSimulator';
-import { solveDefence, solveCarryCorridor, detectGap, detectOffside } from './ShapeSolver';
+import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside } from './ShapeSolver';
 import type { ShapeParams } from './ShapeSolver';
 import type { Frame } from './types';
 
@@ -66,9 +67,19 @@ export function runCarrySim(state: MatchState, input: CarrySimInput): CarrySimRe
   };
 
   // Layer 1 setup: defenders to their slots (fold speed baked into pace), the
-  // carry corridor for the carrier + support pod.
+  // carry corridor for the carrier + support pod, then the placeholder spread
+  // for the remaining attackers (forward cluster + backline fan).
   const roles = solveDefence(world, params);
   const carrier = solveCarryCorridor(world, params);
+  solveAttackSpread(world, params);
+
+  // Seed the opening formation: snap every agent off the ball onto its assigned
+  // target so the beat OPENS in a believable rugby shape instead of 30 dots
+  // piled on the ball (resetWorld's stub). Defenders start ON the line, the
+  // carrier near the mark, support + backs spread with width and depth. The
+  // defensive fold-overlap payoff still emerges from the carrier running the
+  // corridor against the formed line over the micro-ticks.
+  seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
 
   // Run the micro-ticks. Targets are fixed for the beat (Layer 1 only in WP2;
   // the decision/contact layers are WP3/WP5), so no per-tick intent callback.

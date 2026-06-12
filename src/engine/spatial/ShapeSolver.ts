@@ -27,9 +27,11 @@ import {
   OFFSIDE,
   OFFSIDE_TEAM_SCALE,
   CARRY_CORRIDOR,
+  ATTACK_SPREAD,
   GAP_BREAK,
 } from '../balance/spatialShape';
 import { deriveFoldSpeedMult } from '../balance/spatialSteering';
+import { isForwardSlot } from '../Slot';
 import type { Agent } from './types';
 import { AGENTS_PER_SIDE } from './World';
 import type { World } from './World';
@@ -58,10 +60,12 @@ interface LineRole {
   isBackfield: boolean;
 }
 
-// Helper: the home block is agents[0..14], away is [15..29].
+// Helper: the home block is agents[0..14], away is [15..29]. Empty slots (a
+// side reduced below 15 by a card, role 'empty') are skipped — they hold no
+// player, so they never join the line, corridor, spread, or gap/offside contest.
 function sideAgents(world: World, side: PossessionSide): Agent[] {
   const base = side === 'home' ? 0 : AGENTS_PER_SIDE;
-  return world.agents.slice(base, base + AGENTS_PER_SIDE);
+  return world.agents.slice(base, base + AGENTS_PER_SIDE).filter(a => a.role !== 'empty');
 }
 
 // ── Defensive shape (Upgrade.md § 5.2) ────────────────────────────────────
@@ -159,12 +163,17 @@ export function solveCarryCorridor(world: World, p: ShapeParams): Agent {
   const carrier = attackers.find(a => a.slot === p.carrierSlot) ?? attackers[0];
 
   // Carrier target: up the corridor along attackDir, holding the mark's lateral
-  // line. carryReach sets how far ahead he aims each solve.
-  carrier.role = 'idle';
+  // line. carryReach sets how far ahead he aims each solve. Role 'corridor' tells
+  // seedFormation his OPENING start is the mark (his target is a RUN destination,
+  // not a formation slot — snapping pos onto it would teleport him downfield).
+  carrier.role = 'corridor';
   carrier.intent.target = { x: clampX(p.mark.x + p.attackDir * CARRY_CORRIDOR.carryReach), y: clampY(p.mark.y) };
 
   // Support pod: nearest few attackers (by distance to the carrier) get targets
-  // slightly behind and lateral to the carrier, alternating sides.
+  // slightly behind and lateral to the carrier, alternating sides. Role 'corridor'
+  // so seedFormation seeds their opening start just behind the mark at the same
+  // lateral channel as their target. Picked by current distance to the carrier;
+  // at beat start every attacker is on the ball so the pick is array-order stable.
   const support = attackers
     .filter(a => a !== carrier)
     .sort((a, b) => dist(a.pos, carrier.pos) - dist(b.pos, carrier.pos))
@@ -173,17 +182,65 @@ export function solveCarryCorridor(world: World, p: ShapeParams): Agent {
     const pairRank = Math.floor(i / 2);
     const sign = i % 2 === 0 ? 1 : -1;
     const lateral = sign * (CARRY_CORRIDOR.supportLateralOffset + pairRank * CARRY_CORRIDOR.supportLateralStep);
-    support[i].role = 'idle';
+    support[i].role = 'corridor';
     support[i].intent.target = {
       x: clampX(p.mark.x + p.attackDir * (CARRY_CORRIDOR.carryReach - CARRY_CORRIDOR.supportDepth)),
       y: clampY(p.mark.y + lateral),
     };
   }
-  // Everyone else holds (no target) — primitive shape; WP5 fills it in.
+  // Everyone else holds (no target) — solveAttackSpread fills the placeholder
+  // forward cluster + backline fan next; resetWorld left them role 'idle'.
   for (const a of attackers) {
     if (a !== carrier && !support.includes(a)) a.intent.target = null;
   }
   return carrier;
+}
+
+// ── Attack placeholder spread (Upgrade.md § 5.3; beat-opening shape) ───────
+// Run AFTER solveCarryCorridor: it fills a credible placeholder target for
+// every attacker the corridor solve left with no target (i.e. not the carrier
+// and not the support pod). Forwards pack in a loose cluster just behind the
+// mark; backs fan out toward the open side with progressive width + depth
+// behind the gain line. This is NOT the full pod model (WP5) — it only exists
+// so seedFormation can snap these attackers off the ball into a believable
+// opening shape. All offsets are oriented by attackDir; the open side is the
+// wider half of the pitch from the mark so the backline always has room to run.
+export function solveAttackSpread(world: World, p: ShapeParams): void {
+  const attackers = sideAgents(world, p.attackSide);
+  // Open side = the touchline further from the mark (more room). +1 ⇒ toward
+  // y=100, -1 ⇒ toward y=0.
+  const openSign = p.mark.y <= 50 ? 1 : -1;
+
+  let fwdRank = 0;
+  let backRank = 0;
+  for (const a of attackers) {
+    if (a.intent.target) continue; // carrier or support pod already placed
+    if (isForwardSlot(a.slot)) {
+      // Loose forward cluster behind the mark, alternating off the mark's y with
+      // a small along-axis stagger so the pack is not flat.
+      const pairRank = Math.floor(fwdRank / 2);
+      const sign = fwdRank % 2 === 0 ? 1 : -1;
+      const lateral = sign * (pairRank + 1) * (ATTACK_SPREAD.forwardClusterSpread / 2);
+      const stagger = pairRank * ATTACK_SPREAD.forwardClusterStagger;
+      a.role = 'idle';
+      a.intent.target = {
+        x: clampX(p.mark.x - p.attackDir * (ATTACK_SPREAD.forwardClusterDepth + stagger)),
+        y: clampY(p.mark.y + lateral),
+      };
+      fwdRank++;
+    } else {
+      // Backline fans out toward the open side, each back wider + deeper — the
+      // classic angled backline carrying width + depth behind the gain line.
+      const lateral = openSign * (ATTACK_SPREAD.backFirstOffset + backRank * ATTACK_SPREAD.backLateralStep);
+      const depth = ATTACK_SPREAD.backDepth + backRank * ATTACK_SPREAD.backDepthStep;
+      a.role = 'idle';
+      a.intent.target = {
+        x: clampX(p.mark.x - p.attackDir * depth),
+        y: clampY(p.mark.y + lateral),
+      };
+      backRank++;
+    }
+  }
 }
 
 // ── Gap detection → line-break verdict (Upgrade.md § 5.2) ─────────────────

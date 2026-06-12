@@ -4,9 +4,12 @@
 // metric in spatialBaselines.ts remains within its acceptance band. Exits
 // non-zero naming the first offending metric if any band is violated.
 //
-// Speed: in `npm run verify` mode (default) only 1 root seed (90 fixtures)
-// is used so the full verify run stays fast. Pass --all-seeds or set
-// CHECK_ALL_SEEDS=1 to run all 5 seeds (450 fixtures), as CI does.
+// Speed: in `npm run verify` mode (default) the first 2 root seeds (180
+// fixtures) are used so the full verify run stays fast while the sample is
+// representative — a single 90-fixture seed is too noisy for the rare-event
+// metrics (points sits right on its floor post-velocity-fix; one seed can dip
+// below on sampling noise alone). Pass --all-seeds or set CHECK_ALL_SEEDS=1 to
+// run all 5 seeds (450 fixtures), as CI does.
 //
 // Reuses the MatchCoordinator + eventBus simulation path from telemetry.ts
 // (the same runSilent pattern). Does NOT duplicate the simulation driver.
@@ -53,7 +56,7 @@ const ALL_TEAMS = [
 const ALL_SEEDS = [0xDEADBEEF, 0xCAFEBABE, 0xBEEFCAFE, 0xFACEFEED, 0xC0FFEE00];
 
 const allSeeds = process.argv.includes('--all-seeds') || process.env['CHECK_ALL_SEEDS'] === '1';
-const SEEDS = allSeeds ? ALL_SEEDS : [ALL_SEEDS[0]];
+const SEEDS = allSeeds ? ALL_SEEDS : ALL_SEEDS.slice(0, 2);
 
 // ── Minimal per-match aggregator ─────────────────────────────────────────
 
@@ -191,7 +194,7 @@ f('turnovers/match',        toPerMatch,       BASELINE_TURNOVERS_PER_MATCH,     
 f('knock-ons/match',        koPerMatch,       BASELINE_KNOCKONS_PER_MATCH,      BAND_KNOCKONS_PER_MATCH);
 f('home-win-share%',        homeWinPct,       BASELINE_HOME_WIN_SHARE_PCT,      BAND_HOME_WIN_SHARE_PCT);
 
-const seedsLabel = allSeeds ? `5 seeds (${N} fixtures)` : `1 seed (${N} fixtures, fast mode)`;
+const seedsLabel = allSeeds ? `5 seeds (${N} fixtures)` : `2 seeds (${N} fixtures, fast mode)`;
 if (failures.length === 0) {
   console.log(`OK: all § 13 spatial bands pass — ${seedsLabel} in ${elapsed} ms`);
   console.log(`  tries=${triesPerMatch.toFixed(2)}  pts=${pointsPerMatch.toFixed(2)}  pen=${penPerMatch.toFixed(2)}  tackAtt=${tackAttPerMatch.toFixed(2)}  tackMade=${tackMadePerMatch.toFixed(2)}`);

@@ -85,6 +85,52 @@ export const CARRY_CORRIDOR = {
   carryReach: 14,
 };
 
+// ── Attack placeholder spread (Upgrade.md § 5.3; beat-opening shape) ──────
+// Beyond the carrier + support pod, the REST of the attacking side opens the
+// beat in a credible placeholder shape (full pods are WP5): forwards in a rough
+// cluster near the mark, backs fanning out with width + depth behind the gain
+// line. Used only to SEED the opening positions (the corridor solve still owns
+// the carrier + support pod targets); it stops every attacker opening on the
+// ball. Coordinates are oriented by attackDir so both possession sides and both
+// halves mirror correctly. All offsets are coord-units relative to the mark.
+export const ATTACK_SPREAD = {
+  // Forward cluster: the non-pod forwards pack loosely just behind the mark
+  // (against attackDir = toward own line). `clusterDepth` is how far back the
+  // pack centres; `clusterSpread` is the lateral band they spread across, laid
+  // out alternating off the mark's y. A small along-axis stagger adds depth so
+  // they do not line up flat.
+  forwardClusterDepth: 4.0,
+  forwardClusterSpread: 9.0,
+  forwardClusterStagger: 2.5,
+  // Backline: a fanning line set deeper than the forwards, each back further
+  // from the mark laterally (toward the open side) and progressively deeper, so
+  // the backs carry real width + depth behind the gain line. `firstOffset` is
+  // the |y| of the inside back; `lateralStep` the extra width per back out;
+  // `depth` how far behind the mark the backline sets; `depthStep` extra depth
+  // per back out (the classic angled backline).
+  backFirstOffset: 9.0,
+  backLateralStep: 7.0,
+  backDepth: 7.0,
+  backDepthStep: 1.5,
+} as const;
+
+// Parking spot for an empty agent slot (a side reduced below 15 by a card): a
+// deep corner near its own line, well off the ball so it never joins the pile
+// or the formation. Coord-units; x is mirrored by attackDir, y is the touchline
+// side. Inactive agents get no steering target and hold here for the beat.
+export const EMPTY_SLOT_PARK = { backDepth: 30, sideY: 6 } as const;
+
+// Small DETERMINISTIC per-agent stagger applied when seedFormation SNAPS an
+// agent onto its formation slot at beat-open (coord-units, by slot index). A
+// perfectly even ruler-straight line is unnatural to watch and leaves the
+// carrier dead-on a defender every carry (zero gap). The stagger breaks the
+// wall into a slightly ragged line/spread. It is DETERMINISTIC (a fixed slot-
+// keyed pattern, no random draw) on purpose: seedFormation must not consume the
+// spatial-RNG stream, or it would shift every downstream detectGap/detectOffside
+// draw of the beat and make outcomes hypersensitive to the stagger magnitude.
+// Excludes the carrier + support pod (role 'corridor') — their start is exact.
+export const FORMATION_STAGGER = 2.8;
+
 // Micro-ticks run per PhasePlay carry beat (10 Hz). ~2.2 s of run-up-and-fold —
 // enough for the line to fold and the carrier to reach the gain line so the
 // gap measurement is meaningful, short enough that the silent micro-tick cost

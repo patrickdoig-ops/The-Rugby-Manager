@@ -14,6 +14,7 @@ import type { Team } from '../../types/team';
 import type { PossessionSide } from '../../types/engine';
 import { onFieldPlayers } from '../FieldPosition';
 import { STARTING_XV_MAX } from '../Slot';
+import { EMPTY_SLOT_PARK, FORMATION_STAGGER, CARRY_CORRIDOR } from '../balance/spatialShape';
 import type { Agent, SpatialBall, Vec2, Frame } from './types';
 
 export const AGENTS_PER_SIDE = STARTING_XV_MAX; // 15
@@ -113,7 +114,12 @@ function initSide(world: World, state: MatchState, team: Team, side: PossessionS
       agent.positioning = player.baseStats.positioning;
       agent.tackling = player.baseStats.tackling;
       agent.discipline = player.baseStats.discipline;
+      agent.role = 'idle';
     } else {
+      // No on-field player in this slot (a side reduced below 15 by a card).
+      // Mark it 'empty' so the ShapeSolver skips it entirely — it never joins
+      // the formation, the line, or the gap/offside contest. seedFormation
+      // parks it off the ball; defaults here keep it harmless if not seeded.
       agent.pos.x = state.ball.x;
       agent.pos.y = state.ball.y;
       agent.fatigueSnapshot = 0;
@@ -123,13 +129,86 @@ function initSide(world: World, state: MatchState, team: Team, side: PossessionS
       agent.positioning = 10;
       agent.tackling = 10;
       agent.discipline = 10;
+      agent.role = 'empty';
     }
     agent.vel.x = 0;
     agent.vel.y = 0;
-    agent.role = 'idle';
     agent.intent.target = null;
     agent.speedScale = 1;
   }
+}
+
+// Inputs seedFormation needs to place the carrier + support pod at their OPENING
+// start (the mark / just behind it) — a subset of ShapeParams, kept narrow so
+// World.ts does not import the solver's full param type.
+export interface SeedParams {
+  attackDir: 1 | -1;
+  mark: { x: number; y: number };
+  carrierSlot: number;
+}
+
+// Snap every agent to the formation the ShapeSolver assigned (its intent.target)
+// at beat start, replacing the on-ball stub that resetWorld leaves. Called by
+// CarrySim AFTER solveDefence + solveCarryCorridor + solveAttackSpread have set
+// every active agent's target — so the beat OPENS in a believable rugby shape
+// (defensive line + backfield, carrier + support pod, forward cluster + backline
+// spread) instead of 30 dots piled on the ball blooming outward. Engine-internal
+// position writes, exactly like resetWorld (never via applyMatchEvent — only
+// spatial OUTCOMES cross that boundary). Run once per beat, never in the tick
+// loop. Empty slots (role 'empty') carry no target — park them off the ball in a
+// deep corner so they never form a phantom on-ball pile.
+export function seedFormation(world: World, p: SeedParams): void {
+  for (const agent of world.agents) {
+    if (agent.role === 'corridor') {
+      // Carrier + support pod: their intent.target is a RUN destination up the
+      // corridor, NOT a formation slot. Seed the carrier AT the mark and each
+      // support runner just behind the mark at the lateral channel its target
+      // encodes — so they open near the ball and run forward, never teleport
+      // downfield onto the target.
+      if (agent.slot === p.carrierSlot) {
+        agent.pos.x = clampX(p.mark.x);
+        agent.pos.y = clampY(p.mark.y);
+      } else {
+        agent.pos.x = clampX(p.mark.x - p.attackDir * CARRY_CORRIDOR.supportDepth);
+        agent.pos.y = agent.intent.target ? agent.intent.target.y : clampY(p.mark.y);
+      }
+      agent.vel.x = 0;
+      agent.vel.y = 0;
+      continue;
+    }
+    if (agent.role === 'empty') {
+      // Deep corner near the agent's own try line, oriented by attackDir. The
+      // attack runs toward +attackDir, so "own line" for an attacker is the
+      // -attackDir end; defenders mirror but a deep-corner park is fine for
+      // either side as a non-interfering hold.
+      agent.pos.x = p.attackDir === 1 ? EMPTY_SLOT_PARK.backDepth : 100 - EMPTY_SLOT_PARK.backDepth;
+      agent.pos.y = EMPTY_SLOT_PARK.sideY;
+      agent.vel.x = 0;
+      agent.vel.y = 0;
+      agent.intent.target = null;
+      continue;
+    }
+    const target = agent.intent.target;
+    if (!target) continue; // an active agent the solver chose to hold (rare)
+    // Snap onto the formation slot with a small DETERMINISTIC slot-keyed stagger
+    // so the line/spread is not a ruler-straight wall. No rngSpatial here — a
+    // random draw would shift the beat's downstream gap/offside stream. The
+    // pattern alternates depth + lateral by slot so adjacent dots stagger.
+    const s = agent.slot;
+    const depthSign = s % 2 === 0 ? 1 : -1;
+    const latSign = (s % 4 < 2) ? 1 : -1;
+    agent.pos.x = target.x + depthSign * (FORMATION_STAGGER / 2);
+    agent.pos.y = target.y + latSign * (FORMATION_STAGGER / 2);
+    agent.vel.x = 0;
+    agent.vel.y = 0;
+  }
+}
+
+function clampX(v: number): number {
+  return v < 2 ? 2 : v > 98 ? 98 : v;
+}
+function clampY(v: number): number {
+  return v < 3 ? 3 : v > 97 ? 97 : v;
 }
 
 // Capture the World's current positions into a fresh Frame (Upgrade.md § 8.1).

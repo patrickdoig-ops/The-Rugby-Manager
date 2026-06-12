@@ -18,7 +18,16 @@ export interface Vec2 {
 // Per-agent role assigned by the (stubbed in WP1) ShapeSolver. The string set
 // grows in WP 2+ (line defender, pod runner, backfield…); 'idle' is the WP1
 // stub default before any decision layer exists.
-export type AgentRole = 'idle';
+//  • 'empty'    — a slot with no on-field player (a side reduced below 15 by a
+//                 card). The ShapeSolver skips it entirely; it is parked off the
+//                 ball so it never joins the formation or the gap/offside contest.
+//  • 'corridor' — the ball carrier or a support-pod runner whose OPENING start
+//                 position solveCarryCorridor seeds directly (at/near the mark)
+//                 and whose intent.target is a RUN destination up the corridor,
+//                 not a formation slot. seedFormation must NOT snap these onto
+//                 their target (that would teleport the carrier downfield) — it
+//                 leaves their seeded start position intact.
+export type AgentRole = 'idle' | 'empty' | 'corridor';
 
 // Per-agent transient intent — what the decision layer wants this agent to do
 // this beat. A bag of fields the steering layer reads; the WP1 stub fills only

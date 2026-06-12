@@ -19,6 +19,13 @@ import { handleBoxKick }        from './events/BoxKickEvent';
 import { handleTryScored }      from './events/TryScoredEvent';
 import { handleConversionKick } from './events/ConversionKickEvent';
 
+// The single switch that routes a phase through the spatial substrate
+// (Upgrade.md § 3 hybrid contract; WP2). A phase in this set runs its handler
+// with ctx.spatial = true, resolving carry line breaks through the spatial
+// World (SpatialSimulator) instead of the legacy resolver margin. Reverting a
+// phase to the legacy engine is a one-line change: remove it from this set.
+const SPATIAL_PHASES: ReadonlySet<MatchPhase> = new Set([MatchPhase.PhasePlay]);
+
 const PHASE_HANDLERS: Partial<Record<MatchPhase, (ctx: PhaseContext) => PhaseResult>> = {
   [MatchPhase.KickOff]:        handleKickOff,
   [MatchPhase.DropOut22]:      handleDropOut,
@@ -82,6 +89,7 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     draftEvent:   (phase) => draftEvent(state, phase),
     kickOffStrategy,
     silent,
+    spatial: SPATIAL_PHASES.has(state.phase),
   };
 
   const handler = PHASE_HANDLERS[state.phase];
@@ -164,6 +172,10 @@ export function resolvePhase(state: MatchState, kickOffStrategy: KickOffStrategy
     // would otherwise yield [] — truthy enough to skip the carrier follower,
     // but empty so the choreography loop draws nothing, stranding the carrier.
     choreography: result.choreography && result.choreography.length > 0 ? result.choreography : undefined,
+    // Spatial frames ride out on the GameEvent (Upgrade.md § 8.1; WP2). Only
+    // present on spatial phases in a non-silent match — silent fixtures never
+    // capture, so this is undefined for telemetry/AI sims. Consumed in WP8.
+    frames: result.frames && result.frames.length > 0 ? result.frames : undefined,
     narration: result.narration,
     outcome: result.outcome,
   };

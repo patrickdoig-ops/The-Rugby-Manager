@@ -6,7 +6,9 @@ import type { PossessionSide } from '../../types/engine';
 import type { MatchState } from '../../types/match';
 import type { Team } from '../../types/team';
 import { MatchPhase } from '../../types/engine';
-import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
+import { resolveOpenPlay, resolveOpenPlaySpatial } from '../resolvers/OpenPlayResolver';
+import { runCarrySim } from '../spatial/CarrySim';
+import { BACKFIELD_COUNT } from '../balance';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
@@ -22,7 +24,7 @@ import { effAttackingBreakdown, effDefendingBreakdown, effBackfieldDefence, effD
 
 const FULL_BACKLINE = 7;  // jersey ids 9–15
 
-export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent }: PhaseContext): PhaseResult {
+export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, silent, spatial }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
 
@@ -259,8 +261,49 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const singleOutBonus = so && so.side === attackSide && so.playerId === ballCarrier.id ? so.bonus * soFrac : 0;
   const baseAttackMod = attackMod + breakdownWideEvasion + ha.attack + tlBonus.evasion + ttAttackBonus + singleOutBonus;
   const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + ttDefendBonus;
-  let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
+
+  // ── Spatial carry resolution (Upgrade.md §§ 4.1, 5.2; WP2) ───────────────
+  // When this phase resolves through the spatial substrate (ctx.spatial — set
+  // by PhaseRouter when PhasePlay is in SPATIAL_PHASES), the line-break VERDICT
+  // comes from the spatial World: defenders fold to their slots, the carrier
+  // runs the corridor, and gap detection decides whether the line was broken
+  // and WHO the nearest line defender is. The legacy resolver's evasion-margin
+  // line-break branch is replaced; the collision/contact OUTCOME is still the
+  // legacy formula (resolveOpenPlaySpatial draws the identical rng sequence so
+  // contact carries stay byte-identical). All spatial draws are on the isolated
+  // spatial stream and cannot perturb this `rng` stream. Removing PhasePlay from SPATIAL_PHASES
+  // (the one-line revert) takes the legacy `else` branch — unchanged pre-WP2.
+  let res: ReturnType<typeof resolveOpenPlay>;
+  let frames: import('../spatial/types').Frame[] | undefined;
+  let offsideOffender: Player | undefined;
+  if (spatial) {
+    const sim = runCarrySim(state, {
+      attackSide,
+      defendSide: defSide,
+      attackDir: direction,
+      defensiveLine,
+      backfield: BACKFIELD_COUNT[effBackfieldDefence(state, defendTeam)],
+      defendDiscipline: defendTeam.tactics.discipline,
+      carrierSlot: ballCarrier.id,
+      // Net carry modifier the legacy resolver folds into its line-break margin
+      // (home advantage, team talk, tactical evasion shifts) — keeps line breaks
+      // biased by the same match-shaping factors on the spatial path.
+      modShift: baseAttackMod - baseDefendMod,
+      silent,
+    });
+    if (!silent) frames = sim.frames;
+    // Spatial picks the tackler (nearest line defender). Map the slot back to
+    // the on-field Player; fall back to the channel-aware pick if the slot is
+    // off the field (sin-binned mid-fold etc.).
+    defender = defendOnField.find(p => p.id === sim.tacklerSlot) ?? defender;
+    offsideOffender = sim.offsideOffenderSlot != null
+      ? defendOnField.find(p => p.id === sim.offsideOffenderSlot)
+      : undefined;
+    res = resolveOpenPlaySpatial(ballCarrier, defender, sim.lineBreak, sim.spatialMetres, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
+  } else {
+    res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
+  }
 
   let chainNarration: NarrationStep[] = [];
   let chainMetres = 0;
@@ -295,7 +338,11 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // existing line-break math already produces wing/FB breaks). Gain re-
   // rolls into a smaller range than wide-line-breaks (close-channel cover
   // tracks back faster than a fullback in the 15m channel).
-  if (!goWide && res.outcome === 'dominant_carry') {
+  // Spatial owns every line-break decision (gap detection), so the legacy
+  // hard-carry upgrade — which manufactured forward line breaks off the margin
+  // formula — is skipped on the spatial path. The spatial gap threshold is
+  // calibrated to carry the forward line-break share instead.
+  if (!spatial && !goWide && res.outcome === 'dominant_carry') {
     if (rng(1, 100) <= HARD_CARRY_LINE_BREAK_UPGRADE_PCT) {
       res.outcome = 'line_break';
       res.gainMetres = rng(HARD_CARRY_LINE_BREAK_METRES[0], HARD_CARRY_LINE_BREAK_METRES[1]);
@@ -420,6 +467,18 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     nextPhase = MatchPhase.Penalty;
   }
 
+  // Spatial offside penalty (Upgrade.md § 5.2; WP2). The defensive line crept
+  // past the offside plane during the fold and the worst offender was pinged
+  // (decided spatially on the isolated spatial stream in runCarrySim). Fires only on a normal
+  // continuation — not when the carry already produced a try or a high-tackle
+  // penalty (advantage already played). Feeds the EXISTING penalty pipeline
+  // with an offside offence; cards/TMO flow downstream untouched.
+  if (offsideOffender && !tryScored && nextPhase !== MatchPhase.Penalty) {
+    events.push({ type: 'PENALTY_AWARDED', offence: 'offside_at_ruck', offender: offsideOffender, offendingSide: defSide });
+    outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'offside_at_ruck_penalty', primary: offsideOffender, secondary: ballCarrier });
+    nextPhase = MatchPhase.Penalty;
+  }
+
   // Injury roll. Single rng(1, 10000) gate (4-digit precision so the small
   // base percentage isn't dominated by integer rounding); single rng(1, 100)
   // for the kind weighted pick; on a dominant_tackle, an extra rng(1, 100)
@@ -443,6 +502,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     secondaryPlayer: tryScored ? undefined : (res.outcome === 'line_break' ? coverTackler : defender),
     outcome: res.outcome,
     events,
+    frames,
   };
 }
 

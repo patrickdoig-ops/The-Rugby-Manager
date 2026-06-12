@@ -118,6 +118,18 @@ export interface GameEvent {
     id: number;
     movements: { x: number; y: number; t: number }[];
   }[];
+  // Captured spatial micro-tick frames for this beat (Upgrade.md § 8.1; WP2).
+  // Present only on spatial phases in a live (non-silent) match — silent
+  // fixtures skip capture. A frozen scalar snapshot with the same schema-
+  // lifetime rule as `movements` (CLAUDE.md § 3): not live state, never range-
+  // checked, never saved. The renderer consumes it in WP8 (`playFrames`);
+  // harmless extra payload until then. Structurally typed inline (not imported
+  // from src/engine/spatial) so the types layer never depends on the engine.
+  frames?: ReadonlyArray<{
+    t: number;
+    ball: { x: number; y: number; h: number; carrierSlot?: number };
+    dots: ReadonlyArray<{ x: number; y: number }>;
+  }>;
   narration: NarrationDescriptor;
   outcome?: string;
 }

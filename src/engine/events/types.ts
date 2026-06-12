@@ -22,6 +22,13 @@ export interface PhaseContext {
   // per-pass lateral hops collapse to a single BALL_REPOSITIONED (see emitSweepHops)
   // and PhaseRouter skips building GameEvent.movements. Outcomes are unaffected.
   silent: boolean;
+  // True when this phase is resolving through the spatial substrate (Upgrade.md
+  // § 4.1; WP2). Set by PhaseRouter when the phase is in SPATIAL_PHASES. The
+  // handler runs its pre-carry logic identically, then resolves the CARRY
+  // line-break verdict spatially instead of via the legacy resolver margin.
+  // Removing the phase from SPATIAL_PHASES (the one-line revert) makes this
+  // false and the legacy carry path resumes — byte-identical to pre-WP2.
+  spatial: boolean;
 }
 
 export interface PhaseResult {
@@ -46,4 +53,9 @@ export interface PhaseResult {
   // MatchEvents emitted by the handler. PhaseRouter routes them through
   // applyMatchEvent before composing the outgoing GameEvent.
   events: MatchEvent[];
+  // Captured spatial micro-tick frames for this beat (Upgrade.md § 8.1; WP2).
+  // Present only on spatial phases in a non-silent match — silent fixtures skip
+  // capture entirely. PhaseRouter copies it onto GameEvent.frames; the renderer
+  // consumes it in WP8 (harmless extra payload until then).
+  frames?: import('../spatial/types').Frame[];
 }

@@ -107,6 +107,14 @@ const PHASE_PLAY: PhaseBank = {
     'Crossing! {primary} runs the decoy line straight into the cover. {side} have the penalty.',
     '{primary} drifts across the defender as the ball is shipped wide. Obstruction — {side} are awarded the penalty.',
   ],
+  // Spatial line crept past the offside plane during the fold (WP2). Names are
+  // stripped by the dedupe pass like high_tackle_penalty, so {primary} is safe.
+  offside_at_ruck_penalty: [
+    'Offside! The defensive line was up too quickly — penalty {side}.',
+    '{primary} is ahead of the last man as the ball comes away — offside, penalty {side}.',
+    'The line rushed up offside there. Referee\'s arm goes out — {side} have the penalty.',
+    'Caught offside as the play develops — {side} get the penalty.',
+  ],
   interception: [
     'INTERCEPTION! {primary} reads the pass from {secondary} and picks it off!',
     '{primary} jumps the line — intercepts the pass from {secondary}! He\'s away!',

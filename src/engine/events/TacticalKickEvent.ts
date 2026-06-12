@@ -39,7 +39,7 @@ export function handleTacticalKick({ state, attackTeam, defendTeam, randomPlayer
     return handleAttackingKick(state, kicker, defender, defendTeam, intent.attackingSubType, randomPlayer);
   }
 
-  const res = resolveTacticalKick(kicker);
+  const res = resolveTacticalKick(kicker, startedInOwn22);
   const backfield = effBackfieldDefence(state, defendTeam);
   const touchReduction = TACTIC_MODIFIERS.tacticalKickTouchReduction[backfield];
   // Defensive line gives the kicker more (blitz) or less (drift) grass to

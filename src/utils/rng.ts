@@ -14,6 +14,7 @@ let formRand: () => number = mulberry32(2);
 let commentaryRand: () => number = mulberry32(3);
 let transferRand: () => number = mulberry32(4);
 let positioningRand: () => number = mulberry32(5);
+let spatialRand: () => number = mulberry32(6);
 let transferCallCount = 0;
 
 export function setMatchSeed(seed: number): void {
@@ -22,6 +23,7 @@ export function setMatchSeed(seed: number): void {
   formRand = mulberry32(s ^ 0x85EBCA6B);
   commentaryRand = mulberry32(s ^ 0xC2B2AE35);
   positioningRand = mulberry32(s ^ 0xAFED3E9D);
+  spatialRand = mulberry32(s ^ 0x6C8E9CF7);
 }
 
 // Career-scope RNG. Reset once when a GameCoordinator is initialised (new
@@ -63,6 +65,16 @@ export function rng(min: number, max: number): number {
 // any in-play outcome roll.
 export function rngPosition(min: number, max: number): number {
   return Math.floor(positioningRand() * (max - min + 1)) + min;
+}
+
+// Spatial stream — every draw inside the spatial substrate (steering jitter,
+// decision noise, kick dispersion). Reset by setMatchSeed alongside the others.
+// Isolated so a spatial draw can never perturb the outcome/positioning/
+// commentary streams of phases still on the legacy path (Upgrade.md § 2.2).
+// CONTRACT: consumed ONLY inside src/engine/spatial/ — no other module may
+// call rngSpatial. Enforced by checkDeterminism.ts' external-consumer scan.
+export function rngSpatial(min: number, max: number): number {
+  return Math.floor(spatialRand() * (max - min + 1)) + min;
 }
 
 function rngNormal(): number {

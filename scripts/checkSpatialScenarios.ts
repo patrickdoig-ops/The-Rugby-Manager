@@ -33,7 +33,8 @@ import { commitRuck } from '../src/engine/spatial/RuckCommitment.js';
 import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
 import { deriveTopSpeed, SPATIAL_DT } from '../src/engine/balance/spatialSteering.js';
 import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
-import { solveDefence } from '../src/engine/spatial/ShapeSolver.js';
+import { solveDefence, solveCarryCorridor, solveAttackSpread } from '../src/engine/spatial/ShapeSolver.js';
+import { isForwardSlot } from '../src/engine/Slot.js';
 import type { ShapeParams } from '../src/engine/spatial/ShapeSolver.js';
 
 setMatchSeed(0x5A7A1);
@@ -782,6 +783,44 @@ const scenarios: Scenario[] = [
       if (!(openReach > blindReach + 10)) {
         return `line not biased to the open side at a wide ruck: openReach ${openReach.toFixed(0)} vs blindReach ${blindReach.toFixed(0)}`;
       }
+      return null;
+    },
+  },
+  {
+    name: 'WP5: attacking style spreads the forward pods — wide_wide flings them wider than keep_it_tight',
+    run: () => {
+      // Same 15-man attack solved under two styles; the off-ball forward pods must
+      // spread materially wider on wide_wide than keep_it_tight (the tactic reads
+      // in the shape). Measures the lateral span of the off-ball forwards' targets.
+      const fwdSpan = (style: 'keep_it_tight' | 'wide_wide'): number => {
+        const w = buildScenarioWorld({ home: Array.from({ length: 15 }, () => ({ x: 40, y: 50, target: null })), away: [], ball: { x: 40, y: 50 } });
+        const p = { attackSide: 'home' as const, defendSide: 'away' as const, attackDir: 1 as const, mark: { x: 40, y: 50 }, defensiveLine: 'hybrid' as const, backfield: 2 as const, defendDiscipline: 'balanced' as const, carrierSlot: 8, attackingStyle: style };
+        solveCarryCorridor(w, p); solveAttackSpread(w, p);
+        const ys = w.agents.slice(0, 8).filter(a => a.role !== 'corridor' && a.intent.target).map(a => a.intent.target!.y);
+        return ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
+      };
+      const tight = fwdSpan('keep_it_tight');
+      const wide = fwdSpan('wide_wide');
+      if (!(wide > tight + 4)) return `style did not spread pods: wide_wide span ${wide.toFixed(0)} vs keep_it_tight ${tight.toFixed(0)} (want ≥4u wider)`;
+      return null;
+    },
+  },
+  {
+    name: 'WP5: pass mechanics — a back receives OUT WIDE, a forward engages from the ruck',
+    run: () => {
+      // solveCarryCorridor positions the carrier at his receiving point: a back well
+      // off the mark laterally (he gets the ball out wide), a forward on the mark.
+      const carrierY = (slot: number): { x: number; y: number } => {
+        const w = buildScenarioWorld({ home: Array.from({ length: 15 }, () => ({ x: 40, y: 50, target: null })), away: [], ball: { x: 40, y: 50 } });
+        const p = { attackSide: 'home' as const, defendSide: 'away' as const, attackDir: 1 as const, mark: { x: 40, y: 50 }, defensiveLine: 'hybrid' as const, backfield: 2 as const, defendDiscipline: 'balanced' as const, carrierSlot: slot, attackingStyle: 'balanced' as const };
+        const c = solveCarryCorridor(w, p);
+        return { x: c.pos.x, y: c.pos.y };
+      };
+      const back = carrierY(13);   // a centre
+      const fwd = carrierY(8);     // a back-row forward
+      if (isForwardSlot(13) || !isForwardSlot(8)) return 'slot assumptions wrong (13 should be a back, 8 a forward)';
+      if (Math.abs(back.y - 50) < 10) return `back carrier not out wide: received at y=${back.y.toFixed(0)} (mark y=50)`;
+      if (Math.abs(fwd.y - 50) > 2 || Math.abs(fwd.x - 40) > 2) return `forward carrier not at the ruck: received at (${fwd.x.toFixed(0)},${fwd.y.toFixed(0)}) (mark 40,50)`;
       return null;
     },
   },

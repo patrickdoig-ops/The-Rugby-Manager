@@ -8,6 +8,7 @@ import type { Team } from '../../types/team';
 import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay, resolveOpenPlaySpatial } from '../resolvers/OpenPlayResolver';
 import { runCarrySim } from '../spatial/CarrySim';
+import type { CarrySimResult } from '../spatial/CarrySim';
 import { BACKFIELD_COUNT } from '../balance';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
@@ -277,8 +278,9 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   let res: ReturnType<typeof resolveOpenPlay>;
   let frames: import('../spatial/types').Frame[] | undefined;
   let offsideOffender: Player | undefined;
+  let sim: CarrySimResult | undefined;
   if (spatial) {
-    const sim = runCarrySim(state, {
+    const s = runCarrySim(state, {
       attackSide,
       defendSide: defSide,
       attackDir: direction,
@@ -292,22 +294,58 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
       modShift: baseAttackMod - baseDefendMod,
       silent,
     });
-    if (!silent) frames = sim.frames;
+    sim = s;
+    if (!silent) frames = s.frames;
     // Spatial picks the tackler (nearest line defender). Map the slot back to
     // the on-field Player; fall back to the channel-aware pick if the slot is
     // off the field (sin-binned mid-fold etc.).
-    defender = defendOnField.find(p => p.id === sim.tacklerSlot) ?? defender;
-    offsideOffender = sim.offsideOffenderSlot != null
-      ? defendOnField.find(p => p.id === sim.offsideOffenderSlot)
+    defender = defendOnField.find(p => p.id === s.tacklerSlot) ?? defender;
+    offsideOffender = s.offsideOffenderSlot != null
+      ? defendOnField.find(p => p.id === s.offsideOffenderSlot)
       : undefined;
-    res = resolveOpenPlaySpatial(ballCarrier, defender, sim.lineBreak, sim.spatialMetres, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
+    res = resolveOpenPlaySpatial(ballCarrier, defender, s.lineBreak, s.spatialMetres, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
+    // WP3: spatial contact resolved the outcome — override what the legacy
+    // collision formula returned while KEEPING its 5 rng() draws (already
+    // consumed above). The spatial outcome is authoritative; the gain metres
+    // from the legacy formula are retained as a reasonable fallback (the carry
+    // distance the ballistic formula produces is still used for non-line-break
+    // outcomes on the spatial path).
+    if (s.contactOccurred && s.contactOutcome !== null) {
+      // Map spatial ContactOutcome → OpenPlayOutcome vocabulary.
+      // 'broken_tackle' is never set on contactOccurred (those become lineBreak or no-contact).
+      res.outcome = s.contactOutcome as typeof res.outcome;
+      // Override collisionResult so CARRY_RESOLVED carries the right payload.
+      if (s.contactOutcome === 'dominant_carry') {
+        res.collisionResult = 'dominant_carry';
+      } else if (s.contactOutcome === 'dominant_tackle') {
+        res.collisionResult = 'dominant_tackle';
+      } else {
+        res.collisionResult = 'broken_tackle'; // play_on
+      }
+    }
+    // WP3: push spatial offload events (if any) BEFORE the CARRY_RESOLVED below.
+    if (s.offloadAttempted) {
+      const catcher = s.catcherSlot != null
+        ? attackOnField.find(p => p.id === s.catcherSlot) ?? null
+        : null;
+      if (catcher) {
+        events.push({ type: 'OFFLOAD_ATTEMPTED', offloader: ballCarrier, catcher, attackSide });
+        if (s.offloadCompleted) {
+          events.push({ type: 'OFFLOAD_COMPLETED', offloader: ballCarrier, catcher, attackSide });
+        }
+      }
+    }
   } else {
     res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   }
 
   let chainNarration: NarrationStep[] = [];
   let chainMetres = 0;
-  if (res.outcome !== 'line_break') {
+  // WP3: if the spatial contact system already handled an offload attempt, skip
+  // the legacy tryOffloadChain (it would double-emit OFFLOAD events). The spatial
+  // offload events were already pushed above; the chain's rng() draws are simply
+  // not consumed on this path (WP3 is a new calibration baseline).
+  if (res.outcome !== 'line_break' && !sim?.offloadAttempted) {
     const chain = tryOffloadChain({
       state, attackTeam, defendTeam, attackSide, defSide,
       phase: MatchPhase.PhasePlay,

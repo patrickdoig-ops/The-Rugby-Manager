@@ -23,6 +23,8 @@ export interface AgentSetup {
   positioning?: number;
   tackling?: number;
   discipline?: number;
+  strength?: number;
+  handling?: number;
   fatigue?: number;
   target?: { x: number; y: number } | null;
 }
@@ -48,7 +50,10 @@ function makeAgent(side: PossessionSide, slot: number, s: AgentSetup): Agent {
     positioning: s.positioning ?? 10,
     tackling: s.tackling ?? 10,
     discipline: s.discipline ?? 10,
+    strength: s.strength ?? 50,
+    handling: s.handling ?? 50,
     speedScale: 1,
+    recoveryLockout: false,
   };
 }
 
@@ -183,6 +188,95 @@ export function runCarryBallPath(
   }
   const carrierMoved = Math.hypot(carrier.pos.x - carrierStartX, carrier.pos.y - carrierStartY);
   return { ballPathLen, carrierMoved, carrierSlot: world.ball.carrierSlot };
+}
+
+// ── WP3 contact scenario driver ───────────────────────────────────────────
+// Runs a single carry and returns the ContactResult verdict (or null if no
+// contact was detected). Allows scenario assertions on evasion, collision
+// dominance, and offload window without going through the full MatchState.
+
+import { detectContact } from '../src/engine/spatial/ContactSystem.js';
+import type { ContactResult, ContactOutcome } from '../src/engine/spatial/ContactSystem.js';
+import { MAX_TICKS_AFTER_BREAK } from '../src/engine/balance/spatialShape.js';
+
+export interface ContactScenarioResult {
+  contactOccurred: boolean;
+  contactOutcome: ContactOutcome | null;
+  offloadAttempted: boolean;
+  offloadCompleted: boolean;
+  catcherSlot: number | null;
+  tacklerSlot: number;
+  ticksRun: number;
+}
+
+// Run a single carry beat and return the contact verdict.
+// `carrier` is the home agent (slot index in setup.home), `defenderIndex`
+// is the away agent index to treat as a line defender for contact checks.
+// The World is already built from `setup` and positioned; this runs the micro-
+// tick loop with the real ContactSystem (same as CarrySim, but without the
+// full ShapeSolver so we can author controlled scenarios).
+export function runContactScenario(
+  world: World,
+  carrierSlotIndex: number,  // 0-based index into home agents
+  params: Partial<ShapeParams> = {},
+): ContactScenarioResult {
+  const p: ShapeParams = {
+    attackSide: 'home',
+    defendSide: 'away',
+    attackDir: 1,
+    mark: { x: world.ball.pos.x, y: world.ball.pos.y },
+    defensiveLine: 'hybrid',
+    backfield: 2,
+    defendDiscipline: 'balanced',
+    carrierSlot: carrierSlotIndex + 1,
+    ...params,
+  };
+
+  const roles = solveDefence(world, p);
+  const carrier = solveCarryCorridor(world, p);
+  coupleBallToCarrier(world, carrier);
+
+  let contactOccurred = false;
+  let contactOutcome: ContactOutcome | null = null;
+  let offloadAttempted = false;
+  let offloadCompleted = false;
+  let catcherSlot: number | null = null;
+  let tacklerSlot = 0;
+  let brokenTackle = false;
+  let ticksAfterBreak = 0;
+  let ticksRun = 0;
+  let stopped = false;
+
+  const contactHook = (_w: World, _t: number): boolean => {
+    const result: ContactResult | null = detectContact(world, carrier, roles);
+    if (!result) return false;
+    if (result.outcome === 'broken_tackle') {
+      brokenTackle = true;
+      ticksAfterBreak = 0;
+      tacklerSlot = result.tacklerSlot;
+      return false;
+    }
+    contactOccurred = true;
+    contactOutcome = result.outcome;
+    tacklerSlot = result.tacklerSlot;
+    offloadAttempted = result.offloadAttempted;
+    offloadCompleted = result.offloadCompleted;
+    catcherSlot = result.catcherSlot;
+    return true;
+  };
+
+  for (let t = 0; t < CARRY_CORRIDOR_TICKS && !stopped; t++) {
+    ticksRun++;
+    run(world, 1, true, () => reanchorDefence(roles, carrier, p), () => coupleBallToCarrier(world, carrier), contactHook);
+    if (contactOccurred) {
+      stopped = true;
+    } else if (brokenTackle) {
+      ticksAfterBreak++;
+      if (ticksAfterBreak >= MAX_TICKS_AFTER_BREAK) stopped = true;
+    }
+  }
+
+  return { contactOccurred, contactOutcome, offloadAttempted, offloadCompleted, catcherSlot, tacklerSlot, ticksRun };
 }
 
 // Hash every agent position at every tick of a dark-mode run — the trajectory

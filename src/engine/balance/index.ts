@@ -51,3 +51,4 @@ export * from './press';
 export * from './firstPhaseChoreography';
 export * from './spatialSteering';
 export * from './spatialShape';
+export * from './spatialTackle';

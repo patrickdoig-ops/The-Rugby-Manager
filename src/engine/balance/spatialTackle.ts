@@ -1,0 +1,85 @@
+// Tuning for the WP3 two-phase spatial tackle (Upgrade.md § 5.5).
+// All constants the ContactSystem reads live here — no magic literals in
+// src/engine/spatial/ContactSystem.ts (CLAUDE.md balance rule).
+//
+// Phase 1 — Evasion: attacker (agility, pace) vs defender (positioning, tackling)
+//   ± spatial-RNG noise, modified by approach geometry.
+// Phase 2 — Collision dominance: defender (tackling, strength) vs carrier
+//   (strength, current speed), both fatigue-reduced.
+// Offload window: triggered on passive tackle, probability decays with support distance.
+
+// ── Geometry modifier ─────────────────────────────────────────────────────
+// Defender approach angle relative to carrier's velocity direction.
+// cos(angle between carrier-vel and defender-vel):
+//   +1 = chasing same direction (behind carrier) → penalty
+//    0 = square-on (perpendicular) → full score
+//   -1 = head-on (direct charge) → slight boost
+export const GEOMETRY = {
+  // cos threshold below which "chasing" penalty applies (cos > CHASE_THRESHOLD)
+  chaseThreshold:   0.6,   // |angleDiff| < ~53° from carrier direction
+  // cos threshold below which "head-on" boost applies (cos < HEADON_THRESHOLD)
+  headOnThreshold: -0.6,   // |angleDiff| > ~127° from carrier direction
+  chaseMult:        0.65,  // defender score × this when chasing from behind
+  squareOnMult:     1.0,   // full score when perpendicular
+  headOnMult:       1.1,   // slight boost for direct charge
+} as const;
+
+// ── Phase 1 — Evasion weights ─────────────────────────────────────────────
+// Attacker: agility + pace (baseStats 1–100 range)
+// Defender: positioning + tackling (baseStats 1–100 range)
+export const EVASION = {
+  attackerAgilityWeight: 0.5,
+  attackerPaceWeight:    0.5,
+  defenderPositioningWeight: 0.5,
+  defenderTacklingWeight:    0.5,
+  // Noise band: spatial-RNG draw in [-NOISE, NOISE] added to each side's score.
+  // ±15 matches the legacy rng(1,20) jitter band.
+  noiseBand: 15,
+} as const;
+
+// ── Phase 2 — Collision weights ───────────────────────────────────────────
+// Carrier momentum: strength + normalised current speed (from World vel magnitude)
+// Defender power:   tackling + strength
+// Both reduced by live fatigue.
+export const COLLISION = {
+  carrierStrengthWeight: 0.5,
+  carrierSpeedWeight:    0.5,
+  defenderTacklingWeight: 0.6,
+  defenderStrengthWeight: 0.4,
+  // Fatigue reduction: both sides × (1 - fatigue * scale). At full fatigue
+  // (100%) output is reduced to (1 - scale) of full. 0.3 → 70% at 100% fatigue.
+  fatigueScale: 0.3,
+  // Dominant carry / tackle margin thresholds. Calibrated to mirror legacy
+  // OPEN_PLAY_VALUES dominantCarryMargin=5 / dominantTackleMargin=-5 on the
+  // 1–100 stat scale (spatialTackle uses baseStats, not currentStats; total
+  // possible range is much wider, so margins are wider too).
+  dominantCarryMargin:  10,
+  dominantTackleMargin: -10,
+} as const;
+
+// ── Offload window ────────────────────────────────────────────────────────
+// Fires only on play_on or dominant_tackle outcome (not on dominant_carry —
+// the carrier won, he chooses to keep it).
+// Support proximity (same side, not carrier) measured from World positions.
+export const OFFLOAD = {
+  // Distance within which a support player triggers a meaningful offload chance.
+  maxSupportDist: 15,
+  // Offload attempt probability at minimum distance (≤ 0 units away) — scaled
+  // linearly down to near-zero at maxSupportDist and beyond. This is then
+  // multiplied by the team's offloadStrategy base rate (OFFLOAD_VALUES).
+  attemptBase: 0.6,
+  // Catch gate: probability that the offload recipient actually catches it.
+  // Handling-based (higher handling → better catch). Applied as a linear
+  // scale using this weight on catcher's handling stat (1–100).
+  catchHandlingWeight: 0.008,  // at handling=100: catch prob = 0.8
+  catchBase:           0.1,    // floor catch prob (even worst handler catches occasionally)
+} as const;
+
+// ── Contact geometry ──────────────────────────────────────────────────────
+// Distance (coord-units) at which a defender's radius intersects the carrier.
+// The spatial positions are in 0–100 pitch coords; 1 unit ≈ 1 metre.
+export const CONTACT_RADIUS = 3.5;
+
+// How far behind the carrier a beaten defender is repositioned (recovery lockout).
+// He is physically behind play and must steer back. Along the attackDir axis.
+export const RECOVERY_LOCKOUT_DIST = 6.0;

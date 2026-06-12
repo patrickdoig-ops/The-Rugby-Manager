@@ -1,15 +1,24 @@
-// Spatial carry orchestration (Upgrade.md §§ 4.1, 5.2; WP2) — the bridge the
-// PhasePlay handler calls. It owns the WHOLE spatial half of a carry:
+// Spatial carry orchestration (Upgrade.md §§ 4.1, 5.2; WP2 / WP3) — the bridge
+// the PhasePlay handler calls. It owns the WHOLE spatial half of a carry:
 //
 //   buildWorld → solveDefence (line/fold/backfield/offside setup) →
 //   solveCarryCorridor → solveAttackSpread → seedFormation (snap to shape) →
-//   run N micro-ticks → detectGap → detectOffside
+//   run N micro-ticks (WP3: early-stop at contact) →
+//   detectContact per tick → detectGap → detectOffside
 //
 // and returns a plain-data verdict (line-break? + nearest line defender + metres
-// + an optional offside offender slot) plus the captured frame stream. ZERO
-// outcome-stream (`rng`) draws happen here; every spatial draw is `rngSpatial`,
-// confined to src/engine/spatial/ (CLAUDE.md § 7). The handler turns the verdict
-// into the legacy MatchEvent vocabulary on the `rng` stream — that is the seam.
+// + an optional offside offender slot + WP3 contact result) plus the captured
+// frame stream. ZERO outcome-stream (`rng`) draws happen here; every spatial
+// draw is `rngSpatial`, confined to src/engine/spatial/ (CLAUDE.md § 7). The
+// handler turns the verdict into the legacy MatchEvent vocabulary on the `rng`
+// stream — that is the seam.
+//
+// WP3 contact model: ContactSystem is called once per tick after postMove. When
+// a defender's radius intersects the carrier it resolves Phase 1 evasion + Phase
+// 2 collision and returns a ContactResult. The loop stops immediately on contact
+// (or on a broken tackle the carrier continues until the next contact or the
+// MAX_TICKS_AFTER_BREAK cap). If no contact occurs across all ticks the gap
+// detection path runs (line break / no break as in WP2).
 //
 // World lifecycle is MINIMAL (Upgrade.md § 3 / WP2 deliverable 4): a fresh World
 // is built on entry and discarded on return. Cross-phase persistence is WP4.
@@ -17,11 +26,13 @@
 import type { MatchState } from '../../types/match';
 import type { PossessionSide } from '../../types/engine';
 import type { DefensiveLine, Discipline } from '../../types/team';
-import { CARRY_CORRIDOR_TICKS } from '../balance/spatialShape';
+import { CARRY_CORRIDOR_TICKS, MAX_TICKS_AFTER_BREAK } from '../balance/spatialShape';
 import { buildWorld, seedFormation, coupleBallToCarrier } from './World';
 import { run } from './SpatialSimulator';
 import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence } from './ShapeSolver';
+import { detectContact } from './ContactSystem';
 import type { ShapeParams } from './ShapeSolver';
+import type { ContactOutcome } from './ContactSystem';
 import type { Frame } from './types';
 
 export interface CarrySimInput {
@@ -48,6 +59,14 @@ export interface CarrySimResult {
   // Matchday slot of the worst offside offender to be pinged, or null.
   offsideOffenderSlot: number | null;
   frames: Frame[];
+  // WP3: spatial contact result fields (null when no contact / legacy path).
+  contactOccurred: boolean;
+  contactOutcome: ContactOutcome | null;
+  offloadAttempted: boolean;
+  offloadCompleted: boolean;
+  catcherSlot: number | null;
+  // Actual micro-ticks run this beat (≤ CARRY_CORRIDOR_TICKS); used by scenarios.
+  ticksRun: number;
 }
 
 // Resolve a single PhasePlay carry spatially. `state` supplies the on-field
@@ -81,30 +100,112 @@ export function runCarrySim(state: MatchState, input: CarrySimInput): CarrySimRe
   // corridor against the formed line over the micro-ticks.
   seedFormation(world, { attackDir: params.attackDir, mark: params.mark, carrierSlot: params.carrierSlot });
 
-  // Run the micro-ticks with the two per-tick hooks (closures allocated ONCE
-  // here, never per tick — run() just invokes them):
-  //   • preMove  — re-anchor the defensive line onto the live carrier (Bug ③)
-  //                so the line presses/folds as he runs the corridor.
-  //   • postMove — couple the ball to the carrier's freshly-moved position so
-  //                the captured frame records the ball travelling with him (Bug ②).
-  const { frames } = run(
-    world,
-    CARRY_CORRIDOR_TICKS,
-    input.silent,
-    () => reanchorDefence(roles, carrier, params),
-    () => coupleBallToCarrier(world, carrier),
-  );
+  // WP3 contact state — mutable across ticks, written into by the contact hook.
+  // Pre-allocated: no allocation in the hot path.
+  let contactOccurred = false;
+  let contactOutcome: ContactOutcome | null = null;
+  let contactTacklerSlot = 0;
+  let offloadAttempted = false;
+  let offloadCompleted = false;
+  let catcherSlot: number | null = null;
+  let brokenTackle = false;        // set when Phase 1 evasion wins → broken tackle
+  let ticksAfterBreak = 0;         // count ticks since the broken tackle
+  let ticksRun = 0;
 
-  // Post-tick verdicts. The gap's nearest defender (the tackler) is excluded
-  // from the offside sweep — he is legitimately advancing onto the carrier.
+  // Contact hook: called each tick after postMove. Returns true to stop the loop.
+  // Written as a closure that captures the mutable state above.
+  const contactHook = (_w: typeof world, _t: number): boolean => {
+    const result = detectContact(world, carrier, roles);
+    if (!result) return false;
+
+    if (result.outcome === 'broken_tackle') {
+      // Evasion won: the carrier beat one defender. Continue running but count
+      // ticks so we can cap the extended run at MAX_TICKS_AFTER_BREAK.
+      brokenTackle = true;
+      ticksAfterBreak = 0;
+      return false;
+    }
+
+    // Contact resolved (dominant_carry / dominant_tackle / play_on).
+    contactOccurred = true;
+    contactOutcome = result.outcome;
+    contactTacklerSlot = result.tacklerSlot;
+    offloadAttempted = result.offloadAttempted;
+    offloadCompleted = result.offloadCompleted;
+    catcherSlot = result.catcherSlot;
+    return true; // stop the loop
+  };
+
+  // After a broken tackle we continue running up to MAX_TICKS_AFTER_BREAK more
+  // ticks looking for the next contact. We run one tick at a time and check both
+  // the contact hook and the break cap — simplest without restructuring run().
+  const totalTicks = CARRY_CORRIDOR_TICKS;
+  let stopped = false;
+
+  // We run tick-by-tick so we can enforce the MAX_TICKS_AFTER_BREAK cap. The
+  // per-tick hooks are the same closures the WP2 path used (allocated once here).
+  const preMoveFn = () => reanchorDefence(roles, carrier, params);
+  const postMoveFn = () => coupleBallToCarrier(world, carrier);
+
+  const allFrames: Frame[] = [];
+  for (let t = 0; t < totalTicks && !stopped; t++) {
+    ticksRun++;
+    const { frames } = run(world, 1, input.silent, preMoveFn, postMoveFn, contactHook);
+    if (!input.silent) allFrames.push(...frames);
+
+    if (contactOccurred) {
+      stopped = true;
+    } else if (brokenTackle) {
+      ticksAfterBreak++;
+      if (ticksAfterBreak >= MAX_TICKS_AFTER_BREAK) {
+        // Cap the extended run: treat as no contact (the carrier cleared the line).
+        stopped = true;
+      }
+    }
+  }
+
+  // Post-tick verdicts.
+  // If spatial contact resolved the outcome, we still need to run detectGap for
+  // the gap nearest-defender pick (used for fallback Player lookup in OpenPlayEvent).
+  // For a true contact (not a line break), lineBreak=false and we use the spatial
+  // outcome for the carry result.
   const gap = detectGap(carrier, roles, input.modShift, input.attackDir);
   const offsideOffender = detectOffside(roles, params, gap.nearestDefender);
 
+  // When contact occurred: the tackle resolved spatially — override lineBreak.
+  // When no contact and brokenTackle: the carrier cleared all defenders → line break.
+  // When no contact and no brokenTackle: use gap detection as in WP2.
+  let lineBreak: boolean;
+  let tacklerSlot: number;
+  let spatialMetres: number;
+
+  if (contactOccurred) {
+    lineBreak = false;
+    tacklerSlot = contactTacklerSlot;
+    spatialMetres = 0;
+  } else if (brokenTackle) {
+    // Carrier cleared all defenders after a broken tackle — this is a spatial line break.
+    lineBreak = true;
+    tacklerSlot = gap.nearestDefender.slot;
+    spatialMetres = gap.spatialMetres;
+  } else {
+    // No contact encountered — use WP2 gap detection verdict.
+    lineBreak = gap.lineBreak;
+    tacklerSlot = gap.nearestDefender.slot;
+    spatialMetres = gap.spatialMetres;
+  }
+
   return {
-    lineBreak: gap.lineBreak,
-    tacklerSlot: gap.nearestDefender.slot,
-    spatialMetres: gap.spatialMetres,
+    lineBreak,
+    tacklerSlot,
+    spatialMetres,
     offsideOffenderSlot: offsideOffender ? offsideOffender.slot : null,
-    frames,
+    frames: allFrames,
+    contactOccurred,
+    contactOutcome,
+    offloadAttempted,
+    offloadCompleted,
+    catcherSlot,
+    ticksRun,
   };
 }

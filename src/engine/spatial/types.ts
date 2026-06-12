@@ -68,6 +68,14 @@ export interface Agent {
   // is independent of the pace-derived top speed so it bites even where the
   // 1–20 steering clamp saturates the raw pace. Default 1; reset every build.
   speedScale: number;
+  // WP3 additions: collision dominance + recovery-lockout state.
+  // `strength` is captured from player.baseStats.strength at World build time.
+  // `handling` is captured from player.baseStats.handling (offload catch gate).
+  // `recoveryLockout` is set true when a defender is beaten in Phase 1 evasion
+  // (he is physically behind play and steers back instead of re-engaging).
+  strength: number;
+  handling: number;
+  recoveryLockout: boolean;
 }
 
 // The ball within the spatial world. `height` is a render-only scalar for kick

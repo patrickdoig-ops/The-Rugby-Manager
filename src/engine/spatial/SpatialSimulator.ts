@@ -40,13 +40,17 @@ export interface SpatialRunResult {
 //   • `postMove` — runs AFTER the movement step and BEFORE frame capture, so its
 //                  writes are recorded this tick. CarrySim uses it to COUPLE the
 //                  ball to the carrier's freshly-moved position (Bug ②).
-// Both mutate the World in place — `run` never allocates per tick for them.
+//   • `contact`  — runs AFTER postMove (WP3). Returns true when contact is
+//                  detected, signalling the loop to stop early. The contact result
+//                  is captured by the callback's closure; `run` stays contact-free.
+// All hooks mutate the World in place — `run` never allocates per tick for them.
 export function run(
   world: World,
   ticks: number,
   silent: boolean,
   preMove?: (world: World, t: number) => void,
   postMove?: (world: World, t: number) => void,
+  contact?: (world: World, t: number) => boolean,
 ): SpatialRunResult {
   const frames: Frame[] = [];
   for (let t = 0; t < ticks; t++) {
@@ -66,6 +70,10 @@ export function run(
       if (world.recordAnnotations) frame.annotations = recordAnnotations(world);
       frames.push(frame);
     }
+
+    // Contact check (WP3): stop the loop early when a defender reaches the
+    // carrier. The contact result is owned by the caller's closure.
+    if (contact && contact(world, t)) break;
   }
   return { events: [], frames };
 }

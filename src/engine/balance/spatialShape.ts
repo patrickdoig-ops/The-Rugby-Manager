@@ -157,6 +157,11 @@ export const FORMATION_STAGGER = 2.8;
 // stays inside the WP0 timing budget. Frame capture is skipped when silent.
 export const CARRY_CORRIDOR_TICKS = 22;
 
+// WP3: maximum extra ticks run after a broken tackle before the beat ends.
+// After a beaten defender the carrier continues looking for a second contact;
+// this cap prevents the beat from running indefinitely when the carrier is clear.
+export const MAX_TICKS_AFTER_BREAK = 8;
+
 // ── Gap detection → line break (Upgrade.md § 5.2, the emergent payoff) ────
 // A line break happens when the corridor opens up: the nearest line defender's
 // lateral gap to the carrier's running line exceeds what the defender can close

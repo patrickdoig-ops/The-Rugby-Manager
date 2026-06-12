@@ -407,6 +407,50 @@ The line/spread is broken out of a ruler-straight wall by a small **deterministi
 
 **Calibration (`Upgrade.md` § 13).** All bands hold on 450 fixtures (5-seed all-seeds run): tries 3.63, points 23.5, carries 40.3, penalties 12.8, tackles-made 71.6, knock-ons 3.2, home-win 54.4%. The per-tick re-anchor (Bug ③) makes the defence cover better, nudging tackles-made/home-win/penalties nearer their band edges; `checkSpatialBands.ts`'s fast `npm run verify` mode samples **3 root seeds (270 fixtures)** — 2 seeds proved too noisy on the rare-event metrics once the carry-watchability fixes landed — while the frozen `spatialBaselines.ts` bands are unchanged. Eight spatial scenarios gate the behaviour (fold overlap; 2-on-1; rush-kills-width; offside discipline; ball-couples-to-carrier; per-tick displacement cap; plus the two WP 1 smoke scenarios) in `checkSpatialScenarios.ts`. The "per-tick displacement never exceeds top-speed budget" scenario is the regression guard for the velocity-clamp fix: it runs a dense cluster of 30 agents for 60 ticks and asserts no dot's per-tick displacement exceeds `deriveTopSpeed × speedScale × SPATIAL_DT + ε`, catching any future removal of the post-separation clamp before it reaches the watchability gate. The "ball travels with the carrier" scenario asserts the captured ball path tracks the carrier and `carrierSlot` is set (Bug ②).
 
+### Spatial Contact System (WP 3)
+
+WP 3 replaces the WP 2 fixed-tick carry with a **contact-terminated beat**: `detectContact` is called every micro-tick (after `postMove`) and stops the loop as soon as a defender's radius intersects the carrier. All tuning lives in `src/engine/balance/spatialTackle.ts`.
+
+**Phase 1 — Evasion.** When contact radius is reached (`CONTACT_RADIUS = 2.2` coord-units):
+```
+attackerScore = agility×0.5 + pace×0.5 + rngSpatial(-15, 15)
+defenderScore = (positioning×0.5 + tackling×0.5) × geometryMod + rngSpatial(-15, 15)
+```
+`geometryMod` is derived from the dot product of carrier velocity and defender velocity unit vectors:
+- dot > 0.6 (chasing from behind): `GEOMETRY.chaseMult = 0.65` — penalised
+- dot < -0.6 (head-on charge): `GEOMETRY.headOnMult = 1.1` — slight boost
+- otherwise (square-on): `GEOMETRY.squareOnMult = 1.0`
+
+`attackerScore > defenderScore` → **broken tackle**: defender's `recoveryLockout` is set to `true` and his steering target is repositioned behind the carrier (`RECOVERY_LOCKOUT_DIST = 6.0` units) so he physically steers away. Carrier continues running; beat extends up to `MAX_TICKS_AFTER_BREAK = 8` more ticks looking for the next contact. If no second contact: carrier is clear → line break (same as WP 2 gap detection).
+
+**Phase 2 — Collision dominance.** `attackerScore ≤ defenderScore` → contact resolves:
+```
+fatigueScale(f) = 1 - f/100 × 0.3
+carrierMomentum = (strength×0.5 + normalisedSpeed×100×0.5) × fatigueScale(carrier.fatigue)
+defenderPower   = (tackling×0.6 + strength×0.4) × fatigueScale(defender.fatigue)
+margin = carrierMomentum - defenderPower
+```
+`normalisedSpeed` = `|carrier.vel| / TOP_SPEED_MAX` (0–1). Outcome bands:
+- `margin ≥ 10`: `dominant_carry`
+- `margin ≤ -10`: `dominant_tackle`
+- otherwise: `play_on`
+
+**Offload window.** Fires on `play_on` or `dominant_tackle` only. The nearest same-side teammate (not the carrier) is measured from World positions:
+```
+proximity = 1 - min(dist, MAX_SUPPORT_DIST=15) / 15
+offload_prob = 0.6 × proximity
+if rngSpatial(0,99) < round(offload_prob × 100): OFFLOAD_ATTEMPTED
+  catch_prob = 0.1 + catcher.handling × 0.008
+  if rngSpatial(0,99) < round(catch_prob × 100): OFFLOAD_COMPLETED
+```
+Support beyond `MAX_SUPPORT_DIST = 15` gets near-zero probability (proximity ≤ 0 → prob = 0). Emits `OFFLOAD_ATTEMPTED` / `OFFLOAD_COMPLETED` before `CARRY_RESOLVED` using the existing vocabulary.
+
+**RNG contract (CLAUDE.md § 7).** `ContactSystem` uses only `rngSpatial`; it never touches the outcome stream. `handlePhasePlay` still calls `resolveOpenPlaySpatial` on the spatial path (drawing the same 5 `rng()` values as before) to keep the outcome stream stable, then overrides `res.outcome` / `res.collisionResult` with the spatial contact result when `sim.contactOccurred`.
+
+**Agent fields added (WP 3).** `Agent` gains `strength: number` (from `player.baseStats.strength`), `handling: number` (from `player.baseStats.handling`), and `recoveryLockout: boolean` (reset `false` every world build; set `true` by Phase 1 evasion win). `spatialScenarioKit.ts`'s `AgentSetup` gains matching optional fields (defaults: `strength=50`, `handling=50`).
+
+**Calibration (WP 3).** `CONTACT_RADIUS = 2.2` was chosen by tuning to keep all `spatialBaselines.ts` bands passing: tries 3.64/match, points 23.8, tackles-made 64.1/match, knock-ons 2.9, home-win 53.7%. Thirteen spatial scenarios gate behaviour including 5 WP 3 assertions: prop-at-speed dominant-carry majority, jackal-geometry evasion advantage, fatigued-defender dominance shift, offload proximity window, and beat-ends-at-contact frame count.
+
 ---
 
 ## Lateral / Y-axis model

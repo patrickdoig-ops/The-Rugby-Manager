@@ -28,6 +28,14 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 - The user must clearly and directly say something like "use Fable" or "switch to Fable" — a passing reference is not permission.
 - When in doubt, use the default model for the session.
 
+### Default model for routine work
+
+For routine, mechanical tasks, default to **Sonnet**; escalate to **Opus** only when the task surfaces real complications.
+
+- **Sonnet by default:** merging a branch to main, fast-forward / clean merges, telemetry or baseline refreshes, documentation and `CLAUDE.md` updates, version bumps, and well-specified formula / data / UI work (or any task whose plan explicitly recommends Sonnet).
+- **Escalate to Opus when:** a merge has non-trivial conflicts that need judgement, the work touches foundational engine / substrate or architecture, calibration won't converge, or the change is judgement-heavy or hard to reverse.
+- When unsure whether a task is routine, start with Sonnet and escalate only if it proves harder. Documentation and `CLAUDE.md` edits default to Sonnet.
+
 ---
 
 ## 2. Think Before Coding

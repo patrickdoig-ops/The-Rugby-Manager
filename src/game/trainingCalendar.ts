@@ -26,7 +26,7 @@ export function upcomingGap(state: GameState): { weeks: number; days: number } {
   const playerId = state.player.teamId;
   const nextRound = state.calendar.week;
   const prevDate = playerFixtureDate(state, playerId, nextRound - 1);
-  const nextDate = playerFixtureDate(state, playerId, nextRound);
+  let nextDate = playerFixtureDate(state, playerId, nextRound);
 
   // Pre-season cup block: no previous round but there are unplayed leg-0
   // cup fixtures. Compute the gap from the earliest leg-0 date to R1.
@@ -40,6 +40,15 @@ export function upcomingGap(state: GameState): { weeks: number; days: number } {
           return { weeks: Math.max(1, Math.round(days / 7)), days };
         }
       }
+    }
+  }
+
+  // During the season, check if there are any Cup, European, or Playoff matches
+  // before the next League round, to correctly break up multi-week training gaps.
+  if (prevDate) {
+    const earliestNext = nextPlayableDate(state, playerId, prevDate);
+    if (earliestNext && (!nextDate || earliestNext < nextDate)) {
+      nextDate = earliestNext;
     }
   }
 
@@ -95,4 +104,67 @@ function daysBetween(aIso: string, bIso: string): number {
   const a = new Date(aIso).getTime();
   const b = new Date(bIso).getTime();
   return Math.round((b - a) / 86_400_000);
+}
+
+export function nextPlayableDate(state: GameState, playerId: string, fromIso: string): string | null {
+  const dates: string[] = [];
+
+  // League
+  for (const f of state.league.fixtures) {
+    if (f.date && f.date > fromIso && (f.homeId === playerId || f.awayId === playerId)) {
+      dates.push(f.date);
+    }
+  }
+
+  // Cup
+  const cup = state.league.premCup;
+  if (cup) {
+    for (const f of cup.fixtures) {
+      if (!f.result && f.date && f.date > fromIso && (f.homeId === playerId || f.awayId === playerId)) {
+        dates.push(f.date);
+      }
+    }
+    const ko = cup.knockout;
+    if (ko) {
+      for (const m of [ko.semifinals[0], ko.semifinals[1], ko.final]) {
+        if (!m.result && m.date && m.date > fromIso && (m.homeId === playerId || m.awayId === playerId)) {
+          dates.push(m.date);
+        }
+      }
+    }
+  }
+
+  // European
+  for (const comp of ['europeanCup', 'europeanShield'] as const) {
+    const eu = state.league[comp];
+    if (eu) {
+      for (const f of eu.fixtures) {
+        if (!f.result && f.date && f.date > fromIso && (f.homeId === playerId || f.awayId === playerId)) {
+          dates.push(f.date);
+        }
+      }
+      const ko = eu.knockout;
+      if (ko) {
+        for (const m of [...ko.r16, ...ko.quarterfinals, ...ko.semifinals, ko.final]) {
+          if (!m.result && m.date && m.date > fromIso && (m.homeId === playerId || m.awayId === playerId)) {
+            dates.push(m.date);
+          }
+        }
+      }
+    }
+  }
+
+  // Playoffs
+  const playoffs = state.league.playoffs;
+  if (playoffs) {
+    for (const m of [...playoffs.semifinals, playoffs.final]) {
+      if (!m.result && m.date && m.date > fromIso && (m.homeId === playerId || m.awayId === playerId)) {
+        dates.push(m.date);
+      }
+    }
+  }
+
+  if (dates.length === 0) return null;
+  dates.sort();
+  return dates[0];
 }

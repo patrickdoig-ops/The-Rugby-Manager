@@ -1419,8 +1419,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const eng = gameEngine;
     if (!eng) { onDone(); return; }
     if (block.fixtures.some(f => f.comp === 'cup')) { runCupBlock(block, onDone); return; }
-    if (eng.getState().league.playoffs) { void runPlayoffWeek(); return; }
-    if (eng.getCurrentEuropeanFixture()) { maybePlayEuropeanFixture(onDone); return; }
+    if (block.fixtures.some(f => f.comp === 'european')) {
+      const targetDate = block.fixtures.find(f => f.comp === 'european')!.date;
+      void eng.advanceMatchdayCalendar(targetDate).then(() => {
+        maybePlayEuropeanFixture(onDone);
+      });
+      return;
+    }
+    if (block.fixtures.some(f => f.comp === 'playoff')) { void runPlayoffWeek(); return; }
     const next = eng.getCurrentFixture();
     if (next) {
       const home = allTeams.find(t => t.id === next.homeId);
@@ -1498,14 +1504,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (ref && eng.getState().player.cupManageLive) {
-      eng.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? blockEnd));
-      onPlayCupMatch(ref, afterPlayerFixture);
+      void eng.advanceMatchdayCalendar(ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? blockEnd)).then(() => {
+        onPlayCupMatch(ref, afterPlayerFixture);
+      });
     } else if (ref) {
-      eng.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? blockEnd));
-      void eng.runPlayerCupFixtureHeadless(ref).then(afterPlayerFixture);
+      void eng.advanceMatchdayCalendar(ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? blockEnd)).then(() => {
+        void eng.runPlayerCupFixtureHeadless(ref).then(afterPlayerFixture);
+      });
     } else {
-      eng.advanceCupCalendar(blockEnd);
-      afterPlayerFixture();
+      void eng.advanceMatchdayCalendar(blockEnd).then(() => {
+        afterPlayerFixture();
+      });
     }
   }
 
@@ -1658,12 +1667,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const step = eng.getCupBreakStep();
     if (step === 'play_fixture') {
       const ref = eng.getCurrentCupFixture()!;
-      eng.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : ref.match.date);
-      if (eng.getState().player.cupManageLive) {
-        onPlayCupMatch(ref, () => afterCupMatch(onDone));
-      } else {
-        void eng.runPlayerCupFixtureHeadless(ref).then(() => afterCupMatch(onDone));
-      }
+      void eng.advanceMatchdayCalendar(ref.kind === 'pool' ? ref.fixture.date : (ref.match.date ?? '')).then(() => {
+        if (eng.getState().player.cupManageLive) {
+          onPlayCupMatch(ref, () => afterCupMatch(onDone));
+        } else {
+          void eng.runPlayerCupFixtureHeadless(ref).then(() => afterCupMatch(onDone));
+        }
+      });
     } else if (step === 'advance_round') {
       void eng.simDueCupFixtures().then(() => {
         const round = eng.getCurrentCupRound();
@@ -1934,7 +1944,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (euroFix) {
       onPlayEuropeanMatch(euroFix, () => afterMatchdayTraining(
         (weeks) => gameEngine!.runEuropeanMatchdayTraining(weeks),
-        { weeks: 1, days: 7 }, // European matchday = a fixed 7-day game-week
+        { weeks: 1, days: gameEngine!.europeanMatchdayGap().days }, // European matchday dynamic gap
         () => maybePlayEuropeanFixture(onDone),
       ));
       return;

@@ -125,6 +125,17 @@
   .dot.ball { width: 26px; height: 18px; margin: -9px 0 0 -13px; border-radius: 50%;
               background: var(--ball); border-color: #b9791a; z-index: 6; cursor: grab; }
   .dot.ghost { opacity: .3; pointer-events: none; border-style: dotted; z-index: 2; box-shadow: none; }
+  /* excluded players — dimmed + inert, not part of the authored shape / export */
+  .dot.excluded { opacity: .14; pointer-events: none; filter: grayscale(1); z-index: 1; }
+  /* roster panel */
+  #roster { display: flex; gap: 8px; margin-top: 6px; }
+  .rcol { flex: 1; min-width: 0; }
+  .rcol h3 { font-size: 11px; margin: 2px 0 4px; color: var(--muted); font-weight: 600; }
+  .rgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  .rchip { font-size: 11px; line-height: 1.4; padding: 4px 0; text-align: center; border: 1px solid var(--line);
+           border-radius: 4px; cursor: pointer; user-select: none; background: #0e1512; color: var(--muted); }
+  .rchip.home.on { background: var(--home); color: #fff; border-color: var(--home); }
+  .rchip.away.on { background: var(--away); color: #fff; border-color: var(--away); }
   /* trail markers for the ball's authored path */
   .trail { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
            background: rgba(247,173,51,.5); z-index: 1; pointer-events: none;
@@ -222,7 +233,19 @@
     </div>
 
     <div id="authoringControls2">
-    <h2><span id="selSwatch" class="swatch"></span> Selected <span id="selName">ball</span></h2>
+    <h2>Roster — players in this shape</h2>
+    <p class="hint">Pick which players this framework animates. Excluded players are dimmed and left out of the export — so you can author just one team's backs, all 15 of a team, or any subset. The engine fills in the rest.</p>
+    <div class="btns" style="flex-wrap:wrap; gap:4px; margin-bottom:6px">
+      <button data-rsel="home">Home 15</button>
+      <button data-rsel="away">Away 15</button>
+      <button data-rsel="hbacks">Home backs</button>
+      <button data-rsel="abacks">Away backs</button>
+      <button data-rsel="all">All</button>
+      <button data-rsel="none">None</button>
+    </div>
+    <div id="roster"></div>
+
+    <h2 style="margin-top:14px"><span id="selSwatch" class="swatch"></span> Selected <span id="selName">ball</span></h2>
     <div class="btns">
       <button id="addKf" class="primary">Set keyframe @ playhead</button>
       <button id="delKf" class="warn">Delete keyframe</button>
@@ -363,7 +386,7 @@
     elById = {}; ghostById = {};
     document.getElementById('possIndicator').style.display = 'none';
     const add = (id, kind, jersey, x, y) => {
-      const e = { id, kind, jersey, kf: [{ t: 0, x, y }] };
+      const e = { id, kind, jersey, kf: [{ t: 0, x, y }], active: true };
       entities.push(e);
       const el = document.createElement('div');
       el.className = 'dot ' + kind + (kind === 'ball' ? ' ball' : '');
@@ -383,7 +406,56 @@
       pitch.appendChild(el); ghostById[g] = el;
     }
     select('ball');
+    renderRoster();
   }
+
+  // ---- roster: which players are part of the authored shape ----
+  function setActive(e, on) {
+    if (e.id === 'ball') return;            // the ball anchor is always in
+    e.active = on;
+    if (elById[e.id]) elById[e.id].classList.toggle('excluded', !on);
+    if (!on && selectedId === e.id) select('ball');
+  }
+  function renderRoster() {
+    const box = document.getElementById('roster');
+    if (!box) return;
+    const cols = [['home', 'Home'], ['away', 'Away']];
+    box.innerHTML = '';
+    for (const [kind, label] of cols) {
+      const col = document.createElement('div'); col.className = 'rcol';
+      const h = document.createElement('h3'); h.textContent = label; col.appendChild(h);
+      const grid = document.createElement('div'); grid.className = 'rgrid';
+      entities.filter(e => e.kind === kind)
+        .sort((a, b) => (+a.jersey) - (+b.jersey))
+        .forEach(e => {
+          const chip = document.createElement('div');
+          chip.className = 'rchip ' + kind + (e.active ? ' on' : '');
+          chip.textContent = e.jersey;
+          chip.onclick = () => { setActive(e, !e.active); renderRoster(); };
+          grid.appendChild(chip);
+        });
+      col.appendChild(grid); box.appendChild(col);
+    }
+  }
+  // quick-select presets
+  document.querySelectorAll('[data-rsel]').forEach(btn => {
+    btn.onclick = () => {
+      const sel = btn.dataset.rsel;
+      for (const e of entities) {
+        if (e.id === 'ball') continue;
+        const back = (+e.jersey) >= 9;
+        let on = e.active;
+        if (sel === 'all') on = true;
+        else if (sel === 'none') on = false;
+        else if (sel === 'home') on = e.kind === 'home';
+        else if (sel === 'away') on = e.kind === 'away';
+        else if (sel === 'hbacks') on = e.kind === 'home' && back;
+        else if (sel === 'abacks') on = e.kind === 'away' && back;
+        setActive(e, on);
+      }
+      renderRoster();
+    };
+  });
 
   // ---- interpolation ----
   function posAt(e, t) {
@@ -757,7 +829,9 @@
   function exportObj() {
     return {
       meta: { phase: phaseName, beats, generatedBy: 'phase-animator', coords: 'game(x:long 0-100 top=100, y:lateral 0-100)' },
-      entities: entities.map(e => ({ id: e.id, kind: e.kind, jersey: e.jersey,
+      // Only players IN the shape (active) are exported — excluded ones are left
+      // for the engine to fill in. The ball anchor is always active.
+      entities: entities.filter(e => e.active).map(e => ({ id: e.id, kind: e.kind, jersey: e.jersey,
         kf: e.kf.map(k => ({ t: +k.t.toFixed(4), x: +k.x.toFixed(2), y: +k.y.toFixed(2) })) })),
     };
   }
@@ -779,6 +853,11 @@
           .map(k => ({ t: +k.t, x: +k.x, y: +k.y }))
           .filter(k => Number.isFinite(k.t) && Number.isFinite(k.x) && Number.isFinite(k.y));
       }
+      // Re-importing a subset restores its selection: only the players present in
+      // the JSON (plus the ball anchor) stay in the shape; the rest are excluded.
+      const importedIds = new Set((o.entities || []).map(ie => ie.id));
+      for (const e of entities) setActive(e, e.id === 'ball' || importedIds.has(e.id));
+      renderRoster();
       beats = o.meta?.beats || []; phaseName = o.meta?.phase || '(imported)';
       document.getElementById('phaseTag').textContent = phaseName; playhead = 0; render();
     } catch (e) { alert('Bad JSON: ' + e.message); }

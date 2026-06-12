@@ -15,11 +15,16 @@ import {
   runScenario,
   runCarryScenario,
   runCarryBallPath,
+  runContactScenario,
+  buildContactWorld,
+  contactRate,
+  runContactWithMovement,
   dist,
 } from './spatialScenarioKit.js';
-import type { AgentSetup } from './spatialScenarioKit.js';
+import type { AgentSetup, ContactAgentSetup } from './spatialScenarioKit.js';
 import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
 import { deriveTopSpeed, SPATIAL_DT } from '../src/engine/balance/spatialSteering.js';
+import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
 
 setMatchSeed(0x5A7A1);
 
@@ -257,6 +262,151 @@ const scenarios: Scenario[] = [
         }
       }
       void offenderSlot; // suppress unused-var for the slot that set maxDisp
+      return null;
+    },
+  },
+
+
+  // ── WP3: two-phase tackle + beat-ends-at-contact ─────────────────────────
+  // These scenarios use buildContactWorld / runContactScenario — a direct
+  // single-check API (no movement loop) that lets us precisely author the
+  // carrier + defender velocities so geometry modifiers fire as expected.
+
+  {
+    name: 'WP3: prop at speed vs light defender square-on → dominant carry majority',
+    run: () => {
+      // Heavy prop (strength=82) at full pace (vel.x=8) colliding square-on with a light
+      // back (strength=42, tackling=38). Square-on geometry: squareOnMult=1.0.
+      // The prop's high strength + speed should win Phase 2 more than 50% of the time.
+      // Use low agility on carrier + high tackling on defender to push into Phase 2 often.
+      const trials = 300;
+      const domCarryRate = contactRate(
+        () => buildContactWorld(
+          { x: 50, y: 50, pace: 65, agility: 28, strength: 82, handling: 55, stamina: 70, positioning: 60, tackling: 55, discipline: 60, fatigue: 5,  vx: 8.0, vy: 0 },
+          [{ x: 52, y: 50, pace: 55, agility: 50, strength: 42, tackling: 38, stamina: 70, positioning: 55, discipline: 60, fatigue: 5, vx: -6.0, vy: 0 }],
+        ),
+        r => r.outcome === 'dominant_carry',
+        trials,
+        SEEDS,
+      );
+      if (domCarryRate < 0.5) return `prop dominant carry rate ${(domCarryRate * 100).toFixed(0)}% < 50% (want majority)`;
+      return null;
+    },
+  },
+
+  {
+    name: 'WP3: jackal chasing from behind vs stepping fly-half → evasion advantage',
+    run: () => {
+      // Chasing: carrier vel.x=+6, defender vel.x=+4 (same direction) → dot > chaseThreshold
+      //          → chaseMult=0.65 → defender score penalised → more evasion.
+      // Head-on: carrier vel.x=+6, defender vel.x=-6 (opposite) → dot < headOnThreshold
+      //          → headOnMult=1.1 → defender score boosted → less evasion.
+      const trials = 400;
+      const chasingEvasionRate = contactRate(
+        () => buildContactWorld(
+          { x: 50, y: 50, pace: 68, agility: 62, strength: 60, handling: 65, stamina: 70, positioning: 60, tackling: 50, discipline: 62, fatigue: 5, vx: 6.0, vy: 0 },
+          [{ x: 52, y: 50, pace: 70, agility: 65, strength: 65, tackling: 72, stamina: 72, positioning: 70, discipline: 65, fatigue: 5, vx: 4.0, vy: 0 }],
+        ),
+        r => r.outcome === 'broken_tackle',
+        trials,
+        SEEDS,
+      );
+      const headOnEvasionRate = contactRate(
+        () => buildContactWorld(
+          { x: 50, y: 50, pace: 68, agility: 62, strength: 60, handling: 65, stamina: 70, positioning: 60, tackling: 50, discipline: 62, fatigue: 5, vx: 6.0, vy: 0 },
+          [{ x: 52, y: 50, pace: 70, agility: 65, strength: 65, tackling: 72, stamina: 72, positioning: 70, discipline: 65, fatigue: 5, vx: -6.0, vy: 0 }],
+        ),
+        r => r.outcome === 'broken_tackle',
+        trials,
+        SEEDS,
+      );
+      if (chasingEvasionRate <= headOnEvasionRate) {
+        return `chasing evasion ${(chasingEvasionRate * 100).toFixed(0)}% not higher than square-on ${(headOnEvasionRate * 100).toFixed(0)}% — geometry modifier not functioning`;
+      }
+      return null;
+    },
+  },
+
+  {
+    name: 'WP3: fatigued defender vs fresh carrier → dominance shifts toward carrier',
+    run: () => {
+      // Phase 2 collision: fatigued defender (fatigue=85%) has his power reduced by
+      // fatigueScale=0.3. Carrier: strong (strength=80), low agility (30) so Phase 2 fires often.
+      const trials = 400;
+      function domCarryRateForDefFatigue(defFatigue: number): number {
+        return contactRate(
+          // Carrier: strength=75, vel=7.0 → momentum ≈ 73. Defender fresh: tackling=75,
+          // strength=72 → power ≈ 73 → margin ≈ 0 (play_on). Fatigued 85%: power ≈ 55
+          // → margin ≈ 18 > 10 → dominant_carry. Carrier agility=25 → Phase 2 fires often.
+          () => buildContactWorld(
+            { x: 50, y: 50, pace: 62, agility: 25, strength: 75, handling: 55, stamina: 80, positioning: 55, tackling: 50, discipline: 60, fatigue: 5,  vx: 7.0, vy: 0 },
+            [{ x: 52, y: 50, pace: 62, agility: 55, strength: 72, tackling: 75, stamina: 65, positioning: 62, discipline: 62, fatigue: defFatigue, vx: -7.0, vy: 0 }],
+          ),
+          r => r.outcome === 'dominant_carry',
+          trials,
+          SEEDS,
+        );
+      }
+      const freshRate    = domCarryRateForDefFatigue(5);
+      const fatiguedRate = domCarryRateForDefFatigue(85);
+      if (fatiguedRate <= freshRate) {
+        return `fatigued defender dominant_carry rate ${(fatiguedRate * 100).toFixed(0)}% not higher than fresh ${(freshRate * 100).toFixed(0)}% — fatigue not applying to Phase 2`;
+      }
+      return null;
+    },
+  },
+
+  {
+    name: 'WP3: offload window — support close → attempts; isolated → near zero',
+    run: () => {
+      // Force play_on/dominant_tackle by using a dominant defender.
+      // Close support (5 units): offload attempts >10%. Isolated (>20 units): near-zero.
+      const trials = 400;
+      function offloadAttemptRate(supportDist: number): number {
+        return contactRate(
+          () => buildContactWorld(
+            { x: 50, y: 50, pace: 55, agility: 30, strength: 52, handling: 72, stamina: 70, positioning: 60, tackling: 50, discipline: 60, fatigue: 5, vx: 6.0, vy: 0 },
+            [{ x: 52, y: 50, pace: 62, agility: 55, strength: 80, tackling: 82, stamina: 72, positioning: 72, discipline: 65, fatigue: 5, vx: -6.0, vy: 0 }],
+            [{ x: 50, y: 50 + supportDist, pace: 72, agility: 68, strength: 60, handling: 75, stamina: 72, positioning: 65, tackling: 55, discipline: 65, fatigue: 5 }],
+          ),
+          r => r.offloadAttempted,
+          trials,
+          SEEDS,
+        );
+      }
+      const closeRate    = offloadAttemptRate(5);
+      const isolatedRate = offloadAttemptRate(20);
+      if (closeRate < 0.10) return `close-support offload attempt rate ${(closeRate * 100).toFixed(1)}% < 10%`;
+      if (isolatedRate > 0.05) return `isolated offload attempt rate ${(isolatedRate * 100).toFixed(1)}% > 5%`;
+      if (closeRate <= isolatedRate) return `close rate ${(closeRate * 100).toFixed(1)}% not higher than isolated ${(isolatedRate * 100).toFixed(1)}%`;
+      return null;
+    },
+  },
+
+  {
+    name: 'WP3: beat ends at contact — frame count varies with collision timing',
+    run: () => {
+      // Uses runContactWithMovement for the full movement-loop check.
+      // Defender within convergence distance → most beats end before full tick budget.
+      const trials = 200;
+      const fullTicks = CARRY_CORRIDOR_TICKS;
+      let shortBeats = 0;
+      let total = 0;
+      for (const seed of SEEDS) {
+        setMatchSeed(seed);
+        for (let i = 0; i < trials; i++) {
+          const world = buildScenarioWorld({
+            home: [{ x: 46, y: 50, pace: 72, agility: 65, strength: 65, handling: 60, stamina: 75, positioning: 65, tackling: 60, discipline: 65, target: { x: 70, y: 50 } }],
+            away: [{ x: 48.5, y: 50, pace: 65, agility: 60, strength: 65, tackling: 65, stamina: 70, positioning: 65, discipline: 65, target: { x: 38, y: 50 } }],
+            ball: { x: 46, y: 50 },
+          });
+          const result = runContactWithMovement(world, fullTicks);
+          total++;
+          if (result.ticksRun < fullTicks) shortBeats++;
+        }
+      }
+      const shortRate = shortBeats / total;
+      if (shortRate < 0.5) return `only ${(shortRate * 100).toFixed(0)}% of beats ended early (want ≥50%)`;
       return null;
     },
   },

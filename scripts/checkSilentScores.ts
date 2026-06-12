@@ -69,7 +69,7 @@ const ROOT_SEED = 0xDEADBEEF;
 // backfield sign is corrected so deep defenders post on the defenders' side (Bug ①). The
 // line's per-tick fold/press shifts the measured gap so break/tackle outcomes move. By
 // design; every § 13 telemetry band stays in range.
-const GOLDEN = 'a7b7e9049ea90fc0b9f467ffff9320c651bc03059b9b4afdd44773070b7b9f51';
+const GOLDEN = '56cf9433cac12fd65876b55f953bdf8f2d9ea40e81cb97858d1b5202d2d933a7';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

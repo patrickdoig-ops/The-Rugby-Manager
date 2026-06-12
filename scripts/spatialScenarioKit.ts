@@ -13,6 +13,7 @@ import type { World } from '../src/engine/spatial/World.js';
 import { run } from '../src/engine/spatial/SpatialSimulator.js';
 import type { Agent, Vec2 } from '../src/engine/spatial/types.js';
 import type { PossessionSide } from '../src/types/engine.js';
+import { setMatchSeed } from '../src/utils/rng.js';
 
 export interface AgentSetup {
   x: number;
@@ -191,92 +192,170 @@ export function runCarryBallPath(
 }
 
 // ── WP3 contact scenario driver ───────────────────────────────────────────
-// Runs a single carry and returns the ContactResult verdict (or null if no
-// contact was detected). Allows scenario assertions on evasion, collision
-// dominance, and offload window without going through the full MatchState.
+// Resolves a SINGLE contact check directly (no movement loop) — the carrier
+// and defenders are already at their authored positions with authored velocities.
+// This lets scenarios precisely control the geometry (who is chasing vs head-on)
+// by seeding agent velocities directly.
+//
+// The ContactResult is computed exactly once from the authored positions/velocities.
+// This is simpler than running a full movement loop and avoids the ShapeSolver
+// repositioning agents away from where they were authored.
 
 import { detectContact } from '../src/engine/spatial/ContactSystem.js';
 import type { ContactResult, ContactOutcome } from '../src/engine/spatial/ContactSystem.js';
 import { MAX_TICKS_AFTER_BREAK } from '../src/engine/balance/spatialShape.js';
+import type { LineRole } from '../src/engine/spatial/ShapeSolver.js';
 
 export interface ContactScenarioResult {
-  contactOccurred: boolean;
-  contactOutcome: ContactOutcome | null;
+  // null when the carrier was not within contact radius of any defender.
+  outcome: ContactOutcome | null;
   offloadAttempted: boolean;
   offloadCompleted: boolean;
   catcherSlot: number | null;
   tacklerSlot: number;
-  ticksRun: number;
 }
 
-// Run a single carry beat and return the contact verdict.
-// `carrier` is the home agent (slot index in setup.home), `defenderIndex`
-// is the away agent index to treat as a line defender for contact checks.
-// The World is already built from `setup` and positioned; this runs the micro-
-// tick loop with the real ContactSystem (same as CarrySim, but without the
-// full ShapeSolver so we can author controlled scenarios).
-export function runContactScenario(
-  world: World,
-  carrierSlotIndex: number,  // 0-based index into home agents
-  params: Partial<ShapeParams> = {},
-): ContactScenarioResult {
-  const p: ShapeParams = {
-    attackSide: 'home',
-    defendSide: 'away',
-    attackDir: 1,
-    mark: { x: world.ball.pos.x, y: world.ball.pos.y },
-    defensiveLine: 'hybrid',
-    backfield: 2,
-    defendDiscipline: 'balanced',
-    carrierSlot: carrierSlotIndex + 1,
-    ...params,
+// Build a minimal LineRole array from the away agents (agents with side='away')
+// so ContactSystem can iterate them without requiring a full ShapeSolver run.
+function buildRolesFromWorld(world: World): LineRole[] {
+  const roles: LineRole[] = [];
+  for (let i = AGENTS_PER_SIDE; i < world.agents.length; i++) {
+    const a = world.agents[i];
+    if (a.role === 'empty') continue;
+    roles.push({ agent: a, slotY: a.pos.y, isBackfield: false });
+  }
+  return roles;
+}
+
+// Resolve a single contact check with explicitly set carrier + defender
+// positions and velocities. No movement step — pure contact evaluation.
+// The carrier is the first home agent (index 0).
+export function runContactScenario(world: World): ContactScenarioResult {
+  const carrier = world.agents[0]; // home slot 1 = index 0
+  const roles = buildRolesFromWorld(world);
+  const result: ContactResult | null = detectContact(world, carrier, roles);
+  if (!result) {
+    return { outcome: null, offloadAttempted: false, offloadCompleted: false, catcherSlot: null, tacklerSlot: 0 };
+  }
+  return {
+    outcome: result.outcome,
+    offloadAttempted: result.offloadAttempted,
+    offloadCompleted: result.offloadCompleted,
+    catcherSlot: result.catcherSlot,
+    tacklerSlot: result.tacklerSlot,
   };
+}
 
-  const roles = solveDefence(world, p);
-  const carrier = solveCarryCorridor(world, p);
-  coupleBallToCarrier(world, carrier);
+// Helper: build a scenario world where the carrier and defender have explicit
+// authored velocities so the geometry modifier fires correctly. Positions should
+// be within CONTACT_RADIUS so detectContact fires immediately.
+export interface ContactAgentSetup extends AgentSetup {
+  vx?: number;  // authored velocity x (default 0)
+  vy?: number;  // authored velocity y (default 0)
+}
 
+export function buildContactWorld(
+  carrier: ContactAgentSetup,
+  defenders: ContactAgentSetup[],
+  supporters: ContactAgentSetup[] = [],
+): World {
+  // Build the world with carrier as home slot 1, defenders as away slots.
+  const homePad: AgentSetup[] = [carrier, ...supporters.map(s => s as AgentSetup)];
+  const awayPad: AgentSetup[] = defenders.map(d => d as AgentSetup);
+  const world = buildScenarioWorld({
+    home: homePad,
+    away: awayPad,
+    ball: { x: carrier.x, y: carrier.y },
+  });
+  // Stamp authored velocities.
+  if (carrier.vx !== undefined || carrier.vy !== undefined) {
+    world.agents[0].vel.x = carrier.vx ?? 0;
+    world.agents[0].vel.y = carrier.vy ?? 0;
+  }
+  for (let i = 0; i < defenders.length; i++) {
+    const d = defenders[i];
+    if (d.vx !== undefined || d.vy !== undefined) {
+      world.agents[AGENTS_PER_SIDE + i].vel.x = d.vx ?? 0;
+      world.agents[AGENTS_PER_SIDE + i].vel.y = d.vy ?? 0;
+    }
+  }
+  // Support runners: home agents beyond the carrier (indices 1, 2, ...).
+  for (let i = 0; i < supporters.length; i++) {
+    const s = supporters[i];
+    if (s.vx !== undefined || s.vy !== undefined) {
+      world.agents[1 + i].vel.x = s.vx ?? 0;
+      world.agents[1 + i].vel.y = s.vy ?? 0;
+    }
+  }
+  return world;
+}
+
+// Run N contact trials from a world-builder function and return the rate of
+// a given outcome. Reseeds for each of SEEDS × trials.
+export function contactRate(
+  build: () => World,
+  outcomeFilter: (r: ContactScenarioResult) => boolean,
+  trials: number,
+  seeds: number[],
+): number {
+  let hits = 0;
+  let n = 0;
+  for (const seed of seeds) {
+    setMatchSeed(seed);
+    for (let i = 0; i < trials; i++) {
+      const world = build();
+      const r = runContactScenario(world);
+      if (r.outcome !== null) {
+        n++;
+        if (outcomeFilter(r)) hits++;
+      }
+    }
+  }
+  return n > 0 ? hits / n : 0;
+}
+
+// Needed for tick-count scenario (full movement loop version):
+export function runContactWithMovement(
+  world: World,
+  tickBudget: number,
+): { ticksRun: number; outcome: ContactOutcome | null; contactOccurred: boolean } {
+  const carrier = world.agents[0];
+  const roles = buildRolesFromWorld(world);
+  // Give all agents a basic target so they move toward each other.
   let contactOccurred = false;
-  let contactOutcome: ContactOutcome | null = null;
-  let offloadAttempted = false;
-  let offloadCompleted = false;
-  let catcherSlot: number | null = null;
-  let tacklerSlot = 0;
+  let outcome: ContactOutcome | null = null;
   let brokenTackle = false;
   let ticksAfterBreak = 0;
   let ticksRun = 0;
   let stopped = false;
 
   const contactHook = (_w: World, _t: number): boolean => {
-    const result: ContactResult | null = detectContact(world, carrier, roles);
+    const result = detectContact(world, carrier, roles);
     if (!result) return false;
+    ticksRun = _t + 1;
     if (result.outcome === 'broken_tackle') {
       brokenTackle = true;
       ticksAfterBreak = 0;
-      tacklerSlot = result.tacklerSlot;
       return false;
     }
     contactOccurred = true;
-    contactOutcome = result.outcome;
-    tacklerSlot = result.tacklerSlot;
-    offloadAttempted = result.offloadAttempted;
-    offloadCompleted = result.offloadCompleted;
-    catcherSlot = result.catcherSlot;
+    outcome = result.outcome;
     return true;
   };
 
-  for (let t = 0; t < CARRY_CORRIDOR_TICKS && !stopped; t++) {
-    ticksRun++;
-    run(world, 1, true, () => reanchorDefence(roles, carrier, p), () => coupleBallToCarrier(world, carrier), contactHook);
+  for (let t = 0; t < tickBudget && !stopped; t++) {
+    if (ticksRun === 0) ticksRun = t + 1; // update each tick
+    run(world, 1, true, undefined, undefined, contactHook);
     if (contactOccurred) {
       stopped = true;
     } else if (brokenTackle) {
       ticksAfterBreak++;
       if (ticksAfterBreak >= MAX_TICKS_AFTER_BREAK) stopped = true;
+    } else {
+      ticksRun = t + 1;
     }
   }
-
-  return { contactOccurred, contactOutcome, offloadAttempted, offloadCompleted, catcherSlot, tacklerSlot, ticksRun };
+  return { ticksRun, outcome, contactOccurred };
 }
 
 // Hash every agent position at every tick of a dark-mode run — the trajectory

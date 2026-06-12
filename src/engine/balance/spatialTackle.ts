@@ -78,7 +78,7 @@ export const OFFLOAD = {
 // ── Contact geometry ──────────────────────────────────────────────────────
 // Distance (coord-units) at which a defender's radius intersects the carrier.
 // The spatial positions are in 0–100 pitch coords; 1 unit ≈ 1 metre.
-export const CONTACT_RADIUS = 3.5;
+export const CONTACT_RADIUS = 2.2;
 
 // How far behind the carrier a beaten defender is repositioned (recovery lockout).
 // He is physically behind play and must steer back. Along the attackDir axis.

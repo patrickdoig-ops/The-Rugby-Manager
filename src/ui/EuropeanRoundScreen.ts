@@ -64,6 +64,7 @@ export function initEuropeanRoundScreen(
     el!.innerHTML = `
       <div class="app-header">
         <div class="app-topbar">
+          <div></div>
           <span class="app-title">${rr.compLabel}</span>
           <div class="app-topbar-spacer">${helpButtonHtml('european-round')}</div>
         </div>

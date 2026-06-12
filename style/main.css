@@ -2688,6 +2688,36 @@ html.native-app .app-header {
   justify-content: center;
 }
 
+#euro-round-continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px;
+  background: var(--rm-cta);
+  border: none;
+  border-radius: 14px;
+  color: var(--rm-on-accent);
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-20);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 14px color-mix(in oklch, var(--rm-pitch) 28%, transparent);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s, background 0.15s;
+}
+
+@media (hover: hover) {
+  #euro-round-continue:hover { background: var(--rm-cta-hover); }
+}
+
+#euro-round-continue:active { 
+  background: var(--rm-cta-active); 
+  transform: scale(0.98); 
+}
+
 /* ── European Final Screen ──────────────────────────────────────────────── */
 #european-final {
   display: flex;

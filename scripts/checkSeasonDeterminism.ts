@@ -104,7 +104,7 @@ async function drainCupBreak(coord: GameCoordinator): Promise<void> {
     if (++guard > 300) throw new Error('cup break did not terminate');
     if (step === 'play_fixture') {
       const ref = coord.getCurrentCupFixture()!;
-      coord.advanceCupCalendar(ref.kind === 'pool' ? ref.fixture.date : ref.match.date);
+      await coord.advanceMatchdayCalendar(ref.kind === 'pool' ? ref.fixture.date : ref.match.date);
       await coord.runPlayerCupFixtureHeadless(ref);
       coord.runCupMatchdayTraining([HARNESS_TRAINING_PLAN]);
     } else if (step === 'advance_round') {

@@ -758,6 +758,33 @@ const scenarios: Scenario[] = [
       return null;
     },
   },
+  {
+    name: 'WP5: defensive line spreads to the open side at a wide ruck (clamped slots redistribute, not pack the touchline)',
+    run: () => {
+      // Ruck near the left touchline (y=10). Slots that would clamp against the
+      // near touchline redistribute to the OPEN field (capped), so the line reaches
+      // materially further open than blindside — vs the old symmetric line that
+      // packed defenders against y=3 and left the open side bare.
+      setMatchSeed(0x5A7A1);
+      const markY = 10;
+      const world = buildScenarioWorld({
+        home: [{ x: 50, y: markY, target: null }],
+        away: Array.from({ length: 15 }, (_, i) => ({ x: 53, y: 5 + i * 4, tackling: 60, positioning: 70, stamina: 80, target: null })),
+        ball: { x: 50, y: markY },
+      });
+      const roles = solveDefence(world, {
+        attackSide: 'home', defendSide: 'away', attackDir: 1, mark: { x: 50, y: markY },
+        defensiveLine: 'hybrid', backfield: 2, defendDiscipline: 'balanced', carrierSlot: 1,
+      });
+      const lineYs = roles.filter(r => !r.isBackfield && r.agent.intent.target).map(r => r.agent.intent.target!.y);
+      const openReach = Math.max(...lineYs) - markY;
+      const blindReach = markY - Math.min(...lineYs);
+      if (!(openReach > blindReach + 10)) {
+        return `line not biased to the open side at a wide ruck: openReach ${openReach.toFixed(0)} vs blindReach ${blindReach.toFixed(0)}`;
+      }
+      return null;
+    },
+  },
 ];
 
 let failed = 0;

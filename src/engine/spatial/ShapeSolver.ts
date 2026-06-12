@@ -23,6 +23,7 @@ import {
   DEFENSIVE_LINE,
   DEFENCE_REANCHOR,
   LINE_SLOT_COUNT,
+  LINE_OPEN_REDIRECT_CAP,
   BACKFIELD_DEPTH,
   BACKFIELD_SPREAD,
   OFFSIDE,
@@ -126,9 +127,12 @@ export function solveDefence(world: World, p: ShapeParams): LineRole[] {
   const lineDefenders = defenders.filter(d => !backfield.has(d));
   const roles: LineRole[] = [];
 
-  // Lay out front-line slots centred on the mark's y, alternating out from the
-  // centre, spaced by the tactic's slotSpacing. Assign nearest defender to each
-  // slot greedily by current lateral position so folds stay short.
+  // Lay out front-line slots centred on the mark's y, spaced by the tactic's
+  // slotSpacing — with blindside slots that would clamp against a near touchline
+  // redistributed to the OPEN side instead of packing (lineSlotYs). Assign nearest
+  // defender to each slot greedily IN ORDER (centre-out from the ruck): this fills
+  // the carrier's channel + inside FIRST with the closest defenders, fanning out —
+  // the right defensive priority (cover the threat, then the width).
   const slotCount = Math.min(LINE_SLOT_COUNT, lineDefenders.length);
   const slotYs = lineSlotYs(p.mark.y, slotCount, cfg.slotSpacing);
 
@@ -145,8 +149,8 @@ export function solveDefence(world: World, p: ShapeParams): LineRole[] {
     roles.push({ agent, slotY, isBackfield: false });
   }
 
-  // Any line defenders beyond the slot count hold just behind their nearest
-  // slot edge (the inside pillars / extra bodies); fold them onto the line too.
+  // Any line defenders beyond the slot count hold just behind their own y (the
+  // inside pillars / extra bodies); fold them onto the line too.
   for (const agent of unassigned) {
     setFoldTarget(agent, lineX, agent.pos.y);
     roles.push({ agent, slotY: agent.pos.y, isBackfield: false });
@@ -265,11 +269,33 @@ export function reanchorAttack(world: World, carrier: Agent, p: ShapeParams): vo
 
 // Lateral slot ys, centred on `centreY`, alternating out: 0, +s, -s, +2s, -2s …
 function lineSlotYs(centreY: number, count: number, spacing: number): number[] {
-  const ys: number[] = [];
-  for (let i = 0; i < count; i++) {
-    const rank = Math.ceil(i / 2);
-    const sign = i % 2 === 0 ? 1 : -1;
-    ys.push(clampY(centreY + sign * rank * spacing));
+  // Centre-out alternating slots (ruck guard, then ±spacing out), BUT a slot that
+  // would clamp against a near touchline is redirected to extend the OTHER side
+  // instead of packing against the line. So a wide ruck spreads its defenders
+  // across the open field (the user's "bunched on the touchline" fix) while a
+  // central ruck — where nothing clamps — is byte-identical to the old symmetric
+  // layout (same positions AND order), preserving the tuned fold/2-on-1 behaviour.
+  // Generation order is preserved (centre-out, − side first on ties) so the
+  // greedy in-order assignment in solveDefence keeps its cover-the-threat-first
+  // priority.
+  const LO = 3, HI = 97;  // clampY bounds
+  const ys: number[] = [clampY(centreY)];  // ruck guard (i = 0)
+  let posRank = 0;  // ranks already placed on the +y side
+  let negRank = 0;  // ranks already placed on the −y side
+  let redirects = 0;  // clamped slots moved to the open side
+  for (let i = 1; i < count; i++) {
+    const wantNeg = i % 2 === 1;  // original alternation: i=1,3,5… take the −y side first
+    if (wantNeg) {
+      const y = centreY - (negRank + 1) * spacing;
+      if (y >= LO) { negRank++; ys.push(y); }
+      else if (redirects < LINE_OPEN_REDIRECT_CAP) { redirects++; posRank++; ys.push(clampY(centreY + posRank * spacing)); }
+      else { negRank++; ys.push(clampY(y)); }  // cap reached: pack the touchline as before
+    } else {
+      const y = centreY + (posRank + 1) * spacing;
+      if (y <= HI) { posRank++; ys.push(y); }
+      else if (redirects < LINE_OPEN_REDIRECT_CAP) { redirects++; negRank++; ys.push(clampY(centreY - negRank * spacing)); }
+      else { posRank++; ys.push(clampY(y)); }
+    }
   }
   return ys;
 }

@@ -92,10 +92,14 @@ const ROOT_SEED = 0xDEADBEEF;
 // WP5 continuous onside shape: the carrier now ENGAGES FROM THE RUCK (snaps to the
 // mark each beat and runs forward from there), the support pod TRAILS him, and the
 // off-ball attack RE-ANCHORS behind the live gain line every tick — so the attack
-// stays onside instead of stranding the backline ahead of the ball. Positions and
-// thus outcomes shift again (by design); every § 13 band holds (pts 23.58, tries
-// 3.63, TO 2.13, pen 12.53, tackMade 64.9 on the 5-seed/450-fixture sweep).
-const GOLDEN = '3514da0e0c34c35db669bb5c46ebf40da59bdb69b603454e3d0dc6bd96f5e394';
+// stays onside instead of stranding the backline ahead of the ball.
+//
+// WP5 defensive spread: front-line slots that would clamp against a near touchline
+// at a wide ruck now redistribute to the OPEN side (capped at LINE_OPEN_REDIRECT_CAP)
+// instead of packing the touchline — the line spreads across the field. Outcomes
+// shift again (by design); every § 13 band holds (pts 23.48, tries 3.62, TO 2.15,
+// pen 12.60, tackMade 63.9, home-win 55.78 on the 5-seed/450-fixture sweep).
+const GOLDEN = 'cec49055373387c16ece661ca62c42f677af858ff97f3ec15f149b3bb9de3dfb';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

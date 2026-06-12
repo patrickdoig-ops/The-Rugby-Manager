@@ -49,6 +49,15 @@ export const DEFENCE_REANCHOR = {
 // 12 covers the realistic defensive front (15 − ~1-2 backfield − ruck bodies).
 export const LINE_SLOT_COUNT = 12;
 
+// When the ruck is wide, front-line slots that would clamp against the near
+// touchline are redistributed to the OPEN side instead of packing the touchline,
+// so the line spreads across the field rather than bunching (the "half the pitch
+// open" look). Capped: only this many clamped slots redirect — keeping 1-2 pillars
+// on the blindside and limiting how far the change shifts outcomes (home-win-share
+// rises with the redirect count; 2 holds every § 13 band in range while still
+// pushing the open-side coverage out ~8 m).
+export const LINE_OPEN_REDIRECT_CAP = 2;
+
 // ── Backfield (Upgrade.md § 5.2 "Backfield") ──────────────────────────────
 // The number of deep defenders posted for kick coverage, exempt from the line,
 // keyed by the backfieldDefence tactic. Posted via the pickFullback chain.

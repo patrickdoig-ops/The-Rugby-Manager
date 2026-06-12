@@ -76,6 +76,10 @@ export interface Agent {
   strength: number;
   handling: number;
   recoveryLockout: boolean;
+  // WP4: ruck specialisation. Captured from player.baseStats.breakdown at World
+  // build time — the RuckCommitment heuristic weights high-breakdown players onto
+  // the ruck over the line (Upgrade.md § 5.6). Authored 1–100.
+  breakdown: number;
 }
 
 // The ball within the spatial world. `height` is a render-only scalar for kick

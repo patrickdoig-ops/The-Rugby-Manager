@@ -10,6 +10,8 @@ import { homeEdge } from '../HomeAdvantage';
 import { availableForwards, onFieldPlayers } from '../FieldPosition';
 import { effAttackingBreakdown, effDefendingBreakdown, effDefensiveLine, effIntensityScalar, effDisciplineScalar } from '../tacticsResolve';
 import { isBackRowSlot } from '../Slot';
+import { commitRuck } from '../spatial/RuckCommitment';
+import { attackDir } from '../FieldPosition';
 
 // Fastest player in a group — the "first to the breakdown" arrival pace.
 // Empty group returns the pivot (neutral, zero edge).
@@ -22,7 +24,7 @@ function fastestPace(players: Player[]): number {
   return max;
 }
 
-export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext): PhaseResult {
+export function handleBreakdown({ state, attackTeam, defendTeam, spatial, world }: PhaseContext): PhaseResult {
   const attPlan = effAttackingBreakdown(state, attackTeam);
   const defPlan = effDefendingBreakdown(state, defendTeam);
   // Intensity (physical edge) + discipline (turnover edge) at the contest —
@@ -73,17 +75,62 @@ export function handleBreakdown({ state, attackTeam, defendTeam }: PhaseContext)
   if (forwardPool.length === 0) forwardPool.push(attackOnField[0] ?? attackTeam.players[0]);
   const pool = [...forwardPool];
 
+  // Legacy participant selection — the supporter cleaners + jackal. On the
+  // SPATIAL path (WP4) the committed bodies come from the World instead, but these
+  // rng() draws are STILL consumed here in their exact order/count so the outcome
+  // stream stays byte-identical (CLAUDE.md § 7; the spatial override below only
+  // swaps WHICH players resolveBreakdown contests with, never an rng draw). They
+  // also remain the live values on the non-spatial / revert path.
   const count = TACTIC_MODIFIERS.breakdownSupporterCount[attPlan];
-  const supporters: Player[] = [];
+  let supporters: Player[] = [];
   while (supporters.length < count && pool.length > 0) {
     supporters.push(...pool.splice(rng(0, pool.length - 1), 1));
   }
 
   const backRow = defendFwds.filter(p => isBackRowSlot(p.id));
-  const jackal  = backRow.length > 0 ? backRow[rng(0, backRow.length - 1)] : (defendOnField[0] ?? defendTeam.players[0]);
-  const primary = supporters[0];
+  let jackal: Player = backRow.length > 0 ? backRow[rng(0, backRow.length - 1)] : (defendOnField[0] ?? defendTeam.players[0]);
 
-  const defendPack = defendFwds;
+  let defendPack = defendFwds;
+
+  // ── Spatial ruck commitment (Upgrade.md § 5.6; WP4) ──────────────────────
+  // The committed bodies (count + quality) feed resolveBreakdown as INPUTS — the
+  // contest formula is unchanged. RuckCommitment scores every agent near the ruck
+  // mark (team tactical cap, REAL measured carrier isolation, breakdown stat,
+  // override threshold) over the persistent World, using ONLY the spatial RNG
+  // stream (confined to RuckCommitment.ts). We map
+  // the committed agents back to on-field Players; the legacy rng()-selected
+  // supporters/jackal stay as fallbacks for any slot that didn't commit.
+  if (spatial && world) {
+    const direction = attackDir(state);
+    const commitment = commitRuck(world, {
+      attackSide,
+      defendSide: defSide,
+      attackDir: direction,
+      mark: { x: state.ball.x, y: state.ball.y },
+      carrierSlot: carrierId ?? (supporters[0]?.id ?? attackOnField[0]?.id ?? 1),
+      attackCap: count,
+      defendPlan: defPlan,
+    });
+    // Map committed attacking agents → Players (the resolver's supporters). Skip
+    // the carrier (already grounded). Fall back to the legacy supporters if the
+    // commitment produced nothing on the field.
+    const committedSupporters = commitment.committedAttackers
+      .map(a => attackOnField.find(p => p.id === a.slot))
+      .filter((p): p is Player => p !== undefined && p.id !== carrierId);
+    if (committedSupporters.length > 0) supporters = committedSupporters;
+
+    // Map committed defenders → Players (the counter-ruck pack). The jackal is the
+    // best-placed committed defender; fall back to the legacy back-row pick.
+    const committedDefenders = commitment.committedDefenders
+      .map(a => defendOnField.find(p => p.id === a.slot))
+      .filter((p): p is Player => p !== undefined);
+    if (committedDefenders.length > 0) {
+      jackal = committedDefenders[0];
+      defendPack = committedDefenders;
+    }
+  }
+
+  const primary = supporters[0];
   const ha = homeEdge(state, HOME_ADVANTAGE.breakdownMod);
 
   // Set the breakdown mod and credit the ruck hit for every supporter — both happen

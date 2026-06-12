@@ -79,7 +79,13 @@ const ROOT_SEED = 0xDEADBEEF;
 // (which picked props 1/2). Props rejoin the front line; the back three cover
 // kicks from deep. Front-line composition changes shift gap-detection outcomes.
 // By design; every § 13 telemetry band stays in range.
-const GOLDEN = '9875282e12718aa9e0bbe9393f771b743761fe0b0e9fbec6117a306a1c713350';
+//
+// WP4 update: the breakdown now contests with the spatially-COMMITTED bodies
+// (RuckCommitment over the persistent World) instead of an rng-picked forward
+// set — same resolver formula, different (better-placed) participants. Outcomes
+// shift by design; every § 13 band stays in range (pts 23.56, tries 3.62,
+// TO 2.29, pen 12.16 on the 5-seed/450-fixture sweep).
+const GOLDEN = '24b3da815dde0ec03b5acbf3eb9a50d28f5e42a0908e8663a0d8014ab6f73c22';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

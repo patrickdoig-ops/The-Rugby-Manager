@@ -54,6 +54,7 @@ function makeAgent(side: PossessionSide): Agent {
     discipline: 10,
     strength: 10,
     handling: 10,
+    breakdown: 10,
     speedScale: 1,
     recoveryLockout: false,
   };
@@ -120,6 +121,7 @@ function initSide(world: World, state: MatchState, team: Team, side: PossessionS
       agent.discipline = player.baseStats.discipline;
       agent.strength = player.baseStats.strength;
       agent.handling = player.baseStats.handling;
+      agent.breakdown = player.baseStats.breakdown;
       agent.role = 'idle';
     } else {
       // No on-field player in this slot (a side reduced below 15 by a card).
@@ -137,6 +139,7 @@ function initSide(world: World, state: MatchState, team: Team, side: PossessionS
       agent.discipline = 10;
       agent.strength = 10;
       agent.handling = 10;
+      agent.breakdown = 10;
       agent.role = 'empty';
     }
     agent.vel.x = 0;

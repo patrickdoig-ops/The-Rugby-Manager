@@ -21,6 +21,7 @@ import {
   runContactWithMovement,
   minDefenderDistAtSeed,
   runCarryWithLaunchGrace,
+  continuitySequence,
   CONTACT_RADIUS,
   SEEDING_CLEAR_MARGIN,
   LAUNCH_GRACE_TICKS,
@@ -28,6 +29,7 @@ import {
   dist,
 } from './spatialScenarioKit.js';
 import type { AgentSetup, ContactAgentSetup } from './spatialScenarioKit.js';
+import { commitRuck } from '../src/engine/spatial/RuckCommitment.js';
 import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
 import { deriveTopSpeed, SPATIAL_DT } from '../src/engine/balance/spatialSteering.js';
 import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
@@ -567,6 +569,151 @@ const scenarios: Scenario[] = [
             return `contact fired after only ${contactDist.toFixed(3)}u < grace dist ${LAUNCH_GRACE_DIST} (mark=(${mark.x},${mark.y}), seed=0x${seed.toString(16)})`;
           }
         }
+      }
+      return null;
+    },
+  },
+
+  // ── WP4: breakdown commitment + World continuity ─────────────────────────
+  {
+    name: 'WP4: isolation jackal — isolated carrier draws fewer cleaners + a jackal vs a supported carrier',
+    run: () => {
+      // Both worlds: carrier at the mark with a high-breakdown defender adjacent
+      // (the jackal threat). SUPPORTED — support on the carrier's shoulder (~1.5u);
+      // ISOLATED — nearest support 12u back. commitRuck measures REAL isolation,
+      // so the isolated carrier should read high isolation, still field a jackal,
+      // and commit no MORE attacking cleaners than the supported case (the genesis
+      // of the breakdown turnover the unchanged resolver then converts).
+      const mark = { x: 50, y: 50 };
+      const jackalDef = (): AgentSetup[] => {
+        const away: AgentSetup[] = [{ x: 51.5, y: 50, breakdown: 90, target: null }]; // slot1 jackal
+        for (let i = 1; i < 6; i++) away.push({ x: 53, y: 46 + i, breakdown: 55, target: null });
+        return away;
+      };
+      setMatchSeed(0x5A7A1);
+      const supported = commitRuck(
+        buildScenarioWorld({
+          home: [
+            { x: 50, y: 50, breakdown: 60, target: null },        // carrier
+            { x: 48.5, y: 50, breakdown: 70, target: null },      // support on the shoulder
+            { x: 48, y: 52, breakdown: 65, target: null },
+            { x: 48, y: 48, breakdown: 65, target: null },
+          ],
+          away: jackalDef(),
+          ball: mark,
+        }),
+        { attackSide: 'home', defendSide: 'away', attackDir: 1, mark, carrierSlot: 1, attackCap: 3, defendPlan: 'jackal' },
+      );
+      setMatchSeed(0x5A7A1);
+      const isolated = commitRuck(
+        buildScenarioWorld({
+          home: [
+            { x: 50, y: 50, breakdown: 60, target: null },        // carrier
+            { x: 38, y: 50, breakdown: 70, target: null },        // support 12u back
+            { x: 37, y: 52, breakdown: 65, target: null },
+            { x: 37, y: 48, breakdown: 65, target: null },
+          ],
+          away: jackalDef(),
+          ball: mark,
+        }),
+        { attackSide: 'home', defendSide: 'away', attackDir: 1, mark, carrierSlot: 1, attackCap: 3, defendPlan: 'jackal' },
+      );
+      if (!(isolated.carrierIsolation > supported.carrierIsolation + 5)) {
+        return `isolated carrier not measured as more isolated (iso=${isolated.carrierIsolation.toFixed(1)} vs supported ${supported.carrierIsolation.toFixed(1)})`;
+      }
+      if (isolated.jackal === null) return 'isolated carrier fielded no jackal';
+      if (isolated.committedAttackers.length > supported.committedAttackers.length) {
+        return `isolated carrier committed MORE cleaners (${isolated.committedAttackers.length}) than supported (${supported.committedAttackers.length})`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'WP4: cap override — a breakdown specialist commits beyond a minimal_ruck cap',
+    run: () => {
+      // minimal_ruck attacking cap (1 body). With a moderately exposed carrier
+      // (iso ≈ 5u → below the isolation-drop threshold), a high-breakdown
+      // specialist among the support clears the override bar and commits a SECOND
+      // body; swap that specialist for a low-breakdown forward and the override
+      // does not fire (only the cap's single body commits).
+      const mark = { x: 50, y: 50 };
+      const away = (): AgentSetup[] => [{ x: 51.5, y: 50, breakdown: 60, target: null }];
+      const homeWith = (specBreakdown: number): AgentSetup[] => [
+        { x: 50, y: 50, breakdown: 55, target: null },               // carrier
+        { x: 45, y: 50, breakdown: specBreakdown, target: null },    // support 5u back (iso≈0.5)
+        { x: 45, y: 53, breakdown: 45, target: null },
+        { x: 45, y: 47, breakdown: 45, target: null },
+      ];
+      const input = { attackSide: 'home' as const, defendSide: 'away' as const, attackDir: 1 as const, mark, carrierSlot: 1, attackCap: 1, defendPlan: 'jackal' as const };
+      setMatchSeed(0xBEEF1);
+      const withSpecialist = commitRuck(buildScenarioWorld({ home: homeWith(92), away: away(), ball: mark }), input);
+      setMatchSeed(0xBEEF1);
+      const withoutSpecialist = commitRuck(buildScenarioWorld({ home: homeWith(30), away: away(), ball: mark }), input);
+      if (!(withSpecialist.committedAttackers.length > withoutSpecialist.committedAttackers.length)) {
+        return `override did not fire: specialist committed ${withSpecialist.committedAttackers.length}, journeyman ${withoutSpecialist.committedAttackers.length} (expected specialist > journeyman)`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'WP4: continuity — a 10-phase same-way sequence has no position teleports across beat seams',
+    run: () => {
+      // The persistent World: beat 0 seeds the formation; beats 1–9 continue from
+      // the resting positions (no reseed). Assert every beat-boundary position jump
+      // is ≈ 0 — the programmatic no-teleport gate (Upgrade.md § 3). ε is generous
+      // vs float noise but far below any real reseed (which would snap dots metres).
+      const EPS = 0.01;
+      for (const seed of SEEDS) {
+        setMatchSeed(seed);
+        const beats = continuitySequence(
+          () => buildScenarioWorld({
+            home: [{ x: 40, y: 50, pace: 80, agility: 72, target: null }],
+            away: bunchedLine(40, false),
+            ball: { x: 40, y: 50 },
+          }),
+          10,
+        );
+        for (let b = 1; b < beats.length; b++) {
+          if (beats[b].boundaryJump > EPS) {
+            return `teleport at beat ${b} seam: max jump ${beats[b].boundaryJump.toFixed(3)}u > ε ${EPS} (seed=0x${seed.toString(16)})`;
+          }
+        }
+      }
+      return null;
+    },
+  },
+  {
+    name: 'WP4: fold fatigue compounds — a gassed defence frays measurably over a 6-phase sequence',
+    run: () => {
+      // Same scripted 6-beat sequence, fresh vs fatigued defensive line. The
+      // persistent World means the fatigued line never resets between phases, so
+      // its raggedness (defender-x spread) at the final beat exceeds the fresh
+      // line's — the overlap-genesis mechanic, now compounding across phases.
+      let freshLast = 0, slowLast = 0;
+      for (const seed of SEEDS) {
+        setMatchSeed(seed);
+        const fresh = continuitySequence(
+          () => buildScenarioWorld({
+            home: [{ x: 40, y: 50, pace: 80, agility: 72, target: null }],
+            away: bunchedLine(40, false),
+            ball: { x: 40, y: 50 },
+          }),
+          6,
+        );
+        setMatchSeed(seed);
+        const slow = continuitySequence(
+          () => buildScenarioWorld({
+            home: [{ x: 40, y: 50, pace: 80, agility: 72, target: null }],
+            away: bunchedLine(40, true),
+            ball: { x: 40, y: 50 },
+          }),
+          6,
+        );
+        freshLast += fresh[fresh.length - 1].lineSpread;
+        slowLast += slow[slow.length - 1].lineSpread;
+      }
+      if (!(slowLast > freshLast)) {
+        return `fatigued line did not fray more than fresh over the sequence (slow spread ${(slowLast / SEEDS.length).toFixed(2)} ≤ fresh ${(freshLast / SEEDS.length).toFixed(2)})`;
       }
       return null;
     },

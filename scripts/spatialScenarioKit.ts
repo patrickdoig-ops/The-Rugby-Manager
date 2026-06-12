@@ -26,6 +26,7 @@ export interface AgentSetup {
   discipline?: number;
   strength?: number;
   handling?: number;
+  breakdown?: number;
   fatigue?: number;
   target?: { x: number; y: number } | null;
 }
@@ -53,6 +54,7 @@ function makeAgent(side: PossessionSide, slot: number, s: AgentSetup): Agent {
     discipline: s.discipline ?? 10,
     strength: s.strength ?? 50,
     handling: s.handling ?? 50,
+    breakdown: s.breakdown ?? 50,
     speedScale: 1,
     recoveryLockout: false,
   };
@@ -446,6 +448,85 @@ export function runCarryWithLaunchGrace(
     }
   }
   return { contactTick, contactDist };
+}
+
+// ── WP4 continuity sequence driver ────────────────────────────────────────
+// Runs a scripted multi-beat same-way carry sequence over ONE persistent World,
+// mirroring the live continuation contract (Upgrade.md § 3): seedFormation runs
+// ONLY on beat 0 (cold entry); every later beat re-solves the shape but keeps the
+// agents' current positions (continuation === true → no reseed). Reports, per
+// beat: the max per-agent position jump across the beat boundary (the programmatic
+// teleport check — must be ≈ 0 on a continuation beat) and the defensive line
+// spread (std-dev of active defenders' x — the fold raggedness that compounds
+// under fatigue). The mark advances to the carrier each beat (play moves upfield).
+export interface SequenceBeat {
+  boundaryJump: number;  // max |pos(end of prev beat) − pos(start of this beat)|
+  lineSpread: number;    // std-dev of active defenders' x (line raggedness)
+  carrierX: number;
+}
+
+export function continuitySequence(
+  build: () => World,
+  beats: number,
+  params: Partial<ShapeParams> = {},
+): SequenceBeat[] {
+  const world = build();
+  const out: SequenceBeat[] = [];
+  let prevPositions: { x: number; y: number }[] | null = null;
+  let mark = { x: world.ball.pos.x, y: world.ball.pos.y };
+
+  for (let b = 0; b < beats; b++) {
+    const p: ShapeParams = {
+      attackSide: 'home', defendSide: 'away', attackDir: 1,
+      mark, defensiveLine: 'hybrid', backfield: 2,
+      defendDiscipline: 'balanced', carrierSlot: 1, ...params,
+    };
+    const roles = solveDefence(world, p);
+    const carrier = solveCarryCorridor(world, p);
+    solveAttackSpread(world, p);
+
+    // Boundary jump: solving sets targets only — positions must be untouched
+    // between the previous beat's resting state and this beat's start. A non-zero
+    // jump means something reseeded / teleported a dot (continuity violation).
+    let boundaryJump = 0;
+    if (prevPositions) {
+      for (let i = 0; i < world.agents.length; i++) {
+        const a = world.agents[i];
+        const d = Math.hypot(a.pos.x - prevPositions[i].x, a.pos.y - prevPositions[i].y);
+        if (d > boundaryJump) boundaryJump = d;
+      }
+    }
+
+    // Cold entry seeds the opening formation; continuation beats do NOT.
+    if (b === 0) {
+      seedFormation(world, { attackDir: p.attackDir, mark: p.mark, carrierSlot: p.carrierSlot });
+    }
+
+    run(
+      world,
+      CARRY_CORRIDOR_TICKS,
+      true,
+      () => reanchorDefence(roles, carrier, p),
+      () => coupleBallToCarrier(world, carrier),
+    );
+
+    prevPositions = world.agents.map(a => ({ x: a.pos.x, y: a.pos.y }));
+
+    // Defensive line spread = std-dev of active (non-corridor, non-empty)
+    // defenders' x. A fresh line holds a tight band; a fatigued line frays.
+    const defXs: number[] = [];
+    for (let i = AGENTS_PER_SIDE; i < world.agents.length; i++) {
+      const a = world.agents[i];
+      if (a.role === 'empty' || a.role === 'corridor') continue;
+      defXs.push(a.pos.x);
+    }
+    const mean = defXs.reduce((s, v) => s + v, 0) / defXs.length;
+    const variance = defXs.reduce((s, v) => s + (v - mean) * (v - mean), 0) / defXs.length;
+    out.push({ boundaryJump, lineSpread: Math.sqrt(variance), carrierX: carrier.pos.x });
+
+    mark = { x: carrier.pos.x, y: carrier.pos.y };  // play advances to the carrier
+  }
+  return out;
 }
 
 // Re-export the constants so scenarios can reference the same values.

@@ -15,6 +15,7 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { analyzeTrace, reportTrace } from './checkProbeTrace.mjs';
 
 const PORT = process.env.PROBE_PORT || '5179';
 const BASE = `http://127.0.0.1:${PORT}/The-Rugby-Manager/pitch-probe.html`;
@@ -104,18 +105,20 @@ while (Date.now() < deadline) {
 // 4. Dump the trace and tear down.
 const beats = await page.evaluate('window.__probe.beats');
 const frames = await page.evaluate('window.__probe.frames');
-writeFileSync(`${OUT}/trace.json`, JSON.stringify({ beats, frames, shots }, null, 2));
+const exclusivity = await page.evaluate('window.__probe.exclusivity');
+writeFileSync(`${OUT}/trace.json`, JSON.stringify({ beats, frames, exclusivity, shots }, null, 2));
 console.log(`\nbeats=${beats.length} frames=${frames.length} shots=${shots.length}`);
 console.log('phases seen:', [...new Set(beats.map((b) => b.phase))].join(', '));
 
 await browser.close();
 shutdown();
 
-// Exit non-zero if we didn't capture every wanted shot, so a CI/automation caller
-// can tell a partial capture (slow match, deadline hit) from a complete one.
+// 5. Sync assertions over the captured trace (WP6.2).
+console.log('');
+const assertionsFailed = reportTrace(analyzeTrace({ beats, frames, exclusivity }));
+
+// Exit non-zero if a sync assertion failed OR we didn't capture every wanted shot, so a
+// CI/automation caller can tell a clean run from a regression or a partial (slow) capture.
 const missedShots = Object.keys(wanted).filter((k) => (taken[k] || 0) < wanted[k]);
-if (missedShots.length) {
-  console.error(`incomplete capture — missing shots: ${missedShots.join(', ')}`);
-  process.exit(1);
-}
-process.exit(0);
+if (missedShots.length) console.error(`incomplete capture — missing shots: ${missedShots.join(', ')}`);
+process.exit(assertionsFailed || missedShots.length ? 1 : 0);

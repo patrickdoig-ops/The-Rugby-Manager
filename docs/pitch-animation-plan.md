@@ -23,7 +23,7 @@ follow the doc-sync table in `CLAUDE.md`, and bump `src/version.ts` (src-touchin
 | **WP5.2** | ✅ done | Pure `transitionDirective(event, currentPhase)` → `{ snap, hold, preserveKeys }` in `pitchChoreography.ts`; `PitchPlayers.applyBeat` consumes it. Behaviour-preserving. |
 | **WP5.3** | ✅ shipped | `appendFormationDrift` — off-ball dots ease toward a ball-anchored `BREAKDOWN_CLEAN` frame on PhasePlay beats (`DRIFT_WEIGHT = 0.4`, raised from 0.25 after the 0.25 pass still read as frozen). Presentation-only (golden unchanged). **NEEDS OWNER EYEBALL.** |
 | **WP5** | ✅ done | Between-ruck drift (owner-requested). WP5.1 + WP5.2 + WP5.3 all shipped; `DRIFT_WEIGHT` is the live-tuning dial. |
-| **WP6.2** | ⏳ not started | Probe sync assertions (teleport / carrier-contact / channel-exclusivity). Needs the headless-Chromium probe harness. |
+| **WP6.2** | ✅ done | `npm run probe` now runs sync assertions over the trace (`scripts/checkProbeTrace.mjs`): teleport detector + channel-exclusivity (hard → exit 1), carrier-contact (soft warn). Probe captures a stable `data-key` per dot + `primaryKey` per beat + an in-page exclusivity scan. **Caught a real bug** — the caught-tactical-kick catcher was set `isCarrier` AND `from` (double-driven); fixed by dropping `isCarrier` (chase-only). Open finding: carrier-contact flags the final FirstPhase wide-play line-break carrier ~296px off the ball — likely a match-end sampling artifact (last beat), not yet chased. |
 
 **Recommended next session:** WP5 (drift) with the dev server running so `DRIFT_WEIGHT` can be
 tuned by eye, then WP3.1 (refactor) with an authored-play before/after check. Both want a human
@@ -321,7 +321,13 @@ this plan's commit and will drift.
 - Replace the Layer-2 pipeline mention of `players.chaserEl` with the `chaseDots` seam.
 - Fix the registry-key convention sentence to match WP3.2's qualified-with-fallback scheme.
 
-### 6.2 Probe sync assertions
+### 6.2 Probe sync assertions ✅ DELIVERED
+*(`scripts/checkProbeTrace.mjs` — `analyzeTrace`/`reportTrace`, called by the driver after
+the capture and runnable standalone over `harness/trace.json`. Teleport + exclusivity are
+hard failures (exit 1); carrier-contact is a soft warn since frame sampling can catch a beat
+mid-glide. Probe now captures per-dot `data-key`, per-beat `primaryKey`, and an in-page
+exclusivity scan. The exclusivity check caught the caught-tactical-kick catcher being driven
+by both `isCarrier` and `from` — fixed in `pitchChoreography.ts`.)*
 - **Where:** the `npm run probe` harness (headless capture, `harness/` output).
 - **Add automated checks over the captured traces:**
   1. *Teleport detector:* no dot moves > X units between consecutive frames without an

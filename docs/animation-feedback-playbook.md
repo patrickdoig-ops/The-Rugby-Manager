@@ -190,7 +190,10 @@ often violated by feedback-driven tweaks:
 2. Watch the fixed beat in the dev server in **both directions and both touchlines**; for
    motion/timing fixes also at the fastest tick speed.
 3. `npm run probe` when the fix touches choreography/motion — compare the capture against
-   the previous run.
+   the previous run. It now also auto-asserts over the trace (teleport detector +
+   channel-exclusivity = hard fail; carrier-contact = soft warn), so a regression in those
+   invariants makes the probe exit non-zero. Re-analyse a capture with
+   `node scripts/checkProbeTrace.mjs`.
 4. Doc sync per the `CLAUDE.md` table: animation-seam changes update `docs/DESIGN.md`
    § 15.7 in the same commit; if a placement source moved, update the triage table in
    **this file** too.

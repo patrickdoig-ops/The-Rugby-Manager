@@ -3,9 +3,9 @@
 // and penalty-kick distances.
 
 export const KICK_PROBABILITIES = {
-  possession: { own22: 66, ownHalf: 40, opposition: 15 },
-  kicking:    { own22: 90, ownHalf: 65, opposition: 15 },
-  balanced:   { own22: 75, ownHalf: 50, opposition: 10 },
+  possession: { own22: 52, ownHalf: 20, opposition: 15 },
+  kicking:    { own22: 72, ownHalf: 38, opposition: 15 },
+  balanced:   { own22: 60, ownHalf: 27, opposition: 10 },
 } as const;
 
 export const KICK_OFF_VALUES = {
@@ -41,8 +41,16 @@ export const TACTICAL_KICK_VALUES = {
   poorKickDistance:      [10, 20],
   goodKickOutOnFullProb: 5,
   poorKickOutOnFullProb: 30,
-  goodKickTouchProb:     75,
-  poorKickTouchProb:     30,
+  // Inside own 22: kicking directly to touch is legal, so clearance kicks
+  // are genuinely aimed at the touchline.
+  goodKickTouchProb:     65,
+  poorKickTouchProb:     28,
+  // Outside own 22: territorial kicks are aimed at the back field for the
+  // fullback to catch and counter — finding touch is incidental, not the
+  // goal. The ball must bounce in-field first before rolling out, so even
+  // a well-struck kick only finds touch roughly 1-in-3 times.
+  goodKickTouchProbOutside22: 30,
+  poorKickTouchProbOutside22: 12,
 } as const;
 
 // Deliberate 50/22 attempt math. Used when KickDecisionDirector routes a

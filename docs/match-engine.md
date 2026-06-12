@@ -1180,9 +1180,9 @@ Unified kick-or-carry decision module (src/engine/KickDecisionDirector.ts) — r
 
 ```
 1. Compute base kick probability from KICK_PROBABILITIES[plan][zone].
-     - possession: own22 66%, ownHalf 40%, oppHalf/opp22 15%
-     - kicking: own22 90%, ownHalf 65%, oppHalf/opp22 15%
-     - balanced: own22 75%, ownHalf 50%, oppHalf/opp22 10%
+     - possession: own22 52%, ownHalf 20%, oppHalf/opp22 15%
+     - kicking: own22 72%, ownHalf 38%, oppHalf/opp22 15%
+     - balanced: own22 60%, ownHalf 27%, oppHalf/opp22 10%
 2. If state.lastBallQuality === 'slow': base += SLOW_BALL_KICK_BONUS (10pp).
 3. Roll rng(1, 100). Miss → return { kick: false } (carry path).
 4. Pick FAMILY from FAMILY_WEIGHTS[zone][plan]:
@@ -1351,7 +1351,16 @@ Fly-half kicks first, scrum-half if fly-half is unavailable. The fullback receiv
 
 ### Step 1 — Kick quality and distance
 
-The kicker relies on their kicking stat and a random factor to generate a kick score (`kickScore = kicking + rng(1, 20)`). A good kick (`kickScore >= 25`) travels further (30 to 50 metres), has a 0% chance of going out on the full, and a 75% chance of bouncing into touch. A poor kick (`kickScore < 25`) is shorter (10 to 20 metres), has a 30% chance of going directly out on the full, and a 30% chance of bouncing into touch.
+The kicker relies on their kicking stat and a random factor to generate a kick score (`kickScore = kicking + rng(1, 20)`). A good kick (`kickScore >= 75`) travels further (30–50 metres) with a 5% out-on-full chance. A poor kick (`kickScore < 75`) is shorter (10–20 metres) with a 30% out-on-full chance.
+
+Touch probability is **zone-dependent** — inside own 22 kicks can go directly to the touchline, so they find touch far more reliably than territorial kicks from further out:
+
+| Zone | Good kick finds touch | Poor kick finds touch |
+|---|---|---|
+| Inside own 22 | 65% | 28% |
+| Outside own 22 (own half or beyond) | 30% | 12% |
+
+Outside the 22 the ball must bounce in-field before rolling out, so most territorial kicks are caught by the fullback and lead to a KickReturn rather than a lineout.
 
 The ball position is clamped to 5–95 after the kick — the ball can never land within 5m of either try line.
 

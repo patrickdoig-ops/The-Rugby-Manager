@@ -39,10 +39,6 @@ export function initCupResultsScreen(
 
     const legFixtures = cup ? cup.fixtures.filter(f => f.leg === leg && f.result) : [];
     const mineThisBlock = legFixtures.filter(f => f.homeId === myId || f.awayId === myId);
-    const mineWins = mineThisBlock.filter(f => {
-      const won = f.result!.homeScore >= f.result!.awayScore;
-      return (f.homeId === myId && won) || (f.awayId === myId && !won);
-    }).length;
 
     const pools = cup
       ? `<div class="cup-pools">${poolTableHtml(cup.pools[0], teamsById, myId)}${poolTableHtml(cup.pools[1], teamsById, myId)}</div>`
@@ -50,10 +46,6 @@ export function initCupResultsScreen(
     const bracket = leg === 2 && cup?.knockout
       ? `<div class="cup-section-title">Knockouts</div>${bracketHtml(cup.knockout, teamsById, myId)}`
       : '';
-
-    const heroSub = mineThisBlock.length > 0
-      ? `${teamJson?.name ?? 'Your'} squad players won ${mineWins} of ${mineThisBlock.length} cup games this block.`
-      : `The Assistant Manager ran your cup campaign this block.`;
 
     el!.innerHTML = `
       <div class="app-header">
@@ -66,15 +58,13 @@ export function initCupResultsScreen(
       </div>
 
       <div class="cup-content">
-        <div class="cup-hero"><div class="cup-hero-sub">${heroSub}</div></div>
+        <div class="cup-section-title">Your block results</div>
+        <div class="cup-fixtures">${fixtureListHtml(mineThisBlock, teamsById, myId) || '<div class="intl-empty">No cup fixtures this block.</div>'}</div>
 
         ${bracket}
 
         <div class="cup-section-title">Pools</div>
         ${pools}
-
-        <div class="cup-section-title">Your block results</div>
-        <div class="cup-fixtures">${fixtureListHtml(mineThisBlock, teamsById, myId) || '<div class="intl-empty">No cup fixtures this block.</div>'}</div>
       </div>
 
       <div class="cup-footer">

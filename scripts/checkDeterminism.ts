@@ -16,6 +16,10 @@
 // engine:finished. No engine changes required.
 
 import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { setMatchSeed } from '../src/utils/rng.js';
+import { buildScenarioWorld, hashTrajectory } from './spatialScenarioKit.js';
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 import { eventBus } from '../src/utils/eventBus.js';
@@ -124,3 +128,66 @@ for (const c of CASES) {
   }
   console.log(`OK: deterministic. seed=0x${c.seed.toString(16)} ${c.home.id} v ${c.away.id} hash=${h1.slice(0, 16)}…`);
 }
+
+// ── Spatial trajectory hash (Upgrade.md § 11) ──────────────────────────────
+// The spatial substrate runs DARK in WP 1 (no PhaseRouter wiring), so we hash a
+// fixed stub World's per-tick agent trajectory directly: same seed → identical
+// trajectory; different seeds must diverge once a draw enters the loop. WP 2
+// folds this into the per-beat hash once real phases resolve spatially.
+
+const TRAJ_TICKS = 80;
+// A setup with crossing runs + co-located agents so steering, the accel cap,
+// and soft separation all contribute to the trajectory fingerprint.
+function trajectorySetup() {
+  return {
+    home: [
+      { x: 30, y: 40, pace: 16, agility: 14, target: { x: 70, y: 60 } },
+      { x: 32, y: 40, pace: 12, agility: 16, target: { x: 68, y: 58 } },
+      { x: 50, y: 50, pace: 10, agility: 10, target: null },
+    ],
+    away: [
+      { x: 70, y: 60, pace: 14, agility: 12, target: { x: 30, y: 40 } },
+      { x: 50.3, y: 50, pace: 10, agility: 10, target: null },
+    ],
+    ball: { x: 50, y: 50 },
+  };
+}
+
+setMatchSeed(0xDEADBEEF);
+const traj1 = hashTrajectory(buildScenarioWorld(trajectorySetup()), TRAJ_TICKS);
+setMatchSeed(0xDEADBEEF);
+const traj2 = hashTrajectory(buildScenarioWorld(trajectorySetup()), TRAJ_TICKS);
+if (traj1 !== traj2) {
+  console.error(`SPATIAL TRAJECTORY NON-DETERMINISTIC (same seed)\n  run1: ${traj1}\n  run2: ${traj2}`);
+  process.exit(1);
+}
+console.log(`OK: spatial trajectory deterministic. hash=${traj1.slice(0, 16)}…`);
+
+// ── rngSpatial external-consumer scan (CLAUDE.md § 7, Upgrade.md § 2.2) ─────
+// CONTRACT: rngSpatial is consumed ONLY inside src/engine/spatial/. Scan the
+// whole src/ tree (minus rng.ts itself and the spatial dir) for any call.
+function walkTs(dir: string, out: string[]): void {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) {
+      walkTs(full, out);
+    } else if (name.endsWith('.ts')) {
+      out.push(full);
+    }
+  }
+}
+const srcFiles: string[] = [];
+walkTs('src', srcFiles);
+const SPATIAL_DIR = join('src', 'engine', 'spatial');
+const RNG_FILE = join('src', 'utils', 'rng.ts');
+const offenders: string[] = [];
+for (const file of srcFiles) {
+  if (file.startsWith(SPATIAL_DIR) || file === RNG_FILE) continue;
+  if (/\brngSpatial\b/.test(readFileSync(file, 'utf8'))) offenders.push(file);
+}
+if (offenders.length > 0) {
+  console.error(`rngSpatial CONTRACT VIOLATION — consumed outside src/engine/spatial/:`);
+  for (const f of offenders) console.error(`  ✗ ${f}`);
+  process.exit(1);
+}
+console.log(`OK: rngSpatial has zero consumers outside src/engine/spatial/ (${srcFiles.length} files scanned)`);

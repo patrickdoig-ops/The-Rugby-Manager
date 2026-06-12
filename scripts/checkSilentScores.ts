@@ -74,7 +74,12 @@ const ROOT_SEED = 0xDEADBEEF;
 // contact until carrier has run LAUNCH_GRACE_TICKS ticks AND LAUNCH_GRACE_DIST
 // units from the carry start. Carries now have a realistic engagement distance
 // before the tackle fires — outcomes shift by design; § 13 bands all in range.
-const GOLDEN = '8a1508bc19acd49719d6cbbaf24a81777203d52595ae29f58d7882875c95956e';
+// Re-baselined (backfield slot fix): solveDefence now picks backfield defenders
+// by matchday slot (back three: fullback 15, wings 14/11) instead of depth sort
+// (which picked props 1/2). Props rejoin the front line; the back three cover
+// kicks from deep. Front-line composition changes shift gap-detection outcomes.
+// By design; every § 13 telemetry band stays in range.
+const GOLDEN = 'ccb537f2e4b42186e918577747ff4e0d1d7f1e6db7fcdf5972ed469f8066ae10';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

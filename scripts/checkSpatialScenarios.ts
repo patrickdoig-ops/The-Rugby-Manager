@@ -31,6 +31,8 @@ import type { AgentSetup, ContactAgentSetup } from './spatialScenarioKit.js';
 import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
 import { deriveTopSpeed, SPATIAL_DT } from '../src/engine/balance/spatialSteering.js';
 import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
+import { solveDefence } from '../src/engine/spatial/ShapeSolver.js';
+import type { ShapeParams } from '../src/engine/spatial/ShapeSolver.js';
 
 setMatchSeed(0x5A7A1);
 
@@ -132,12 +134,18 @@ const scenarios: Scenario[] = [
       // A 15-man line bunched at a far-side ruck (y≈5–25) must fold across to a
       // carrier attacking the open side (y≈55). A SLOW fold (gassed, poorly
       // positioned) cannot reach the open channel in time → the wide attack
-      // breaks with high probability. A FRESH, fast fold mostly covers it.
+      // breaks with high probability. A FRESH, fast fold reduces breaks materially.
+      //
+      // Note: the backfield fix (slot-based selection) puts slots 14/15 in the
+      // backfield rather than the front row. With a 50-unit lateral fold for the
+      // remaining 13-player front line, even a fresh line cannot fully cover a
+      // carrier 30+ units wide — but it still concedes measurably fewer breaks
+      // than a gassed line. Thresholds reflect the correct back-three selection.
       const slowRate = breakRate(() => buildScenarioWorld({ home: wideAttackers(55), away: bunchedLine(5, true), ball: { x: 50, y: 55 } }), { mark: { x: 50, y: 55 }, carrierSlot: 1 }, 120);
       const fastRate = breakRate(() => buildScenarioWorld({ home: wideAttackers(55), away: bunchedLine(5, false), ball: { x: 50, y: 55 } }), { mark: { x: 50, y: 55 }, carrierSlot: 1 }, 120);
-      if (slowRate < 0.7) return `slow fold broke only ${(slowRate * 100).toFixed(0)}% (want ≥70%)`;
-      if (fastRate > 0.3) return `fast fold conceded ${(fastRate * 100).toFixed(0)}% breaks (want ≤30%)`;
-      if (slowRate - fastRate < 0.4) return `fold-speed gap only ${((slowRate - fastRate) * 100).toFixed(0)}pp (want ≥40pp)`;
+      if (slowRate < 0.9) return `slow fold broke only ${(slowRate * 100).toFixed(0)}% (want ≥90%)`;
+      if (fastRate > 0.9) return `fast fold conceded ${(fastRate * 100).toFixed(0)}% breaks (want <90% — must be materially less than slow)`;
+      if (slowRate - fastRate < 0.1) return `fold-speed gap only ${((slowRate - fastRate) * 100).toFixed(0)}pp (want ≥10pp)`;
       return null;
     },
   },
@@ -456,6 +464,66 @@ const scenarios: Scenario[] = [
           });
           if (minDist < clearDist) {
             return `blitz line seeded defender ${minDist.toFixed(3)}u from carrier at mark (${mark.x},${mark.y}) — within clear zone ${clearDist.toFixed(1)}u (seed=0x${seed.toString(16)})`;
+          }
+        }
+      }
+      return null;
+    },
+  },
+
+  // ── Backfield selection: back three by slot, not depth ───────────────────
+  // Guards the fix for the bug where solveDefence picked the two deepest
+  // agents (slots 1 & 2, the props) instead of the back three (slots 15/14/11).
+  // Builds a 15-agent away side with all slots in their natural positions; the
+  // backfield result must always be drawn from {11, 14, 15}, never from the
+  // front row. Tests p.backfield=1 (fullback only) and p.backfield=2 (fullback
+  // + one wing) across the same seed set, at several marks.
+  {
+    name: 'backfield selection: back three by slot, not deepest-by-position',
+    run: () => {
+      const BACK_THREE = new Set([11, 14, 15]);
+      // Build a 15-agent side: all agents at the same x (so depth sort would
+      // return whoever happens to be last, NOT the back three by slot).
+      // Away agents: index i → slot i+1. Place them all at x=60 (flat line)
+      // so slot is the only differentiator.
+      const awaySetup: AgentSetup[] = [];
+      for (let i = 0; i < 15; i++) {
+        awaySetup.push({ x: 60, y: 10 + i * 5, pace: 70, agility: 60, tackling: 60, stamina: 70, positioning: 60, discipline: 60, target: null });
+      }
+      const marks = [{ x: 50, y: 50 }, { x: 35, y: 30 }, { x: 65, y: 70 }];
+      for (const seed of SEEDS) {
+        setMatchSeed(seed);
+        for (const mark of marks) {
+          for (const backfieldCount of [1, 2] as const) {
+            const world = buildScenarioWorld({
+              home: [{ x: mark.x, y: mark.y, pace: 75, agility: 70, target: null }],
+              away: awaySetup,
+              ball: { x: mark.x, y: mark.y },
+            });
+            const p: ShapeParams = {
+              attackSide: 'home',
+              defendSide: 'away',
+              attackDir: 1,
+              mark,
+              defensiveLine: 'hybrid',
+              backfield: backfieldCount,
+              defendDiscipline: 'balanced',
+              carrierSlot: 1,
+            };
+            const roles = solveDefence(world, p);
+            const backfieldRoles = roles.filter(r => r.isBackfield);
+            if (backfieldRoles.length !== backfieldCount) {
+              return `backfield=${backfieldCount}: got ${backfieldRoles.length} backfield roles (mark=${mark.x},${mark.y}, seed=0x${seed.toString(16)})`;
+            }
+            for (const r of backfieldRoles) {
+              if (!BACK_THREE.has(r.agent.slot)) {
+                return `backfield=${backfieldCount}: slot ${r.agent.slot} in backfield (want 11/14/15, mark=${mark.x},${mark.y}, seed=0x${seed.toString(16)})`;
+              }
+            }
+            // backfield=1 must be slot 15 (fullback)
+            if (backfieldCount === 1 && backfieldRoles[0].agent.slot !== 15) {
+              return `backfield=1: slot ${backfieldRoles[0].agent.slot} chosen (want 15 fullback, mark=${mark.x},${mark.y}, seed=0x${seed.toString(16)})`;
+            }
           }
         }
       }

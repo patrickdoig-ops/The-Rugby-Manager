@@ -32,7 +32,7 @@ import {
   GAP_BREAK,
 } from '../balance/spatialShape';
 import { deriveFoldSpeedMult } from '../balance/spatialSteering';
-import { isForwardSlot } from '../Slot';
+import { isForwardSlot, SLOT } from '../Slot';
 import type { Agent } from './types';
 import { AGENTS_PER_SIDE } from './World';
 import type { World } from './World';
@@ -86,12 +86,42 @@ export function solveDefence(world: World, p: ShapeParams): LineRole[] {
   // BEHIND the front line, never on the attackers' side of the mark.
   const backX = p.mark.x + p.attackDir * BACKFIELD_DEPTH;
 
-  // Pick the backfield defenders: the agents already deepest toward their own
-  // line (largest -attackDir distance from the mark) — mirrors pickFullback
-  // posting the back three. Sorted copy; no MatchState lookup needed because
-  // the World was built from onFieldPlayers (sin-binned/injured excluded).
-  const byDepth = defenders.slice().sort((a, b) => (b.pos.x - a.pos.x) * p.attackDir * -1);
-  const backfield = new Set(byDepth.slice(0, p.backfield));
+  // Pick the backfield defenders by matchday slot — the back three who cover
+  // kicks: fullback (15) first, then wings (14, 11). Preference order is fixed
+  // and deterministic; it is positional data (jersey-number checks, exempted
+  // from the balance rule per CLAUDE.md). If a back-three slot is absent (empty
+  // role — a carded side) or not in the active defenders list, fall through to
+  // the next back-three slot. If all three back-three slots are unavailable,
+  // fall back to the next-deepest available back (slots 9–15) by position, and
+  // as a last resort to the legacy depth sort. The World was built from
+  // onFieldPlayers so sin-binned/injured players are already excluded.
+  const BACK_THREE_PREFERENCE = [SLOT.FULL_BACK, SLOT.WING_14, SLOT.WING_11];
+  const backfield = new Set<Agent>();
+  for (const slotNum of BACK_THREE_PREFERENCE) {
+    if (backfield.size >= p.backfield) break;
+    const agent = defenders.find(d => d.slot === slotNum);
+    if (agent) backfield.add(agent);
+  }
+  // Fallback 1: any remaining back (slots 9–15) not already chosen, deepest first.
+  if (backfield.size < p.backfield) {
+    const remainingBacks = defenders
+      .filter(d => d.slot >= 9 && d.slot <= 15 && !backfield.has(d))
+      .sort((a, b) => (b.pos.x - a.pos.x) * p.attackDir * -1);
+    for (const agent of remainingBacks) {
+      if (backfield.size >= p.backfield) break;
+      backfield.add(agent);
+    }
+  }
+  // Fallback 2 (last resort): depth sort over all remaining defenders.
+  if (backfield.size < p.backfield) {
+    const byDepth = defenders
+      .filter(d => !backfield.has(d))
+      .sort((a, b) => (b.pos.x - a.pos.x) * p.attackDir * -1);
+    for (const agent of byDepth) {
+      if (backfield.size >= p.backfield) break;
+      backfield.add(agent);
+    }
+  }
 
   const lineDefenders = defenders.filter(d => !backfield.has(d));
   const roles: LineRole[] = [];

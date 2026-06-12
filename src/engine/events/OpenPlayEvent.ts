@@ -12,12 +12,12 @@ import type { CarrySimResult } from '../spatial/CarrySim';
 import { BACKFIELD_COUNT } from '../balance';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus, zoneForSide } from '../FieldPosition';
 import { sweepStep, emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
 import { rng } from '../../utils/rng';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, HARD_CARRY_LINE_BREAK_UPGRADE_PCT, HARD_CARRY_LINE_BREAK_METRES, HARD_CARRY_DOMINANT_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CARRIER_UTILITY, HARD_CARRY_LINE_BREAK_UPGRADE_PCT, HARD_CARRY_LINE_BREAK_METRES, HARD_CARRY_DOMINANT_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, INJURY, INJURY_KIND_WEIGHTS, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, PICK_AND_GO_PCT, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
@@ -91,7 +91,19 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   const defSide: 'home' | 'away' = attackSide === 'home' ? 'away' : 'home';
   const defendOnField = onFieldPlayers(defendTeam, state, defSide);
   const scrumHalf = attackOnField.find(p => p.id === SLOT.SCRUM_HALF) ?? attackOnField[0] ?? attackTeam.players[0];
-  const goWide = rng(1, 100) > effStyleScalar(state, attackTeam, HARD_CARRY_THRESHOLDS);
+  // Carrier utility AI (WP5, § 5.4): on top of the team's attackingStyle base
+  // propensity, the playmaker (fly-half) READS the defence + field position and
+  // shades the wide-vs-hard call toward the space — scaled by his composure (a
+  // rattled 10 defaults to base tactic + rng; a composed 10 fully applies the read).
+  // The rng() draw is preserved — only the threshold moves, so the seam stays
+  // deterministic. Strategic intent (the base threshold) stays with the tactics.
+  const playmaker = attackOnField.find(p => p.id === SLOT.FLY_HALF) ?? scrumHalf;
+  const composureW = playmaker.currentStats.composure / 100;
+  const wideRead = (CARRIER_UTILITY.vsDefLine[effDefensiveLine(state, defendTeam)]
+                  + CARRIER_UTILITY.fieldPos[zoneForSide(state, attackSide)]) * composureW;
+  const hardCarryThreshold = Math.max(CARRIER_UTILITY.thresholdFloor,
+    Math.min(CARRIER_UTILITY.thresholdCeil, effStyleScalar(state, attackTeam, HARD_CARRY_THRESHOLDS) - wideRead));
+  const goWide = rng(1, 100) > hardCarryThreshold;
 
   const attackFwds = availableForwards(attackTeam, state, attackSide);
   // Hard-carry path picks from the forward pool weighted so back row + props

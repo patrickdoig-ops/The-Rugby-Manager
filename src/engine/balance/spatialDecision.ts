@@ -3,6 +3,30 @@
 // magic literals in src/engine/spatial/. Coordinates are the 0–100 pitch (x = long
 // axis, y = lateral); a coord-unit on the long axis ≈ 1 metre.
 
+import type { DefensiveLine } from '../../types/team';
+import type { Zone } from './kickDecision';
+
+// Carrier utility AI (Upgrade.md § 5.4): the wide-vs-hard READ. On top of the
+// team's attackingStyle base propensity (effStyleScalar(HARD_CARRY_THRESHOLDS)),
+// the playmaker reads the defensive picture and field position and shades the
+// decision toward the space — but only as much as his COMPOSURE lets him (a rattled
+// 10 defaults to the base tactic + rng; a composed 10 fully applies the read). The
+// underlying rng() draw is preserved, so the seam stays deterministic; only the
+// THRESHOLD moves. A POSITIVE value pushes toward going wide.
+export const CARRIER_UTILITY = {
+  // Attack the space the opponent's defensive line tactic leaves: a BLITZ rushes up
+  // narrow (outside space → go wide); a DRIFT shepherds across (less outside →
+  // go inside / hard carry); hybrid neutral.
+  vsDefLine: { blitz: 12, hybrid: 0, drift: -8 } as Record<DefensiveLine, number>,
+  // Field position: more profit going wide deep in the opponent's territory
+  // (stretch a tiring defence); keep it tighter pinned in your own 22 (lower risk).
+  fieldPos: { opp22: 6, oppHalf: 3, ownHalf: 0, own22: -6 } as Record<Zone, number>,
+  // The read is scaled by the playmaker's composure (0–100) → 0..1; clamp the final
+  // threshold to a sane band so the read shades, never forces, the choice.
+  thresholdFloor: 5,
+  thresholdCeil: 95,
+} as const;
+
 // The PASS CHAIN that prefixes a spatial carry: the ball is swept from the
 // scrum-half at the ruck, through the intervening backline, to the carrier at his
 // receiving point, BEFORE he runs. Purely the ball's spatial path + the receiving

@@ -815,6 +815,8 @@ If the pick-and-go gate fires but no eligible forward is on the field (rare — 
 | `balanced` | 70% | 30% |
 | `wide_wide` | 50% | 50% |
 
+**Carrier utility AI (WP 5, § 5.4).** The `attackingStyle` split above is the *base* propensity; on top of it the playmaker (fly-half) READS the picture and shades the threshold toward the space — `goWide = rng(1,100) > clamp(base − read, 5, 95)` where `read = (CARRIER_UTILITY.vsDefLine[defLine] + CARRIER_UTILITY.fieldPos[zone]) · composure/100`. He attacks the defensive line's weakness (`vsDefLine`: blitz **+12** → more wide, drift **−8** → more inside, hybrid 0) and the field (`fieldPos`: opp22 **+6**, oppHalf +3, ownHalf 0, own22 **−6**), but only as much as his **composure** lets him (a rattled 10 defaults to the base tactic + rng; a composed 10 fully applies the read). The `rng()` draw is **preserved** — only the threshold moves, so the decision seam stays deterministic and strategic intent stays with the tactics. Constants in `balance/spatialDecision.ts`.
+
 The decision picks the carrier:
 
 - **Hard Carry:** carrier is a forward (ids 1–8) chosen via `pickHardCarrier(attackTeam, state, attackSide)` — weighted pick over `availableForwards` using `HARD_CARRIER_WEIGHTS` (back row 18/18/15 + props 12/12 + locks 8/8 + hooker 4). Back row + props dominate the carry leaderboard; locks second; hooker rare. Scrum-half → forward, then straight into contact.

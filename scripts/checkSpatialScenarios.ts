@@ -14,6 +14,7 @@ import {
   buildScenarioWorld,
   runScenario,
   runCarryScenario,
+  runCarryBallPath,
   dist,
 } from './spatialScenarioKit.js';
 import type { AgentSetup } from './spatialScenarioKit.js';
@@ -179,6 +180,34 @@ const scenarios: Scenario[] = [
       const highRate = offsideRate(() => buildScenarioWorld({ home: carrier, away: lineOf(90), ball: { x: 48, y: 50 } }), { mark: { x: 48, y: 50 }, defendDiscipline: 'cautious' }, 200);
       if (lowRate < 0.04) return `low-discipline offside rate only ${(lowRate * 100).toFixed(1)}% (want ≥4%)`;
       if (lowRate < highRate * 3) return `low-disc ${(lowRate * 100).toFixed(1)}% not materially > high-disc ${(highRate * 100).toFixed(1)}% (want ≥3×)`;
+      return null;
+    },
+  },
+
+  // ── Ball-couples-to-carrier regression guard (Bug ②) ─────────────────────
+  {
+    name: 'the ball travels with the carrier across a carry',
+    run: () => {
+      // A lone carrier runs up the corridor against a spread line. The ball must
+      // be COUPLED to him each tick — its path length over the beat must track
+      // the carrier's advance, not sit frozen at the mark (the old bug: ball
+      // path 0.0, carrierSlot undefined). Guards Bug ② from silently regressing.
+      setMatchSeed(0x5A7A1);
+      const away: AgentSetup[] = [];
+      for (let i = 0; i < 15; i++) away.push({ x: 54, y: 8 + i * 6, pace: 70, agility: 60, tackling: 60, positioning: 60, stamina: 70, discipline: 60, target: null });
+      const world = buildScenarioWorld({
+        home: [{ x: 46, y: 50, pace: 80, agility: 78, target: null }],
+        away,
+        ball: { x: 48, y: 50 },
+      });
+      const { ballPathLen, carrierMoved, carrierSlot } = runCarryBallPath(world, { mark: { x: 48, y: 50 }, carrierSlot: 1 });
+      if (carrierSlot !== 1) return `ball carrierSlot ${carrierSlot} (want 1 — the carrier)`;
+      if (ballPathLen <= 0) return `ball path length ${ballPathLen.toFixed(3)} — ball is frozen (Bug ②)`;
+      // The coupled ball must track the carrier's run, not drift independently.
+      if (Math.abs(ballPathLen - carrierMoved) > carrierMoved * 0.25 + 1) {
+        return `ball path ${ballPathLen.toFixed(2)} not tracking carrier move ${carrierMoved.toFixed(2)}`;
+      }
+      if (carrierMoved < 3) return `carrier barely moved (${carrierMoved.toFixed(2)}) — carry not exercised`;
       return null;
     },
   },

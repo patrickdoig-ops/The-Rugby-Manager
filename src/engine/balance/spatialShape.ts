@@ -18,10 +18,30 @@ import type { DefensiveLine } from '../../types/team';
 // spreads wide + sets deeper (lateral slide shepherds to touch); hybrid sits
 // between. Spacing is in lateral coord-units; standOff is how far in FRONT of
 // the mark (toward the attacking side, against attackDir) the line sets.
-export const DEFENSIVE_LINE: Record<DefensiveLine, { slotSpacing: number; standOff: number }> = {
-  blitz:  { slotSpacing: 5.5, standOff: 2.0 },
-  drift:  { slotSpacing: 7.5, standOff: 4.5 },
-  hybrid: { slotSpacing: 6.5, standOff: 3.0 },
+export const DEFENSIVE_LINE: Record<DefensiveLine, { slotSpacing: number; standOff: number; forwardPress: number; lateralTrack: number }> = {
+  // `forwardPress` (0–1) is how hard the line advances UP onto the carrier as he
+  // runs the corridor (Bug ③): blitz presses up fast, drift presses little and
+  // shepherds laterally instead, hybrid sits between. `lateralTrack` (0–1) is how
+  // much the line slides ACROSS to follow the carrier's channel each tick: drift
+  // slides the most (the lateral shepherd), blitz the least (it just rushes up).
+  // Both feed the per-tick re-anchor; the standOff still sets the opening depth.
+  blitz:  { slotSpacing: 5.5, standOff: 2.0, forwardPress: 0.85, lateralTrack: 0.35 },
+  drift:  { slotSpacing: 7.5, standOff: 4.5, forwardPress: 0.35, lateralTrack: 0.85 },
+  hybrid: { slotSpacing: 6.5, standOff: 3.0, forwardPress: 0.6,  lateralTrack: 0.6  },
+} as const;
+
+// Per-tick defensive re-anchor (Bug ③). Each micro-tick the line's targets are
+// recomputed against the LIVE carrier so the defence visibly advances/folds as he
+// runs the corridor instead of holding the static opening slots. `pressGain` is
+// the coord-units the line steps toward the gain line per unit of carrier advance,
+// scaled by the tactic's forwardPress; `pressCap` bounds the total forward creep
+// so the line cannot rush past the carrier (and the offside sweep stays coherent
+// against the fixed breakdown mark). `trackGain` is how far each slot's lateral
+// target chases the carrier's y per tick, scaled by the tactic's lateralTrack.
+export const DEFENCE_REANCHOR = {
+  pressGain: 0.55,
+  pressCap: 9.0,
+  trackGain: 0.12,
 } as const;
 
 // Number of front-line defender slots laid out around the mark. The remaining

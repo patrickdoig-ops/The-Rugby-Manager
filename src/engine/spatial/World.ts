@@ -211,6 +211,21 @@ function clampY(v: number): number {
   return v < 3 ? 3 : v > 97 ? 97 : v;
 }
 
+// Glue the ball to the carrier (Bug ②, Upgrade.md § 5.3). Called each micro-tick
+// (SpatialSimulator's postMove hook) AFTER the movement step so the captured
+// frame records the ball travelling with the carrier instead of frozen at the
+// mark. ALLOCATION-FREE: mutates ball.pos in place and stamps carrierSlot/
+// carrierSide so captureFrame records WHO holds it. Engine-internal position
+// write, exactly like resetWorld/seedFormation — the spatial ball is never part
+// of MatchState (only spatial OUTCOMES cross applyMatchEvent).
+export function coupleBallToCarrier(world: World, carrier: Agent): void {
+  const ball = world.ball;
+  ball.pos.x = carrier.pos.x;
+  ball.pos.y = carrier.pos.y;
+  ball.carrierSlot = carrier.slot;
+  ball.carrierSide = carrier.side;
+}
+
 // Capture the World's current positions into a fresh Frame (Upgrade.md § 8.1).
 // The ONLY per-tick allocation, and only on the live (non-silent) path. Dot
 // order matches world.agents exactly: home 1–15 then away 1–15.

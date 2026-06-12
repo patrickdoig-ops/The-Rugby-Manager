@@ -97,7 +97,8 @@ export function dist(a: Vec2, b: Vec2): number {
 // the real ShapeSolver. The World here is authored directly (not from
 // MatchState), so the caller seeds agent positions/attrs to stage the picture.
 
-import { solveDefence, solveCarryCorridor, detectGap, detectOffside } from '../src/engine/spatial/ShapeSolver.js';
+import { solveDefence, solveCarryCorridor, detectGap, detectOffside, reanchorDefence } from '../src/engine/spatial/ShapeSolver.js';
+import { coupleBallToCarrier } from '../src/engine/spatial/World.js';
 import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
 import type { ShapeParams } from '../src/engine/spatial/ShapeSolver.js';
 
@@ -127,10 +128,61 @@ export function runCarryScenario(
   };
   const roles = solveDefence(world, p);
   const carrier = solveCarryCorridor(world, p);
-  run(world, CARRY_CORRIDOR_TICKS, true);
+  // Same per-tick hooks the live CarrySim uses: re-anchor the line onto the live
+  // carrier (Bug ③) and couple the ball to him (Bug ②), so the scenario suite +
+  // the determinism trajectory hash exercise the real carry loop.
+  run(
+    world,
+    CARRY_CORRIDOR_TICKS,
+    true,
+    () => reanchorDefence(roles, carrier, p),
+    () => coupleBallToCarrier(world, carrier),
+  );
   const gap = detectGap(carrier, roles, modShift, p.attackDir);
   const offside = detectOffside(roles, p, gap.nearestDefender);
   return { lineBreak: gap.lineBreak, offsidePenalty: offside !== null };
+}
+
+// Resolve one authored carry and report the ball's total path length over the
+// beat (Bug ② regression guard). Drives the carry tick-by-tick with the same
+// hooks the live CarrySim uses, summing the per-tick ball displacement. A frozen
+// ball (the Bug ② symptom) returns 0; a coupled ball tracks the carrier's run.
+export function runCarryBallPath(
+  world: World,
+  params: Partial<ShapeParams> = {},
+): { ballPathLen: number; carrierMoved: number; carrierSlot: number | undefined } {
+  const p: ShapeParams = {
+    attackSide: 'home',
+    defendSide: 'away',
+    attackDir: 1,
+    mark: { x: world.ball.pos.x, y: world.ball.pos.y },
+    defensiveLine: 'hybrid',
+    backfield: 2,
+    defendDiscipline: 'balanced',
+    carrierSlot: 1,
+    ...params,
+  };
+  const roles = solveDefence(world, p);
+  const carrier = solveCarryCorridor(world, p);
+  const carrierStartX = carrier.pos.x;
+  const carrierStartY = carrier.pos.y;
+  let prevBallX = world.ball.pos.x;
+  let prevBallY = world.ball.pos.y;
+  let ballPathLen = 0;
+  for (let t = 0; t < CARRY_CORRIDOR_TICKS; t++) {
+    run(
+      world,
+      1,
+      true,
+      () => reanchorDefence(roles, carrier, p),
+      () => coupleBallToCarrier(world, carrier),
+    );
+    ballPathLen += Math.hypot(world.ball.pos.x - prevBallX, world.ball.pos.y - prevBallY);
+    prevBallX = world.ball.pos.x;
+    prevBallY = world.ball.pos.y;
+  }
+  const carrierMoved = Math.hypot(carrier.pos.x - carrierStartX, carrier.pos.y - carrierStartY);
+  return { ballPathLen, carrierMoved, carrierSlot: world.ball.carrierSlot };
 }
 
 // Hash every agent position at every tick of a dark-mode run — the trajectory

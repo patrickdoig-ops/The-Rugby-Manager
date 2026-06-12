@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
+import { resolve } from 'node:path';
 
 let buildVersion = 'dev';
 try {
@@ -16,7 +17,19 @@ export default defineConfig(({ mode }) => ({
   // native shell serves from the bundle root (capacitor://localhost), so it
   // needs relative asset URLs. `npm run build:cap` passes `--mode capacitor`.
   base: mode === 'capacitor' ? './' : '/The-Rugby-Manager/',
-  build: { outDir: 'dist', target: 'es2022' },
+  build: {
+    outDir: 'dist',
+    target: 'es2022',
+    // Multi-page: the game (index.html) + the standalone live spatial-engine
+    // viewer (spatial-live.html, a dev/polishing tool — renders the dark spatial
+    // frames to a canvas, never touches the production PitchView).
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        spatialLive: resolve(__dirname, 'spatial-live.html'),
+      },
+    },
+  },
   define: {
     __BUILD_VERSION__: JSON.stringify(buildVersion),
     __BUILD_DATE__: JSON.stringify(buildDate),

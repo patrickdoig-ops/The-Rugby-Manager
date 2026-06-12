@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Spatial Engine — Live Viewer</title>
+  <style>
+    :root { --bg:#0e1116; --panel:#161b22; --ink:#e6edf3; --muted:#8b949e; --accent:#2ea043; --line:#30363d; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; overflow:hidden; }
+    #app { display:flex; flex-direction:column; height:100dvh; }
+    header { padding:6px 10px; background:var(--panel); border-bottom:1px solid var(--line); }
+    /* info overlay */
+    #info { font-size:12px; line-height:1.5; }
+    #info-main { font-weight:600; color:var(--ink); }
+    #info-play { color:#ffd33d; }
+    #info-pos { color:var(--muted); }
+    /* controls */
+    .row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:6px; }
+    button { background:#21262d; color:var(--ink); border:1px solid var(--line); border-radius:6px;
+      padding:6px 9px; font-size:13px; min-width:36px; }
+    button.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    button:active { background:#30363d; }
+    .grp { display:flex; gap:2px; }
+    .grp button { border-radius:0; } .grp button:first-child{border-radius:6px 0 0 6px;} .grp button:last-child{border-radius:0 6px 6px 0;}
+    input[type=range] { accent-color:var(--accent); }
+    #scrub { flex:1 1 100%; height:26px; margin:2px 0; }
+    .lbl { font-size:11px; color:var(--muted); }
+    .legend { font-size:11px; color:var(--muted); margin-left:auto; }
+    .sw { display:inline-block; width:9px; height:9px; border-radius:50%; vertical-align:middle; margin:0 2px 0 7px; }
+    #stage { flex:1; position:relative; min-height:0; }
+    canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div id="info">
+        <div id="info-main">starting…</div>
+        <div id="info-play">&nbsp;</div>
+        <div id="info-pos">&nbsp;</div>
+      </div>
+      <input id="scrub" type="range" min="0" max="0" value="0" />
+      <div class="row">
+        <button id="btn-pause">⏸ Pause</button>
+        <div class="grp"><button id="btn-prevbeat" title="Prev beat">⏮</button><button id="btn-nextbeat" title="Next beat">⏭</button></div>
+        <div class="grp"><button id="btn-prevframe" title="Prev frame">◀</button><button id="btn-nextframe" title="Next frame">▶</button></div>
+        <button id="btn-live" title="Jump to live">● Live</button>
+        <span class="lbl">Speed</span><input id="speed" type="range" min="40" max="180" value="80" style="width:90px" />
+        <span class="legend"><span class="sw" style="background:#1f6feb"></span>Home<span class="sw" style="background:#f85149"></span>Away<span class="sw" style="background:#ffd33d"></span>Ball</span>
+      </div>
+    </header>
+    <div id="stage"><canvas id="spatial-canvas"></canvas></div>
+  </div>
+  <script type="module" src="/scripts/spatialLive.ts"></script>
+</body>
+</html>

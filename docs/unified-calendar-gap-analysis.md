@@ -336,9 +336,27 @@ real silent-regression surface. Two ways to land Stage B:
 > because their streak edges / cadence counters are per-league-round and would misfire if
 > looped per calendar week or re-run on every cup matchday during a break. The
 > **injury-recovery tick stays league-only** (full prev→this gap) + playoff-only (1 week);
-> the elapsed-week seam does NOT touch injuries, so there is no double-heal. Week-counting
-> is per-segment from the `calendar.date` cursor, so the per-season increments sum to the
-> break length with no double-count and no gap. Save shape unchanged (**no `SAVE_VERSION`
+> the elapsed-week seam does NOT touch injuries, so there is no double-heal.
+>
+> **H1 fix (post-audit).** Step 4's first cut had `runWeeklyTick` re-home the cursor
+> straight to the next *league* round (`earliestDateForRound(leagueRound)`), which during
+> an international break jumped the cursor PAST the whole break before its cup/European
+> matchdays were played. Each break matchday then called `advanceMatchdayCalendar` with the
+> cursor already parked ahead of it, moving it backward and (via the `days <= 0 → weeks:1`
+> floor) ticking a phantom extra week of `WEEK_ADVANCED` + morale + scouting. An audit over
+> a real 2025-26 season measured `calendar.week = 61` vs a true calendar span of ≈38, plus
+> 6 backward cursor jumps. Two changes make the cursor **forward-only** and stop it jumping
+> the break: (1) `tickElapsedWeeks(toDate)` ticks 0 weeks AND leaves `calendar.date`
+> untouched when `toDate <= calendar.date` (only a strictly-later `toDate` advances and
+> ticks); (2) `runWeeklyTick` advances only to `getNextBlock()?.startDate` (the next
+> unplayed block across ALL competitions — the first break matchday during a break, the
+> next league round otherwise; the block date exists even on a player bye), falling back to
+> `earliestDateForRound(leagueRound)` then `+1 week`. Re-instrumented over the same season:
+> `calendar.week = 37` (= `round(daysBetween(firstLeagueFixture, lastLeagueFixture)/7)+1`),
+> 0 backward jumps — the per-season increments now sum to the true calendar span with no
+> week double-counted and none skipped, including across breaks and on byes.
+>
+> Save shape unchanged (**no `SAVE_VERSION`
 > bump**); career determinism re-baselined (reproducible + round-trip), silent-scores
 > golden + save-schema green. The harness (`checkSeasonDeterminism.ts`) drives European +
 > playoff matchdays through `advanceMatchdayCalendar` in lockstep. Step 5 removes

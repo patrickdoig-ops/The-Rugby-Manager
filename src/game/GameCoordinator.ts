@@ -1302,12 +1302,23 @@ export class GameCoordinator {
   // flow (via advanceMatchdayCalendar) — so each elapsed week is ticked exactly
   // once, as it passes, rather than batched at the next league round.
   //
+  // The cursor is **forward-only**: a `toDate` at or before the current
+  // `calendar.date` ticks 0 weeks AND leaves `calendar.date` untouched (no
+  // backward `MATCHDAY_ADVANCED`). Only a strictly-later `toDate` advances the
+  // date and ticks weeks. This is the load-bearing invariant — without it a
+  // matchday whose date the league cursor has already skipped past would move
+  // the cursor backward and (via the `days <= 0 → weeks:1` floor) tick a
+  // phantom extra week.
+  //
   // `weeks` = round(daysBetween(currentDate, toDate) / 7), min 1 for a real
-  // advance (matchdays are ≥5 days apart in the real schedule, so this never
-  // floors a genuine gap); a no-op advance (toDate === currentDate) ticks
-  // nothing. Summed across a break (each cup/European matchday + the resuming
-  // league round) the increments total the break length with no double-count
-  // and no gap, because each advance counts only the days since the last.
+  // forward advance (matchdays are ≥5 days apart in the real schedule, so this
+  // never floors a genuine gap); a no-op or backward advance ticks nothing.
+  // Summed across a season — every advance counting only the strictly-forward
+  // days since the last cursor position — the increments total the true
+  // calendar span (first→last fixture) with no week double-counted and none
+  // skipped, including across international breaks (each break matchday ticks
+  // the days since the previous one) and on bye weeks (the next block's start
+  // date carries the cursor through).
   //
   // Round-based passes (transfer-request/promise checks, poach threats, AI
   // early-renewal cadence, playoff seeding) are NOT here — they stay tied to
@@ -1315,10 +1326,9 @@ export class GameCoordinator {
   // cadence counters are per-league-round and would misfire if looped per
   // calendar week or re-run on every cup/European matchday during a break.
   private async tickElapsedWeeks(toDate: string): Promise<void> {
-    const weeks = (toDate && toDate !== this.state.calendar.date)
-      ? upcomingGapFromDate(this.state.calendar.date, toDate).weeks
-      : 0;
-    if (toDate && toDate !== this.state.calendar.date) {
+    const forward = !!toDate && toDate > this.state.calendar.date;
+    const weeks = forward ? upcomingGapFromDate(this.state.calendar.date, toDate).weeks : 0;
+    if (forward) {
       applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
     }
     if (weeks > 0) {
@@ -1342,16 +1352,25 @@ export class GameCoordinator {
     eventBus.emit('game:weekAdvanced', { state: this.state });
   }
 
-  // The league-round weekly tick. Re-homes the calendar onto the next league
-  // round's earliest kick-off and ticks the elapsed weeks since the cursor's
-  // current position (the last cup/European matchday during a break, or the
-  // previous league round on an ordinary turnaround), then runs the
-  // league-round-keyed passes that are NOT safe to fire per-calendar-week:
-  // transfer-request/promise checks, poach-threat assessment, and the AI
+  // The league-round weekly tick. Advances the cursor only as far as the next
+  // actual calendar event — the next unplayed block's start date across ALL
+  // competitions, NOT the next league round. During an international break that
+  // next event is the first cup/European matchday, so the league round ticks
+  // only up to it and the break's own matchdays tick forward through the rest;
+  // re-homing straight to the next league round would jump the cursor past the
+  // whole break and force the break's matchdays to move it backward (the H1
+  // double-count bug). For a pure league-to-league gap with no intervening
+  // matchday the next block IS the next league round, so behaviour is
+  // unchanged. The block start date exists regardless of whether the player has
+  // a fixture in it, so byes still advance the cursor correctly. Falls back to
+  // the next league round's kick-off (then +1 week) when no block remains.
+  // Then the league-round-keyed passes that are NOT safe to fire per-calendar-
+  // week: transfer-request/promise checks, poach-threat assessment, AI
   // early-renewal cadence.
   private async runWeeklyTick(): Promise<void> {
-    const nextRoundDate = earliestDateForRound(this.state.league.fixtures, leagueRound(this.state));
-    const newDate = nextRoundDate
+    const nextBlockDate = this.getNextBlock()?.startDate;
+    const newDate = nextBlockDate
+      ?? earliestDateForRound(this.state.league.fixtures, leagueRound(this.state))
       ?? addDaysIso(this.state.calendar.date, SEASON_VALUES.weekLengthDays);
     await this.tickElapsedWeeks(newDate);
 

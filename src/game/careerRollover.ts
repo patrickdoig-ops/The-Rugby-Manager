@@ -30,7 +30,7 @@ import type { ArchivedPlayerSeason, Fixture, GameState, SeasonEvent, TeamStandin
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
 import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
-import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, REPUTATION_OVR_NUDGE, MIN_SQUAD_SIZE, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
+import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, REPUTATION_OVR_NUDGE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, POSITION_FLOORS, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
@@ -206,6 +206,39 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
       if (g !== 'Other') counts[g] += 1;
       nextRid += 1;
       size += 1;
+    }
+    projected.set(club.id, size); // reflect top-ups for the size-cap pass below
+  }
+
+  // 3c. Squad-size cap. For each club projected above MAX_SQUAD_SIZE, release its
+  // lowest-OVR players down to the cap — never a marquee, a loan-in, or a player
+  // retiring / moving this rollover, and never a position already at its
+  // POSITION_FLOOR (so trimming bloat — e.g. an over-deep back row — can't reopen
+  // a shortage). Higher-OVR players can be cut once the position has depth.
+  // Released players enter the free-agent pool. RNG-free (pure OVR sort, stable
+  // by rosterId), so it doesn't shift the rngTransfer stream.
+  for (const club of sortedClubs) {
+    let size = projected.get(club.id) ?? 0;
+    if (size <= MAX_SQUAD_SIZE) continue;
+    const counts = posCountByClub.get(club.id) ?? emptyGroupCounts();
+    const leaving = new Set<number>();
+    for (const e of events) {
+      if (e.type === 'PLAYER_RETIRED' && e.clubId === club.id) leaving.add(e.rosterId);
+      else if (e.type === 'TRANSFER_ACTIVATED' && e.fromClubId === club.id) leaving.add(e.rosterId);
+    }
+    const pool = club.squad
+      .filter(rid => !leaving.has(rid))
+      .map(rid => state.career.roster[rid])
+      .filter((p): p is NonNullable<typeof p> => !!p && !p.contract.isMarquee && !p.loanIn)
+      .map(p => ({ rid: p.rosterId, ovr: playerOverall(p.baseStats, p.position), group: positionGroup(p.position) }))
+      .sort((a, b) => a.ovr - b.ovr || a.rid - b.rid);
+    for (const cand of pool) {
+      if (size <= MAX_SQUAD_SIZE) break;
+      if (cand.group === 'Other') continue;
+      if (counts[cand.group] <= POSITION_FLOORS[cand.group]) continue;
+      events.push({ type: 'CONTRACT_TERMINATED', rosterId: cand.rid, reason: 'released' });
+      counts[cand.group] -= 1;
+      size -= 1;
     }
   }
 

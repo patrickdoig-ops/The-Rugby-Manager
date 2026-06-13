@@ -47,6 +47,24 @@ A timeboxed Canvas/PixiJS spike rendering the same frame streams, then an explic
 
 A neutral-observer protocol, run on 3+ full matches: with the sound off and no commentary feed visible, can a rugby-literate viewer narrate what is happening and *why* (who's winning the gain line, where the space is, why that try was scored)? Pass = the `Upgrade.md` north star is met. Record the protocol + results in this file when run.
 
+## Carried-in checklist (flagged at WP5 closeout, 2026-06-13)
+
+Concrete items surfaced by the WP1–5 review, to be worked through deliverables 1–2 above. Numbers are from `telemetry/latest.md` at v3.41b (450 fixtures, 5 seeds).
+
+**A. Real-rugby spatial-metric gaps (deliverable 1 — set bands from real data, then close).** Today the realism contract is enforced only against the *legacy* distribution, not the sport. Measured vs the § 13 real-Premiership targets:
+
+- [ ] **Line breaks too high** — 13.3/match measured vs ~10 target. Tighten the gap-break threshold / cover weighting (`balance/spatialShape.ts` `GAP_BREAK`) until it lands near 10, then lock a band in `checkSpatialBands`.
+- [ ] **Offloads too low** — 4.6 completed (5.3 attempted) vs ~10 target — roughly half real rate. Revisit the offload window (`balance/spatialTackle.ts` `OFFLOAD`: `attemptBase`, `maxSupportDist`, `catchBase`) once support-line timing (deliverable 2) lands, since attempts are gated on support proximity.
+- [ ] **Defenders beaten — not yet surfaced.** Add the metric to `scripts/telemetry.ts` + a band (~25/match).
+- [ ] **Metres carried — not yet surfaced.** Add the metric (~450/team) + a band.
+- [ ] **Try-channel distribution — not yet surfaced.** Needs `TRY_SCORED` to carry the channel (a frozen-event-shape change — coordinate with the WP5 deferred item); then add the tight/mid/wide split band.
+
+**B. Calibration headroom is thin (deliverable 2 — watch during every tuning pass).** Three § 13 bands are sitting on their edges at v3.41b; each spatial phase added (WP6–7) pushes on them again, so re-check after every WP merge, not just in WP9:
+
+- [ ] **Penalties conceded 12.7** — ceiling 12.9 (offside-creep + ruck-commitment levers feed this).
+- [ ] **Turnovers won 2.1** — floor 2.0 (ruck-commitment isolation/override levers feed this).
+- [ ] **Combined points 24.7** — drifting toward the 23.2 floor.
+
 ## Out of scope
 
 New gameplay systems of any kind. Attribute expansion (the `Upgrade.md` § 10 trigger condition is a *post-v1* data-contract decision). Weather, crowds-affecting-play, referee personality — sequel material. The Swift port itself (`Upgrade.md` § 16 — a separate project that begins from this WP's outputs).

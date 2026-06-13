@@ -32,6 +32,10 @@ export interface SigningOutcome {
   // the flag distinguishes "nobody bid" from "the best offer was a
   // lowball". Transient — never persisted.
   heldOut?: boolean;
+  // True when the best bid won the appeal contest but committing it would
+  // push the winning club over its hard salaryBudget, so the signing was
+  // refused (winnerBid null). Transient — never persisted.
+  capBlocked?: boolean;
 }
 
 export interface ResolveResult {
@@ -144,6 +148,33 @@ export function resolveSigningRound(state: GameState): ResolveResult {
   const sortedRosterIds = [...bidsByRoster.keys()].sort((a, b) => a - b);
   const wlpMemo = new Map<string, number>();
 
+  // Hard-cap backstop. The per-decision AI gates use a SOFT target and don't see
+  // every commit in the round; submitBid sees only the user's own pending bids.
+  // Track each winning club's running wage usage here and refuse any winner whose
+  // commit would push its club over its hard salaryBudget — the same ceiling
+  // submitBid enforces — so no club can be signed into a breach. Base usage is
+  // squad non-marquee wages + prior-round pending poaches; this round's pending
+  // bid reservations are deliberately excluded (they resolve here, becoming
+  // committed winners — added below — or released losers).
+  const usageByClub = new Map<string, number>();
+  const clubUsage = (clubId: string): number => {
+    const cached = usageByClub.get(clubId);
+    if (cached !== undefined) return cached;
+    const club = state.career.clubs.find(c => c.id === clubId);
+    let sum = 0;
+    if (club) {
+      for (const sid of club.squad) {
+        const sp = state.career.roster[sid];
+        if (sp && !sp.contract.isMarquee) sum += sp.contract.annualWage;
+      }
+    }
+    for (const m of state.career.pendingMoves) {
+      if (m.toClubId === clubId) sum += m.annualWage;
+    }
+    usageByClub.set(clubId, sum);
+    return sum;
+  };
+
   for (const rid of sortedRosterIds) {
     const player = state.career.roster[rid];
     if (!player) continue;
@@ -198,6 +229,26 @@ export function resolveSigningRound(state: GameState): ResolveResult {
       outcomes.push({ rosterId: rid, winnerBid: null, bids, heldOut: true });
       continue;
     }
+
+    // Hard-cap backstop: refuse a winner that would push its club over the hard
+    // salaryBudget. Retention replaces the player's existing wage (already in
+    // base usage) so its impact is the delta; an FA join or a poach (a future
+    // liability, counted like clubBudgetUsage) adds the full wage. On a breach
+    // every bid is marked lost and no contract fires, mirroring the hold-out
+    // path — the player simply stays available.
+    const winnerClub = state.career.clubs.find(c => c.id === winner.clubId);
+    const hardBudget = winnerClub ? winnerClub.salaryBudget : Infinity;
+    const impact = winner.kind === 'retention'
+      ? winner.annualWage - player.contract.annualWage
+      : winner.annualWage;
+    if (clubUsage(winner.clubId) + impact > hardBudget) {
+      for (const bid of bids) {
+        events.push({ type: 'BID_RESOLVED', bidId: bid.id, outcome: 'lost' });
+      }
+      outcomes.push({ rosterId: rid, winnerBid: null, bids, capBlocked: true });
+      continue;
+    }
+    usageByClub.set(winner.clubId, clubUsage(winner.clubId) + impact);
 
     // Resolution events: mark each bid won/lost, then fire the
     // contract event for the winner.

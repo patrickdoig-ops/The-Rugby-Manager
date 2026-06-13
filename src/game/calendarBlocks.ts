@@ -1,7 +1,9 @@
 // Pure calendar-block utilities. No side effects, no RNG.
 //
-// A CalendarBlock clusters all unplayed fixtures whose dates fall within
-// BLOCK_GAP_DAYS of each other (counting from the earliest unplayed date).
+// A CalendarBlock clusters consecutive unplayed fixtures whose dates fall
+// within BLOCK_GAP_DAYS of each other — each fixture is compared against the
+// running last date of the block (the chain extends while the next fixture is
+// within the gap of the previous one), not against the block's earliest date.
 // This groups Fri/Sat/Sun rounds, back-to-back cup weekends, etc. into a
 // single schedulable unit.
 

@@ -715,7 +715,10 @@ export function initPreMatchScreen(
 
     // Forward CTA — advances step, or kicks off the match at the end.
     if (step === 'tactics') {
-      screen.querySelector<HTMLButtonElement>('#pm-start')!.addEventListener('click', () => {
+      const startBtn = screen.querySelector<HTMLButtonElement>('#pm-start')!;
+      startBtn.addEventListener('click', () => {
+        if (startBtn.disabled) return; // a second tap in the 600ms exit window would kick off the match twice
+        startBtn.disabled = true;
         screen.classList.add('pm-exit');
         setTimeout(() => {
           teardownSession?.();

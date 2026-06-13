@@ -79,7 +79,7 @@ import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE, AI_EARLY_RENEWAL_CADENCE_ROUNDS } from '../engine/balance';
+import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE, AI_EARLY_RENEWAL_CADENCE_ROUNDS, ARCHIVE_CAP } from '../engine/balance';
 import type { SquadStatusKey } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -1634,9 +1634,6 @@ export class GameCoordinator {
   // sub-trees are returned by reference — no defensive cloning (CLAUDE.md §2:
   // never deep-clone just to stringify).
   //
-  // Archive is capped at the most recent 15 seasons to keep localStorage
-  // within the 5 MB browser quota on long careers (~30 KB/season).
-  static readonly ARCHIVE_CAP = 15;
 
   toSavePayload(): SavedSeason {
     return {
@@ -1658,7 +1655,7 @@ export class GameCoordinator {
         nextRosterId: this.state.career.nextRosterId,
         clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: c.squad, salaryBudget: c.salaryBudget })),
         roster: this.state.career.roster,
-        archive: this.state.career.archive.slice(-GameCoordinator.ARCHIVE_CAP),
+        archive: this.state.career.archive.slice(-ARCHIVE_CAP),
         freeAgents: this.state.career.freeAgents,
         market: this.state.career.market,
         pendingMoves: this.state.career.pendingMoves,

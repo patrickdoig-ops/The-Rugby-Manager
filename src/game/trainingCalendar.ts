@@ -77,8 +77,14 @@ export function upcomingGapFromDate(
   return { weeks: Math.max(1, Math.round(days / 7)), days };
 }
 
-// Split a gap of `days` into `weeks` period-spans summing to `days`. Extra
-// days land on the earlier periods. e.g. (36, 5) → [8,7,7,7,7]; (6,1) → [6].
+// Split a gap of `days` into exactly `weeks` period-spans (each ≥ 1 day, so the
+// downstream per-period training loop never gets a zero-length span). Extra days
+// land on the earlier periods. e.g. (36, 5) → [8,7,7,7,7]; (6,1) → [6]. The sum
+// equals `days` whenever `days ≥ weeks`; in the degenerate `days < weeks` case
+// the ≥ 1 floor makes the sum exceed `days` (e.g. (3, 5) → [1,1,1,1,1]). The
+// fixed span COUNT is the load-bearing contract — `runTrainingPeriods` pairs
+// `spans[i]` with `weeks[i]` — so the count is preserved over the exact sum.
+// Live callers derive `weeks ≈ round(days / 7)`, so `days < weeks` never occurs.
 export function splitGapIntoPeriods(days: number, weeks: number): number[] {
   const n = Math.max(1, weeks);
   const base = Math.floor(days / n);

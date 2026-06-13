@@ -20,6 +20,13 @@ export class BoardCoordinator {
   // Seed the managed club's board confidence + objective for the season ahead.
   // Year 1 uses the ambition baseline; later seasons map the just-archived
   // finish onto a seed. Resets the final-warning latch each season.
+  //
+  // NOTE: BOARD_STATE_SEEDED rebuilds `state.player.board` wholesale, so it
+  // deliberately CLEARS `europeanObjective` — a club that dropped out of Europe
+  // must not carry a stale target. The fresh objective (if the club qualified)
+  // is re-seeded immediately after by `seedEuropeanObjectiveAndDrawStory()` via
+  // EUROPEAN_OBJECTIVE_SET. Any future caller of seedBoardState() must keep that
+  // follow-up, or the European objective is lost for the season.
   seedBoardState(): void {
     const teamId = this.state.player.teamId;
     const ambition: BoardAmbition = this.teamsById.get(teamId)?.boardAmbition ?? 'playoffs';

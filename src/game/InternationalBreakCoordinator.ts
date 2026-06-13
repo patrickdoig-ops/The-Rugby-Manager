@@ -66,10 +66,16 @@ export class InternationalBreakCoordinator {
       });
     }
 
-    const callUps = selectInternationalSquads(this.state, window);
-    const alreadyFlagged = callUps.some(
-      c => this.state.career.roster[c.rosterId]?.internationalDuty?.window === window,
-    );
+    // Guard against a caps double-bump on re-entry (the user can leave and
+    // re-open the break after a cup matchday's dev nudge shifts OVRs): key off
+    // whether ANY player is already flagged for this window — the duty flags are
+    // stable, a fresh squad re-selection can drift. On re-entry, derive the
+    // returned call-ups from the flags too, so the UI shows exactly who was
+    // called up rather than a drifted re-selection. RNG-free either way.
+    const alreadyFlagged = this.anyOnInternationalDuty(window);
+    const callUps = alreadyFlagged
+      ? callUpsFromDutyFlags(this.state, window)
+      : selectInternationalSquads(this.state, window);
     if (!alreadyFlagged) {
       for (const ev of buildCallUpEvents(callUps, window)) applySeasonEvent(this.state, ev);
     }

@@ -1215,6 +1215,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const stage: 'sf' | 'final' = playoffs.semifinals.every(m => m.result) ? 'final' : 'sf';
+    // Tick the elapsed weeks since the previous matchday up to this stage's
+    // date, so season progression (week counter, morale, scouting, AI European
+    // catch-up) advances on playoff weeks too — competition-agnostic.
+    const stageDate = stage === 'sf' ? (playoffs.semifinals[0].date ?? '') : (playoffs.final.date ?? '');
+    if (stageDate) await gameEngine.advanceMatchdayCalendar(stageDate);
     const playerMatch = gameEngine.getPlayerPlayoffMatch();
 
     const afterStageResolved = (): void => {

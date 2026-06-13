@@ -114,6 +114,10 @@ async function drainEuropean(coord: GameCoordinator, teamsById: Map<string, RawT
         ? 400 + fix.fixture.round
         : 410 + ['r16', 'quarterfinal', 'semifinal', 'final'].indexOf(fix.stage);
       const isFinal = fix.kind === 'knockout' && fix.stage === 'final';
+      // Mirror main.ts: advance the calendar to the fixture date before
+      // recording so the elapsed-week passes tick (competition-agnostic).
+      const euroDate = fix.kind === 'pool' ? fix.fixture.date : (fix.match.date ?? '');
+      if (euroDate) await coord.advanceMatchdayCalendar(euroDate);
       const sim = await simulateFixture(home, away, state.seed, seedRound, { neutralVenue: isFinal });
       if (fix.kind === 'pool') {
         await coord.recordPlayerEuropeanPoolResult(fix.competition, fix.fixture.poolId, fix.fixture.round, homeId, awayId, sim.homeScore, sim.awayScore, sim.snapshot);
@@ -131,6 +135,13 @@ async function drainEuropean(coord: GameCoordinator, teamsById: Map<string, RawT
 
 async function playOutPlayoffs(coord: GameCoordinator): Promise<void> {
   for (const stage of ['sf', 'final'] as const) {
+    // Mirror main.ts: advance to this stage's date so the elapsed-week passes
+    // tick on playoff weeks too.
+    const playoffs = coord.getState().league.playoffs;
+    if (playoffs) {
+      const stageDate = stage === 'sf' ? (playoffs.semifinals[0].date ?? '') : (playoffs.final.date ?? '');
+      if (stageDate) await coord.advanceMatchdayCalendar(stageDate);
+    }
     while (true) {
       const m = coord.getPlayerPlayoffMatch();
       if (!m) break;

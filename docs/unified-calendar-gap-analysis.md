@@ -322,18 +322,52 @@ real silent-regression surface. Two ways to land Stage B:
    `SAVE_VERSION` bump + `checkSaveSchema` snapshot + migration. Walk §5 read-by-read.
 
 > **STATUS (F-2):** step 1 (`runWeeklyTick` extraction) ✅ · step 2 (`leagueRound`
-> helper + display/scheduling reads) ✅ · **step 3 (monotonic `calendar.week` +
-> deadline reads migrated to `leagueRound`) ✅** — `WEEK_ADVANCED` is now a pure
-> `week += weeks` (no date), `runWeeklyTick` advances by `recoveryWeeks` and re-homes
-> `calendar.date` via `MATCHDAY_ADVANCED`, every Category-A deadline read/set is on
-> `leagueRound(state)`, save shape unchanged (**no `SAVE_VERSION` bump**), determinism +
-> silent-scores golden + save-schema all green. Cup/European still use date-only
-> `MATCHDAY_ADVANCED` and do NOT yet tick the monotonic week — that's step 4
-> (route those record paths through `runWeeklyTick`). Step 5 removes `MATCHDAY_ADVANCED`.
-5. **Docs + version bump.** `game-engine.md` (`runWeeklyTick`, `MATCHDAY_ADVANCED`
-   removal), `league-cup.md`, `european-cups-2025-26.md`, `helpContent.ts` if any
-   surfaced control changed.
-
-> Sub-steps 1–3 (F-1) achieve the "competition-agnostic weekly seam" the whole migration
-> was about. Sub-step 4 (F-2) is the high-risk tail that buys only round-deadline-during-
-> breaks — recommended to defer unless explicitly wanted.
+> helper + display/scheduling reads) ✅ · step 3 (monotonic `calendar.week` +
+> deadline reads migrated to `leagueRound`) ✅ · **step 4 (elapsed-week passes made
+> competition-agnostic) ✅** — the weekly passes are split into two seams:
+> **`tickElapsedWeeks(toDate)`** (the *elapsed-week* set — `WEEK_ADVANCED { weeks }`
+> where `weeks = round(daysBetween(currentDate, toDate)/7)`, min 1; `advanceEuropeanCompetitions`;
+> morale decay × weeks; scouting × weeks; `game:weekAdvanced`) is now called from EVERY
+> competition's advance — `runWeeklyTick` (league) and `advanceMatchdayCalendar` (cup /
+> European / playoff matchdays) — so each elapsed week ticks exactly once as it passes,
+> no longer batched at the next league round. The **round-based passes**
+> (transfer-request/promise checks, poach threats, AI early-renewal cadence, playoff
+> seeding) stay in `runWeeklyTick` / `recordPlayerMatchResult`, keyed to league rounds,
+> because their streak edges / cadence counters are per-league-round and would misfire if
+> looped per calendar week or re-run on every cup matchday during a break. The
+> **injury-recovery tick stays league-only** (full prev→this gap) + playoff-only (1 week);
+> the elapsed-week seam does NOT touch injuries, so there is no double-heal.
+>
+> **H1 fix (post-audit).** Step 4's first cut had `runWeeklyTick` re-home the cursor
+> straight to the next *league* round (`earliestDateForRound(leagueRound)`), which during
+> an international break jumped the cursor PAST the whole break before its cup/European
+> matchdays were played. Each break matchday then called `advanceMatchdayCalendar` with the
+> cursor already parked ahead of it, moving it backward and (via the `days <= 0 → weeks:1`
+> floor) ticking a phantom extra week of `WEEK_ADVANCED` + morale + scouting. An audit over
+> a real 2025-26 season measured `calendar.week = 61` vs a true calendar span of ≈38, plus
+> 6 backward cursor jumps. Two changes make the cursor **forward-only** and stop it jumping
+> the break: (1) `tickElapsedWeeks(toDate)` ticks 0 weeks AND leaves `calendar.date`
+> untouched when `toDate <= calendar.date` (only a strictly-later `toDate` advances and
+> ticks); (2) `runWeeklyTick` advances only to `getNextBlock()?.startDate` (the next
+> unplayed block across ALL competitions — the first break matchday during a break, the
+> next league round otherwise; the block date exists even on a player bye), falling back to
+> `earliestDateForRound(leagueRound)` then `+1 week`. Re-instrumented over the same season:
+> `calendar.week = 37` (= `round(daysBetween(firstLeagueFixture, lastLeagueFixture)/7)+1`),
+> 0 backward jumps — the per-season increments now sum to the true calendar span with no
+> week double-counted and none skipped, including across breaks and on byes.
+>
+> Save shape unchanged (**no `SAVE_VERSION`
+> bump**); career determinism re-baselined (reproducible + round-trip), silent-scores
+> golden + save-schema green. The harness (`checkSeasonDeterminism.ts`) drives European +
+> playoff matchdays through `advanceMatchdayCalendar` in lockstep. **Independently
+> re-verified** — build + `verify` green, and an instrumented full-season probe measured
+> `calendar.week = 37` (= the true span) with 0 backward jumps.
+>
+> **F-2 COMPLETE (steps 1–4). The original plan's step 5 is moot.** "Remove
+> `MATCHDAY_ADVANCED`" no longer applies: after the H1 fix, `MATCHDAY_ADVANCED` is the
+> canonical **forward-only date-setter** that `tickElapsedWeeks` emits for *every*
+> competition (plus the `fromSave` re-home), so it is load-bearing, not a removable
+> cup-only leftover. And the `SAVE_VERSION` bump is unnecessary — the save shape is
+> unchanged (`currentWeek` is still a number that round-trips cleanly; `checkSaveSchema`
+> green). The migration's goals — monotonic `calendar.week`, derived `leagueRound`, and
+> competition-agnostic weekly passes — are all achieved by steps 1–4.

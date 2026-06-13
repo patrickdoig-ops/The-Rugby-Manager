@@ -987,12 +987,12 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and a sing
 |---|---|---|
 | Squad | `squad-management` | Matchday-23 curation; round-trips with PreMatch via `state.player.matchdaySquad` |
 | Tactics | `tactics` | See/set team tactics (presets + advanced editor) outside the pre-match flow; commits to `state.player.tactics` via `setPlayerTactics` on back. `TacticsHubScreen.ts` |
-| Competitions | `competitions-menu` | Sub-menu: League / League Cup / European Cup / European Shield |
+| Competitions | `competitions-menu` | Sub-menu: Fixture List / League / League Cup / European Cup / European Shield |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 | Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf + Scouting leaf; badge = expiring-contract count + poach-threat count combined |
 | Club | `club-menu` | Sub-menu (club colours): Board Confidence, Assistant Manager, Staff, Finances, Awards tiles |
 
-**Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `CompetitionsMenuScreen` is the home for competition-related screens; `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features. (The **Fixtures** list — formerly a Hub tile — now lives as a tile in the **League sub-menu**; `goFixtures` → `fixture-list` is shared by the League sub-menu and the inbox.)
+**Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `CompetitionsMenuScreen` is the home for competition-related screens; `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features. (The league-only **Fixtures** list — formerly a Hub tile — lives as a tile in the **League sub-menu**; `goFixtures` → `fixture-list` is shared by the League sub-menu and the inbox. Distinct from it, the **Fixture List** tile at the TOP of the Competitions sub-menu opens `SeasonFixturesScreen` (`goSeasonFixtures` → `season-fixtures`): the club's whole season across ALL competitions in one chronological list — see §15.5.)
 
 PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge (`.pm-captain-badge`, a circular "C") on each starter row — modelled on the OOP badge. Tap to nominate, tap the current captain to clear; persists to `state.player.captainRosterId` via `setPlayerCaptain`. Unset rows default the badge to the highest-composure starter (`resolveCaptainRosterId`). Narrative-only: the captain is named in the referee's team-22 warning during the match.
 
@@ -1012,6 +1012,7 @@ Home
 Hub
  ├─ Squad / Tactics / Training → leaf screen, back → Hub
  ├─ [Competitions] → CompetitionsMenuScreen → back → Hub
+ │   ├─ [Fixture List] → SeasonFixturesScreen (whole season, ALL competitions, chronological; auto-scrolls to the highlighted next match), back → CompetitionsMenuScreen
  │   ├─ [League] → LeagueMenuScreen → leaf (Table / Fixtures / Team Stats / Player Stats), back → LeagueMenuScreen → back → CompetitionsMenuScreen
  │   ├─ [League Cup] → CupFixturesScreen (browse), back → CompetitionsMenuScreen
  │   ├─ [European Cup] → EuropeanCupScreen (pools & knockouts; tap a team name → TeamInfoScreen), back → CompetitionsMenuScreen

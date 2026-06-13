@@ -620,10 +620,13 @@ export class GameCoordinator {
   }
 
   async advanceMatchdayCalendar(toDate: string): Promise<void> {
-    if (toDate && toDate !== this.state.calendar.date) {
-      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
-    }
-    await this.advanceEuropeanCompetitions();
+    // Cup / European / playoff matchdays now drive the elapsed-week passes for
+    // the weeks they advance, so season progression (week counter, morale
+    // decay, scouting accuracy, AI European catch-up) is competition-agnostic
+    // rather than batched at the next league round. `tickElapsedWeeks` sets the
+    // date AND advances Europe, so the trailing advanceEuropeanCompetitions is
+    // no longer needed here.
+    await this.tickElapsedWeeks(toDate);
   }
 
   async recordPlayerCupPoolResult(
@@ -1277,7 +1280,7 @@ export class GameCoordinator {
       applySeasonEvent(this.state, ev);
     }
 
-    await this.runWeeklyTick(recoveryWeeks);
+    await this.runWeeklyTick();
 
     // Last regular-season fixture just resolved → seed the playoff
     // bracket from the final standings. game:bracketSeeded is the post-
@@ -1290,50 +1293,88 @@ export class GameCoordinator {
     }
   }
 
-  // The competition-agnostic weekly-pass seam. Advances the league-week cursor
-  // and runs every season pass that fires on the passage of game time:
-  // European AI catch-up, morale decay, transfer-request/promise checks,
-  // scouting-accuracy gain, poach-threat assessment, and the AI early-renewal
-  // cadence. `recoveryWeeks` is the number of whole weeks elapsed since the
-  // player's previous fixture (1 for an ordinary turnaround, more across an
-  // international break); the per-week passes loop that many times.
+  // The competition-agnostic elapsed-week seam. Advances calendar.date to
+  // `toDate` and runs every season pass that fires purely on the passage of
+  // game time, scaled by the whole-week gap from the current cursor: the
+  // monotonic week counter, AI European catch-up, morale decay, and
+  // scouting-accuracy gain. Called from EVERY competition's advance — the
+  // league tick (via runWeeklyTick), and the cup / European / playoff matchday
+  // flow (via advanceMatchdayCalendar) — so each elapsed week is ticked exactly
+  // once, as it passes, rather than batched at the next league round.
   //
-  // Extracted verbatim from recordPlayerMatchResult (no behaviour change) so a
-  // future block driver / the cup + European record paths can drive the weekly
-  // tick uniformly rather than the league record path owning it alone.
-  private async runWeeklyTick(recoveryWeeks: number): Promise<void> {
-    // Advance the monotonic week counter by the whole-week gap to the next
-    // fixture (1 for an ordinary turnaround, more across an international
-    // break), then re-home calendar.date onto the next league round's earliest
-    // kick-off. WEEK_ADVANCED no longer touches the date (it's no longer a
-    // round index), so the date is set here from the derived league round.
-    applySeasonEvent(this.state, { type: 'WEEK_ADVANCED', weeks: recoveryWeeks });
-    const nextRoundDate = earliestDateForRound(this.state.league.fixtures, leagueRound(this.state));
-    const newDate = nextRoundDate ?? addDaysIso(this.state.calendar.date, SEASON_VALUES.weekLengthDays * recoveryWeeks);
-    if (newDate !== this.state.calendar.date) {
-      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate: newDate });
+  // The cursor is **forward-only**: a `toDate` at or before the current
+  // `calendar.date` ticks 0 weeks AND leaves `calendar.date` untouched (no
+  // backward `MATCHDAY_ADVANCED`). Only a strictly-later `toDate` advances the
+  // date and ticks weeks. This is the load-bearing invariant — without it a
+  // matchday whose date the league cursor has already skipped past would move
+  // the cursor backward and (via the `days <= 0 → weeks:1` floor) tick a
+  // phantom extra week.
+  //
+  // `weeks` = round(daysBetween(currentDate, toDate) / 7), min 1 for a real
+  // forward advance (matchdays are ≥5 days apart in the real schedule, so this
+  // never floors a genuine gap); a no-op or backward advance ticks nothing.
+  // Summed across a season — every advance counting only the strictly-forward
+  // days since the last cursor position — the increments total the true
+  // calendar span (first→last fixture) with no week double-counted and none
+  // skipped, including across international breaks (each break matchday ticks
+  // the days since the previous one) and on bye weeks (the next block's start
+  // date carries the cursor through).
+  //
+  // Round-based passes (transfer-request/promise checks, poach threats, AI
+  // early-renewal cadence, playoff seeding) are NOT here — they stay tied to
+  // league rounds in recordPlayerMatchResult, since their streak edges /
+  // cadence counters are per-league-round and would misfire if looped per
+  // calendar week or re-run on every cup/European matchday during a break.
+  private async tickElapsedWeeks(toDate: string): Promise<void> {
+    const forward = !!toDate && toDate > this.state.calendar.date;
+    const weeks = forward ? upcomingGapFromDate(this.state.calendar.date, toDate).weeks : 0;
+    if (forward) {
+      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
+    }
+    if (weeks > 0) {
+      applySeasonEvent(this.state, { type: 'WEEK_ADVANCED', weeks });
     }
     // Play out any European fixtures whose date has now arrived (AI sides;
     // the player plays their own live). The bracket fills in over the season.
+    // Date-gated + idempotent over already-simmed fixtures, so the European
+    // record paths re-calling it after recording a player result is harmless.
     await this.advanceEuropeanCompetitions();
-    // Morale decay now runs once per week of the gap to the next fixture, so a
-    // multi-week international break decays idle players toward baseline
-    // proportionally more than a normal one-week turnaround — the weekly-pass
-    // cadence is no longer pinned to a single league round. This mirrors how
-    // injury recovery + scouting accuracy already scale by the gap above.
-    // RNG-free + order-stable, so determinism holds. max(1, …) keeps an
-    // ordinary turnaround (recoveryWeeks === 1) byte-for-byte unchanged; only
-    // break weeks differ. (Transfer-request + poach-threat passes stay
-    // round-based: their promise-deadline / streak edges aren't safe to loop.)
-    const moraleWeeks = Math.max(1, recoveryWeeks);
-    for (let w = 0; w < moraleWeeks; w++) {
+    // Morale decay + scouting accuracy run once per elapsed week, so a
+    // multi-week international break decays idle players toward baseline /
+    // accrues scouting accuracy proportionally more than a one-week turnaround.
+    // RNG-free + order-stable, so determinism holds.
+    for (let w = 0; w < weeks; w++) {
       for (const ev of computeMoraleDecayEvents(this.state)) {
         applySeasonEvent(this.state, ev);
       }
     }
-    this.transfers.checkTransferRequestsAndPromises();
-    for (let w = 0; w < recoveryWeeks; w++) this.staff.advanceScoutingAccuracy();
+    for (let w = 0; w < weeks; w++) this.staff.advanceScoutingAccuracy();
     eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  // The league-round weekly tick. Advances the cursor only as far as the next
+  // actual calendar event — the next unplayed block's start date across ALL
+  // competitions, NOT the next league round. During an international break that
+  // next event is the first cup/European matchday, so the league round ticks
+  // only up to it and the break's own matchdays tick forward through the rest;
+  // re-homing straight to the next league round would jump the cursor past the
+  // whole break and force the break's matchdays to move it backward (the H1
+  // double-count bug). For a pure league-to-league gap with no intervening
+  // matchday the next block IS the next league round, so behaviour is
+  // unchanged. The block start date exists regardless of whether the player has
+  // a fixture in it, so byes still advance the cursor correctly. Falls back to
+  // the next league round's kick-off (then +1 week) when no block remains.
+  // Then the league-round-keyed passes that are NOT safe to fire per-calendar-
+  // week: transfer-request/promise checks, poach-threat assessment, AI
+  // early-renewal cadence.
+  private async runWeeklyTick(): Promise<void> {
+    const nextBlockDate = this.getNextBlock()?.startDate;
+    const newDate = nextBlockDate
+      ?? earliestDateForRound(this.state.league.fixtures, leagueRound(this.state))
+      ?? addDaysIso(this.state.calendar.date, SEASON_VALUES.weekLengthDays);
+    await this.tickElapsedWeeks(newDate);
+
+    this.transfers.checkTransferRequestsAndPromises();
 
     // Background poach-threat assessment — RNG-free, runs every round.
     // Keeps the Hub Transfers badge current without the user opening

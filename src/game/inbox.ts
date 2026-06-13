@@ -18,6 +18,7 @@ import { generateSeasonPrediction } from './media/mediaManager';
 import { confidenceBand, europeanObjectiveText } from './board';
 import { hashSeed } from '../utils/rng';
 import { nextBlock } from './calendarBlocks';
+import { stageLabelLong } from './stageLabel';
 import { europeanTeams } from '../data/european-teams';
 
 export interface InboxItem {
@@ -93,25 +94,7 @@ function resolveNextOpponent(state: GameState, allTeams: RawTeamInput[]): NextOp
   const opp = premOpp ?? europeanTeams.find(t => t.id === oppId);
   if (!opp) return null;
 
-  let stageLabel: string;
-  switch (fix.comp) {
-    case 'league':
-      stageLabel = `Round ${fix.round}`;
-      break;
-    case 'cup':
-      stageLabel = fix.ref.kind === 'knockout'
-        ? (fix.ref.stage === 'final' ? 'League Cup Final' : 'League Cup Semi-Final')
-        : 'League Cup';
-      break;
-    case 'european': {
-      const compName = fix.ref.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
-      stageLabel = fix.ref.kind === 'knockout' ? `${compName} Knockout` : compName;
-      break;
-    }
-    case 'playoff':
-      stageLabel = fix.ref.kind === 'final' ? 'Play-off Final' : 'Play-off Semi-Final';
-      break;
-  }
+  const stageLabel = stageLabelLong(fix);
 
   return { opp, oppId, stageLabel, date: fix.date, hasLeagueData: premOpp !== undefined };
 }

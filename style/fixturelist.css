@@ -125,6 +125,29 @@
 .fl-round--derby .fl-round-label { color: var(--rm-amber); }
 .fl-round--derby .fl-round-num   { color: var(--rm-amber); }
 
+/* Cross-competition Fixture List (SeasonFixturesScreen) — per-row competition
+   name in the meta line + per-competition accent on the badge tag/name. The
+   spelled-out name is the primary signal (it distinguishes European Cup from
+   European Shield); the accent colour groups rows at a glance. */
+.fl-comp-name {
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-9);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.fl-comp--league          .fl-round-label, .fl-comp--league          .fl-comp-name { color: var(--rm-pitch); }
+.fl-comp--cup             .fl-round-label, .fl-comp--cup             .fl-comp-name { color: var(--rm-amber); }
+.fl-comp--european-cup    .fl-round-label, .fl-comp--european-cup    .fl-comp-name { color: var(--rm-chalk); }
+.fl-comp--european-shield .fl-round-label, .fl-comp--european-shield .fl-comp-name { color: color-mix(in oklch, var(--rm-amber) 55%, var(--rm-chalk)); }
+.fl-comp--playoff         .fl-round-label, .fl-comp--playoff         .fl-comp-name { color: var(--rm-pitch-glow); }
+
 /* Special venue chip — shown on the active row's date line when a
    match is played at an alternative ground. */
 .fl-venue-chip {

@@ -32,7 +32,7 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 
 For routine, mechanical tasks, default to **Sonnet**; escalate to **Opus** only when the task surfaces real complications.
 
-- **Sonnet by default:** merging a branch to main, fast-forward / clean merges, telemetry or baseline refreshes, documentation and `CLAUDE.md` updates, version bumps, and well-specified formula / data / UI work (or any task whose plan explicitly recommends Sonnet).
+- **Sonnet by default:** merging a branch to main, fast-forward / clean merges, telemetry or baseline refreshes, documentation and `CLAUDE.md` updates, and well-specified formula / data / UI work (or any task whose plan explicitly recommends Sonnet).
 - **Escalate to Opus when:** a merge has non-trivial conflicts that need judgement, the work touches foundational engine / substrate or architecture, calibration won't converge, or the change is judgement-heavy or hard to reverse.
 - When unsure whether a task is routine, start with Sonnet and escalate only if it proves harder. Documentation and `CLAUDE.md` edits default to Sonnet.
 
@@ -225,11 +225,7 @@ npm run probe     # headless-Chromium capture of 2D pitch animation — screensh
 
 ## Versioning
 
-**After every committed update, bump `src/version.ts`.** Pattern `1.XXb` (e.g. `1.00b`, `1.01b`); increment the two-digit minor number by 1.
-
 **Never push to `main` directly from a session branch.** Session branches push only to their own remote branch (`git push origin HEAD`). Changes land on `main` only when explicitly instructed to merge or deploy.
-
-**Docs-only exception:** a commit that touches *only* Markdown / documentation (no `src/` changes) skips the version bump — the deployed app is unchanged, so the version must not move.
 
 ## Balance constants
 

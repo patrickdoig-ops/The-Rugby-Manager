@@ -163,3 +163,13 @@ export const STARTER_FA_POOL = {
   ageBand:     { min: 23, max: 32 },
   ratingBand:  { min: 65, max: 85 },
 };
+
+// ── Roster hygiene (long-career growth control) ──────────────────────────
+// Retained-archive depth. The live archive and the saved archive are both
+// trimmed to this many most-recent seasons; older seasons' leaders / per-player
+// history are dropped. Retired roster records not referenced by the retained
+// archive (or any live structure) are pruned at rollover, so the roster — and
+// therefore the save file — stays bounded across a long career instead of
+// accumulating every player who ever retired. weightedLeaguePosition only ever
+// reads the two most-recent archive entries, so 15 is comfortably deep.
+export const ARCHIVE_CAP = 15;

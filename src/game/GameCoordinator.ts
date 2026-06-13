@@ -60,6 +60,8 @@ import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/e
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, upcomingGapFromDate, splitGapIntoPeriods, nextPlayableDate } from './trainingCalendar';
+import { leagueRound, earliestDateForRound } from './leagueRound';
+import { addDaysIso } from './age';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generateStaffPool, staffWageForRating } from './staffPoolGenerator';
@@ -371,8 +373,16 @@ export class GameCoordinator {
         result: { ...r },
       });
     }
+    // Restore the monotonic week counter to the saved value. WEEK_ADVANCED no
+    // longer touches calendar.date, so re-home the date onto the next league
+    // round's earliest kick-off (the saved value of calendar.date is derived,
+    // not persisted — same as before this loop owned the date).
     while (coord.state.calendar.week < save.currentWeek) {
       applySeasonEvent(coord.state, { type: 'WEEK_ADVANCED' });
+    }
+    const loadedRoundDate = earliestDateForRound(coord.state.league.fixtures, leagueRound(coord.state));
+    if (loadedRoundDate && loadedRoundDate !== coord.state.calendar.date) {
+      applySeasonEvent(coord.state, { type: 'MATCHDAY_ADVANCED', toDate: loadedRoundDate });
     }
     if (save.tactics) {
       applySeasonEvent(coord.state, { type: 'PLAYER_TACTICS_SET', tactics: save.tactics });
@@ -465,7 +475,7 @@ export class GameCoordinator {
   counselPlayer(rosterId: number): void {
     const p = this.state.career.roster[rosterId];
     if (!p) return;
-    const expiresAfterRound = this.state.calendar.week + DISCIPLINE_COUNSEL.durationRounds;
+    const expiresAfterRound = leagueRound(this.state) + DISCIPLINE_COUNSEL.durationRounds;
     applySeasonEvent(this.state, { type: 'PLAYER_DISCIPLINE_COUNSELLED', rosterId, expiresAfterRound });
   }
 
@@ -1240,8 +1250,10 @@ export class GameCoordinator {
     await this.simLeagueRound(round);
 
     // Yellow card accumulation ban: check if any human squad player has hit
-    // the threshold for the first time this season. calendar.week is still
-    // the round just played; the ban covers the next round (week + 1).
+    // the threshold for the first time this season. `round` is the league round
+    // just played; the ban covers the NEXT league round (round + 1). Keyed off
+    // the league round, not the monotonic calendar.week — read back via
+    // leagueRound(state) in selectionUnavailableIds / inbox.
     const humanClub = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
     if (humanClub) {
       for (const rid of humanClub.squad) {
@@ -1251,17 +1263,17 @@ export class GameCoordinator {
           applySeasonEvent(this.state, {
             type: 'PLAYER_SUSPENDED',
             rosterId: rid,
-            forRound: this.state.calendar.week + 1,
+            forRound: round + 1,
           });
         }
       }
     }
 
-    // Reconcile PGA rest obligations for the round just played (calendar.week
-    // still points at this round). A player whose obligation covered this
-    // round and who didn't feature has satisfied it. Runs before
-    // WEEK_ADVANCED so the round number is correct.
-    for (const ev of reconcileRestObligations(this.state, this.humanMatchdaySquadIds())) {
+    // Reconcile PGA rest obligations for the round just played. A player whose
+    // obligation covered this round and who didn't feature has satisfied it.
+    // `round` is the just-played league round (the obligation eligibleRounds are
+    // league-round numbers).
+    for (const ev of reconcileRestObligations(this.state, round, this.humanMatchdaySquadIds())) {
       applySeasonEvent(this.state, ev);
     }
 
@@ -1290,7 +1302,17 @@ export class GameCoordinator {
   // future block driver / the cup + European record paths can drive the weekly
   // tick uniformly rather than the league record path owning it alone.
   private async runWeeklyTick(recoveryWeeks: number): Promise<void> {
-    applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
+    // Advance the monotonic week counter by the whole-week gap to the next
+    // fixture (1 for an ordinary turnaround, more across an international
+    // break), then re-home calendar.date onto the next league round's earliest
+    // kick-off. WEEK_ADVANCED no longer touches the date (it's no longer a
+    // round index), so the date is set here from the derived league round.
+    applySeasonEvent(this.state, { type: 'WEEK_ADVANCED', weeks: recoveryWeeks });
+    const nextRoundDate = earliestDateForRound(this.state.league.fixtures, leagueRound(this.state));
+    const newDate = nextRoundDate ?? addDaysIso(this.state.calendar.date, SEASON_VALUES.weekLengthDays * recoveryWeeks);
+    if (newDate !== this.state.calendar.date) {
+      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate: newDate });
+    }
     // Play out any European fixtures whose date has now arrived (AI sides;
     // the player plays their own live). The bracket fills in over the season.
     await this.advanceEuropeanCompetitions();
@@ -1320,10 +1342,11 @@ export class GameCoordinator {
       this.transfers.updatePoachThreats();
     }
 
-    // AI early-renewal cadence: every AI_EARLY_RENEWAL_CADENCE_ROUNDS rounds,
-    // each AI club attempts to lock in its best expiring player before the
-    // off-season window.
-    if (this.state.calendar.week % AI_EARLY_RENEWAL_CADENCE_ROUNDS === 1) {
+    // AI early-renewal cadence: every AI_EARLY_RENEWAL_CADENCE_ROUNDS league
+    // rounds, each AI club attempts to lock in its best expiring player before
+    // the off-season window. Keyed off the league round (the cadence is a
+    // round count), not the monotonic calendar.week.
+    if (leagueRound(this.state) % AI_EARLY_RENEWAL_CADENCE_ROUNDS === 1) {
       this.transfers.runAIEarlyRenewals();
     }
   }

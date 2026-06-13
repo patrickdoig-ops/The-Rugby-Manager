@@ -3,12 +3,13 @@
 // variant has a single branch, and the exhaustive `default: const _: never`
 // catches missing branches at compile time when SeasonEvent grows.
 
-import type { CupKnockoutMatch, EuropeanCompState, EuropeanKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
+import type { CupKnockoutMatch, EuropeanCompState, EuropeanKnockoutMatch, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import type { MoraleReason } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION, ARCHIVE_CAP } from '../engine/balance';
 import { applyResultToStanding } from './leagueTable';
+import { leagueRound, earliestDateForRound } from './leagueRound';
 
 // Sum of senior cap + dispensation credits — the league's absolute
 // ceiling on any club's non-marquee wage spend. The takeover boost
@@ -30,7 +31,7 @@ function setMoraleNote(p: { moraleNote?: { reason: MoraleReason; week: number } 
   }
 }
 import { assertSeasonInvariants } from './seasonInvariants';
-import { addDaysIso, getAge } from './age';
+import { getAge } from './age';
 import { playerOverall } from '../engine/RatingEngine';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
@@ -71,9 +72,11 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       return;
     }
     case 'WEEK_ADVANCED': {
-      state.calendar.week += 1;
-      const nextRoundDate = earliestDateForRound(state.league.fixtures, state.calendar.week);
-      state.calendar.date = nextRoundDate ?? addDaysIso(state.calendar.date, SEASON_VALUES.weekLengthDays);
+      // Monotonic week counter — no longer a league-round index, so it doesn't
+      // touch calendar.date (the caller re-homes the date to the next league
+      // round's earliest fixture). `weeks` lets a single event span a multi-week
+      // gap (e.g. an international break) so the counter tracks elapsed weeks.
+      state.calendar.week += event.weeks ?? 1;
       // Prune mid-season FA rejection cooldowns that have aged out:
       // an entry with weekUntilClear ≤ current week is now approachable
       // again. Rebuild via Object.fromEntries rather than deleting from
@@ -249,7 +252,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (!p) return;
       p.injury = undefined;
       // Returning from injury carries a fading form penalty (rustiness).
-      p.formReturn = { round: state.calendar.week, penalty: FORM_MODEL.injuryReturnPenalty };
+      p.formReturn = { round: leagueRound(state), penalty: FORM_MODEL.injuryReturnPenalty };
       return;
     }
     case 'MARQUEE_DESIGNATED': {
@@ -728,7 +731,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       p.internationalDuty = undefined;
       p.condition = Math.max(0, Math.min(100, event.condition));
       // Returning from international duty carries a fading form penalty.
-      p.formReturn = { round: state.calendar.week, penalty: FORM_MODEL.intlReturnPenalty };
+      p.formReturn = { round: leagueRound(state), penalty: FORM_MODEL.intlReturnPenalty };
       if (event.restEligibleRounds && event.restEligibleRounds.length > 0) {
         p.restObligation = { window: event.window, eligibleRounds: [...event.restEligibleRounds] };
       } else {
@@ -1377,16 +1380,4 @@ function findOrCreate(standings: TeamStanding[], teamId: string): TeamStanding {
     standings.push(s);
   }
   return s;
-}
-
-// Min ISO date across fixtures in a given round. Returns null if no fixture
-// in that round carries a date (random-gen seasons), or the round doesn't
-// exist (season finished).
-function earliestDateForRound(fixtures: Fixture[], round: number): string | null {
-  let min: string | null = null;
-  for (const f of fixtures) {
-    if (f.round !== round || !f.date) continue;
-    if (min === null || f.date < min) min = f.date;
-  }
-  return min;
 }

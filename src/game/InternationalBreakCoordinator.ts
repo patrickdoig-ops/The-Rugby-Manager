@@ -17,6 +17,7 @@ import { buildCupTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
 import { collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
+import { leagueRound } from './leagueRound';
 import { rollNewInjuryEvents } from './injuryEffects';
 import {
   isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
@@ -144,7 +145,7 @@ export class InternationalBreakCoordinator {
   // which cup leg is currently reachable.
   private upcomingLeagueDate(): string {
     const fixtures: Fixture[] = this.state.league.fixtures;
-    const round = this.state.calendar.week;
+    const round = leagueRound(this.state);
     let earliest: string | null = null;
     for (const f of fixtures) {
       if (f.round !== round || !f.date) continue;

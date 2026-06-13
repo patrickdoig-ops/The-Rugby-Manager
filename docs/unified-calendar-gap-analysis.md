@@ -126,40 +126,43 @@ tick. Stage B wants a monotonic week counter — but only some reads mean "weeks
 elapsed". Splitting them is the single biggest correctness risk. Every current read,
 categorised:
 
-### Category A — genuine "league round N" reads (must stay round-based, i.e. re-derive a `leagueRound` from the next/just-played league fixture, NOT the monotonic week)
+> **CORRECTION (F-2 step 3, 2026-06).** The original split below mislabelled most
+> deadlines as Category B ("re-base onto the monotonic week"). That was **wrong**:
+> almost every deadline in this codebase is a **LEAGUE-ROUND** concept (it gates match
+> selection / availability / per-round cadence), so it migrates to `leagueRound(state)`
+> (Category A), NOT the monotonic week. Only genuinely week-or-time-based reads and
+> RNG-seed/id reads stay on `calendar.week`. The tables below reflect the reclassification
+> as implemented in step 3.
+
+### Category A — "league round N" reads → `leagueRound(state)` (`src/game/leagueRound.ts` = player's completed league rounds + 1)
+
+| Site | Use | Migrated in |
+|---|---|---|
+| `LeagueMenuScreen.ts`, `LeagueTableScreen.ts`, `trainingCalendar.ts`, several `inbox.ts` | progress bar, run-in, rounds-left, owner/block reports | step 2 |
+| `GameCoordinator.recordPlayerMatchResult` suspension set (`round + 1`); `inbox.ts` + `selectionUnavailableIds`/`isSuspended` reads | yellow-card ban — next **league round** | step 3 |
+| `GameCoordinator.counselPlayer` (`leagueRound + DISCIPLINE_COUNSEL.durationRounds`); `inbox.ts`, `rosterTeamBuilder.ts` reads | discipline advice `expiresAfterRound` — N **rounds** | step 3 |
+| `TransferCoordinator.makePlayingTimePromise` (`leagueRound + windowRounds`); `TransferCoordinator.checkTransferRequestsAndPromises` + `inbox.ts` reads | playing-time promise `toRound` — N **rounds** | step 3 |
+| `TransferCoordinator` loan set-sites | loan `fromRound` — a round stamp (never read as a deadline, migrated for consistency) | step 3 |
+| `applySeasonEvent` `formReturn.round` set (`PLAYER_RECOVERED`/`PLAYER_RETURNED_FROM_DUTY`); `playerForm.computeFormInputs` read | injury/intl-return rustiness fades over **league rounds** | step 3 |
+| `internationalDutyEngine` `isInternationalBreak`, `mustRestThisRound`, `selectionUnavailableIds`, `reconcileRestObligations` (now takes an explicit `round` param); `lionsReturnRound` + rest-obligation reads in `trainingWeek.ts`, `SquadManagementScreen.ts`, `PreMatchScreen.ts`, `inbox.ts`; `InternationalBreakCoordinator.upcomingLeagueDate` | "available from round X" — **league rounds** | step 3 |
+| `GameCoordinator.runWeeklyTick` AI early-renewal cadence (`leagueRound % N === 1`) | cadence is a **round** count | step 3 |
+
+`reconcileRestObligations` reads at the just-played round (= `leagueRound - 1` after the
+result is recorded), so it takes the explicit `round` param rather than `leagueRound(state)`.
+
+### Category B — genuinely week/time-based reads → stay on the monotonic `calendar.week`
 
 | Site | Use |
 |---|---|
-| `applySeasonEvent.ts:74–75` | `WEEK_ADVANCED` increment + `earliestDateForRound(week)` |
-| `LeagueMenuScreen.ts:78` | season progress bar `week / totalRounds` |
-| `LeagueTableScreen.ts:195,199,210,211,273` | round eyebrow, "run-in" label, rounds-left, just-completed round |
-| `trainingCalendar.ts:27,65` | `nextRound` |
-| `inbox.ts:208,212,666,751,835,893` | intl-rest rounds-ahead, week-1 owner message, round-6/11 block reports |
+| `TransferCoordinator.ts:586,839,1037`, `midseasonSigningResolver.ts:141` (set); `:364,550,730,809,982`, `ContractsScreen.ts`, `TransferMarketScreen.ts` (read); `applySeasonEvent` `WEEK_ADVANCED` prune | midseason-rejection cooldown `weekUntilClear` (named in **weeks**, pruned in `WEEK_ADVANCED`) |
+| `applySeasonEvent` `moraleNote.week` | a "when noted" timestamp — never compared as a deadline |
 
-If `week` became a monotonic tick (incremented on cup/European/break weeks too),
-every Category-A read silently breaks — the displayed "round" would drift past 18.
-**These need a distinct `leagueRound` source derived from fixtures.**
-
-### Category B — "deadline / weeks-elapsed" reads (safe to re-base onto the monotonic week)
+### Category D (unchanged) — RNG-seed / id-construction reads stay on `calendar.week`
 
 | Site | Use |
 |---|---|
-| `GameCoordinator.ts:1254`, `inbox.ts:316,945` | suspension `forRound = week + 1` |
-| `GameCoordinator.ts:468`, `inbox.ts:313`, `rosterTeamBuilder.ts:155` | discipline advice `expiresAfterRound = week + 3` |
-| `TransferCoordinator.ts:1130`, `inbox.ts:290` | playing-time promise `toRound` |
-| `TransferCoordinator.ts:1170,1188` | loan `fromRound` |
-| `TransferCoordinator.ts:585,838,1036`, `midseasonSigningResolver.ts:141` | midseason-rejection cooldown `weekUntilClear` |
-| `GameCoordinator.ts:1301` | AI early-renewal cadence `week % N` |
-| `applySeasonEvent.ts:252,722`, `playerForm.ts:55` | `formReturn.round` + form lookup |
-| `internationalDutyEngine.ts:65,67,296,339,361` | call-up / return round |
-| `trainingWeek.ts:124`, `SquadManagementScreen.ts:191`, `inbox.ts:147` | `lionsReturnRound` comparisons |
-
-These all mean "N weeks from now / since then". They keep working under a monotonic
-week **provided the offsets are re-expressed in weeks-elapsed**, not league rounds —
-audit each `+ 1` / `+ N` to confirm the unit is a week, not a round. (Today a cup or
-European week doesn't bump `week`, so a promise made before a break currently counts
-break weeks as zero elapsed — re-basing onto a true weekly tick **changes** these
-deadlines. That's a behaviour change to accept deliberately, not a bug to preserve.)
+| `aiTrainingDirector.ts:123–135` | `hashSeed(\`${seasonLabel}:${week}:N\`)` |
+| `TransferCoordinator.ts:813,878`; `inbox.ts` `fatigue`/`intlrest` ids | offer / inbox ids — only need stable uniqueness |
 
 ### Category C — save/restore + invariant (mechanical follow-on)
 
@@ -317,6 +320,16 @@ real silent-regression surface. Two ways to land Stage B:
 4. **(F-2 only) Split `calendar.week`.** Introduce derived `leagueRound`; re-base
    Category-A reads (§5) to it; make `week` monotonic; re-base Category-B offsets;
    `SAVE_VERSION` bump + `checkSaveSchema` snapshot + migration. Walk §5 read-by-read.
+
+> **STATUS (F-2):** step 1 (`runWeeklyTick` extraction) ✅ · step 2 (`leagueRound`
+> helper + display/scheduling reads) ✅ · **step 3 (monotonic `calendar.week` +
+> deadline reads migrated to `leagueRound`) ✅** — `WEEK_ADVANCED` is now a pure
+> `week += weeks` (no date), `runWeeklyTick` advances by `recoveryWeeks` and re-homes
+> `calendar.date` via `MATCHDAY_ADVANCED`, every Category-A deadline read/set is on
+> `leagueRound(state)`, save shape unchanged (**no `SAVE_VERSION` bump**), determinism +
+> silent-scores golden + save-schema all green. Cup/European still use date-only
+> `MATCHDAY_ADVANCED` and do NOT yet tick the monotonic week — that's step 4
+> (route those record paths through `runWeeklyTick`). Step 5 removes `MATCHDAY_ADVANCED`.
 5. **Docs + version bump.** `game-engine.md` (`runWeeklyTick`, `MATCHDAY_ADVANCED`
    removal), `league-cup.md`, `european-cups-2025-26.md`, `helpContent.ts` if any
    surfaced control changed.

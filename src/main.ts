@@ -77,6 +77,7 @@ import { initSavesScreen }         from './ui/SavesScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
+import { initSeasonFixturesScreen } from './ui/SeasonFixturesScreen';
 import { initMatchdayScreen, showMatchdayPreview } from './ui/MatchdayScreen';
 import type { CalendarBlock } from './game/calendarBlocks';
 import { initTacticsHubScreen, showTacticsScreen } from './ui/TacticsHubScreen';
@@ -372,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onInbox:    goInbox,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
+    initSeasonFixturesScreen(getGameEngine, allTeamsWithEuropean, () => goCompetitionsMenu('back'));
     // The block fixtures preview ("This Week") — inited with European teams so
     // it can resolve non-Premiership opponent names on European weekends.
     initMatchdayScreen(getGameEngine, allTeamsWithEuropean);
@@ -405,6 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCompetitionsMenuScreen({
       getGameEngine,
       onBack:           () => goHub('back'),
+      onFixtureList:    goSeasonFixtures,
       onLeague:         goLeagueMenu,
       onCup:            goCupBrowse,
       onEuropeanCup:    goEuropeanCup,
@@ -594,6 +597,19 @@ document.addEventListener('DOMContentLoaded', () => {
     screenRouter.show('hub', { direction });
   }
 
+  // Recover from a mid-match engine crash. In live mode MatchCoordinator.tick()
+  // catches the throw and emits engine:error WITHOUT rethrowing, so the global
+  // crash net never fires. Without this the user is stranded on the inert #app
+  // match screen (no abandon control) and must kill the app. Tear the match
+  // down, persist the (still-unplayed) season so no progress is lost, warn, and
+  // return to the Hub — the fixture stays unplayed and can be retried.
+  function recoverFromMatchCrash(engine: MatchCoordinator): void {
+    engine.destroy();
+    flushActiveGame();
+    showToast('The match hit an error and was abandoned — your game is safe. Please try the fixture again.', 'danger');
+    goHub('back');
+  }
+
   function goFixtures(direction: 'forward' | 'back' = 'forward'): void {
     screenRouter.show('fixture-list', { direction });
   }
@@ -615,6 +631,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goCompetitionsMenu(direction: 'forward' | 'back' = 'forward'): void {
     screenRouter.show('competitions-menu', { direction });
+  }
+
+  function goSeasonFixtures(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('season-fixtures', { direction });
   }
 
   function goEuropeanCup(direction: 'forward' | 'back' = 'forward'): void {
@@ -1202,6 +1222,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const stage: 'sf' | 'final' = playoffs.semifinals.every(m => m.result) ? 'final' : 'sf';
+    // Tick the elapsed weeks since the previous matchday up to this stage's
+    // date, so season progression (week counter, morale, scouting, AI European
+    // catch-up) advances on playoff weeks too — competition-agnostic.
+    const stageDate = stage === 'sf' ? (playoffs.semifinals[0].date ?? '') : (playoffs.final.date ?? '');
+    if (stageDate) await gameEngine.advanceMatchdayCalendar(stageDate);
     const playerMatch = gameEngine.getPlayerPlayoffMatch();
 
     const afterStageResolved = (): void => {
@@ -1328,7 +1353,7 @@ document.addEventListener('DOMContentLoaded', () => {
       unsub(); unsubErr();
       showPlayoffMatchResult(engine, state, match, onAfterResult);
     });
-    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); recoverFromMatchCrash(engine); });
     // Initialise BEFORE revealing #app — see onMatchStart for the rationale.
     engine.initialize();
     screenRouter.show('app');
@@ -1622,7 +1647,7 @@ document.addEventListener('DOMContentLoaded', () => {
       unsub(); unsubErr();
       showMatchResult(engine, state, round);
     });
-    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); recoverFromMatchCrash(engine); });
     // Initialise BEFORE revealing #app so the scoreboard / commentary / pitch
     // panels reset on engine:initialized and repaint on the first
     // engine:stateChange while the screen is still hidden. Otherwise the user
@@ -1812,7 +1837,7 @@ document.addEventListener('DOMContentLoaded', () => {
       unsub(); unsubErr();
       showCupMatchResult(engine, state, ref, onAfterResult);
     });
-    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); recoverFromMatchCrash(engine); });
     engine.initialize();
     screenRouter.show('app');
   }
@@ -2051,7 +2076,7 @@ document.addEventListener('DOMContentLoaded', () => {
       unsub(); unsubErr();
       showEuropeanMatchResult(engine, state, euroFix, onAfterResult);
     });
-    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); engine.destroy(); });
+    const unsubErr = eventBus.on('engine:error', () => { unsub(); unsubErr(); recoverFromMatchCrash(engine); });
     engine.initialize();
     screenRouter.show('app');
   }

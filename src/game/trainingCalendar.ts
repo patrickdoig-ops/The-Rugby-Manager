@@ -1,17 +1,19 @@
 // Pure helpers for reasoning about the gap between the player's matches.
 // The season calendar stores only `calendar.date` (the upcoming round's
-// earliest fixture) and `calendar.week` (the upcoming round number), so the
-// real rest gap for the manager's own team — which varies with Fri/Sat/Sun
-// kick-offs and the Autumn Nations / Six Nations breaks — is derived on
-// demand from the fixture list rather than stored.
+// earliest fixture) and the monotonic `calendar.week` counter; the upcoming
+// round number is derived (`leagueRound`). So the real rest gap for the
+// manager's own team — which varies with Fri/Sat/Sun kick-offs and the Autumn
+// Nations / Six Nations breaks — is derived on demand from the fixture list
+// rather than stored.
 //
 // Both the engine injury-recovery tick (GameCoordinator.recordPlayerMatchResult)
 // and the Training UI read `upcomingGap`, and they agree because at both call
-// sites `calendar.week` already points at the upcoming round: the just-played
-// match is round `week - 1`, the next is round `week`.
+// sites the derived `leagueRound(state)` already points at the upcoming round:
+// the just-played match is round `leagueRound - 1`, the next is `leagueRound`.
 
 import type { GameState } from '../types/gameState';
 import { SEASON_VALUES } from '../engine/balance';
+import { leagueRound } from './leagueRound';
 
 // Days + whole-week count between the player's previous match (round
 // week-1) and their upcoming match (round week). `weeks` is the number of
@@ -24,7 +26,7 @@ import { SEASON_VALUES } from '../engine/balance';
 // leg-0 fixture date to R1, approximating the real ~2-week window.
 export function upcomingGap(state: GameState): { weeks: number; days: number } {
   const playerId = state.player.teamId;
-  const nextRound = state.calendar.week;
+  const nextRound = leagueRound(state);
   const prevDate = playerFixtureDate(state, playerId, nextRound - 1);
   let nextDate = playerFixtureDate(state, playerId, nextRound);
 
@@ -61,8 +63,8 @@ export function upcomingGap(state: GameState): { weeks: number; days: number } {
 }
 
 // Gap for a non-league matchday (cup / European), derived from explicit
-// from/to dates rather than league-round lookup. `upcomingGap` keys off
-// `calendar.week`, which doesn't move for an intermediate cup/European
+// from/to dates rather than league-round lookup. `upcomingGap` keys off the
+// derived `leagueRound`, which doesn't move for an intermediate cup/European
 // matchday, so it would report the surrounding league gap instead of the
 // matchday-to-next-matchday gap — hence this date-explicit variant. Falls
 // back to a single 7-day week when either date is missing or the span is
@@ -77,8 +79,14 @@ export function upcomingGapFromDate(
   return { weeks: Math.max(1, Math.round(days / 7)), days };
 }
 
-// Split a gap of `days` into `weeks` period-spans summing to `days`. Extra
-// days land on the earlier periods. e.g. (36, 5) → [8,7,7,7,7]; (6,1) → [6].
+// Split a gap of `days` into exactly `weeks` period-spans (each ≥ 1 day, so the
+// downstream per-period training loop never gets a zero-length span). Extra days
+// land on the earlier periods. e.g. (36, 5) → [8,7,7,7,7]; (6,1) → [6]. The sum
+// equals `days` whenever `days ≥ weeks`; in the degenerate `days < weeks` case
+// the ≥ 1 floor makes the sum exceed `days` (e.g. (3, 5) → [1,1,1,1,1]). The
+// fixed span COUNT is the load-bearing contract — `runTrainingPeriods` pairs
+// `spans[i]` with `weeks[i]` — so the count is preserved over the exact sum.
+// Live callers derive `weeks ≈ round(days / 7)`, so `days < weeks` never occurs.
 export function splitGapIntoPeriods(days: number, weeks: number): number[] {
   const n = Math.max(1, weeks);
   const base = Math.floor(days / n);

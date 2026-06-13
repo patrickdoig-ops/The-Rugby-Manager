@@ -32,7 +32,7 @@ Architectural invariants and ways of working for this repo. Lean by design. Read
 
 For routine, mechanical tasks, default to **Sonnet**; escalate to **Opus** only when the task surfaces real complications.
 
-- **Sonnet by default:** merging a branch to main, fast-forward / clean merges, telemetry or baseline refreshes, documentation and `CLAUDE.md` updates, version bumps, and well-specified formula / data / UI work (or any task whose plan explicitly recommends Sonnet).
+- **Sonnet by default:** merging a branch to main, fast-forward / clean merges, telemetry or baseline refreshes, documentation and `CLAUDE.md` updates, and well-specified formula / data / UI work (or any task whose plan explicitly recommends Sonnet).
 - **Escalate to Opus when:** a merge has non-trivial conflicts that need judgement, the work touches foundational engine / substrate or architecture, calibration won't converge, or the change is judgement-heavy or hard to reverse.
 - When unsure whether a task is routine, start with Sonnet and escalate only if it proves harder. Documentation and `CLAUDE.md` edits default to Sonnet.
 
@@ -209,8 +209,9 @@ npm run build:cap # same build but with a relative base for the Capacitor native
 npm run cap:sync  # build:cap then `cap sync ios` (copies dist/ into the iOS project)
 npm run cap:ios   # cap:sync then `cap open ios` (opens the Xcode workspace — Mac only)
 npm run preview   # serve the dist/ folder locally
-npm run verify    # match determinism (scripts/checkDeterminism.ts) AND season determinism (scripts/checkSeasonDeterminism.ts) — both must pass
+npm run verify    # fast unit checks (scripts/checkUnits.ts — pure helpers + save-parser field preservation, no match sims) THEN match determinism (scripts/checkDeterminism.ts) AND season determinism (scripts/checkSeasonDeterminism.ts) — all must pass
 npm run telemetry # balance/realism report — 450 fixtures, markdown to stdout. Not part of `verify`; run on demand when tuning. CI regenerates `telemetry/latest.md` on every push to main; don't edit it by hand.
+npm run check:career # long-career robustness harness (scripts/checkCareerGrowth.ts) — runs 20 seasons and asserts the squad floor (every club ≥ MIN_SQUAD_SIZE) and bounded growth (retired-roster prune + archive cap keep the save size plateaued under a ceiling). Exit 1 on violation. NOT part of `verify` (a faithful 20-season run is ~90+ match sims/season over 1000+ rosters — minutes). Run on demand when touching rollover / supply / prune / squad-floor code.
 npm run probe     # headless-Chromium capture of 2D pitch animation — screenshots + dot traces → `harness/` (gitignored), THEN runs sync assertions over the trace (teleport detector + channel-exclusivity = hard failures → exit 1; carrier-contact = soft warn). Re-analyse the last capture without recapturing: `node scripts/checkProbeTrace.mjs`. Kill stale Vite first (`pkill -9 -f vite`) or it serves a STALE bundle; if `pkill` is blocked, pass a fresh `PROBE_PORT` so it spawns its own. Each dot trace carries a stable `data-key` (`h:10`); each beat carries `primaryKey` (the carrier candidate).
 ```
 
@@ -224,11 +225,7 @@ npm run probe     # headless-Chromium capture of 2D pitch animation — screensh
 
 ## Versioning
 
-**After every committed update, bump `src/version.ts`.** Pattern `1.XXb` (e.g. `1.00b`, `1.01b`); increment the two-digit minor number by 1.
-
 **Never push to `main` directly from a session branch.** Session branches push only to their own remote branch (`git push origin HEAD`). Changes land on `main` only when explicitly instructed to merge or deploy.
-
-**Docs-only exception:** a commit that touches *only* Markdown / documentation (no `src/` changes) skips the version bump — the deployed app is unchanged, so the version must not move.
 
 ## Balance constants
 

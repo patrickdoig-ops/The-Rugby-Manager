@@ -17,6 +17,7 @@ import { buildCupTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, CUP_SEED_ROUND, buildCupSeed, buildCupKnockoutSeed } from './cupScheduler';
 import { cupDevelopmentEvents } from './cupDevelopment';
 import { collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
+import { leagueRound } from './leagueRound';
 import { rollNewInjuryEvents } from './injuryEffects';
 import {
   isInternationalBreak, selectInternationalSquads, buildCallUpEvents,
@@ -66,10 +67,16 @@ export class InternationalBreakCoordinator {
       });
     }
 
-    const callUps = selectInternationalSquads(this.state, window);
-    const alreadyFlagged = callUps.some(
-      c => this.state.career.roster[c.rosterId]?.internationalDuty?.window === window,
-    );
+    // Guard against a caps double-bump on re-entry (the user can leave and
+    // re-open the break after a cup matchday's dev nudge shifts OVRs): key off
+    // whether ANY player is already flagged for this window — the duty flags are
+    // stable, a fresh squad re-selection can drift. On re-entry, derive the
+    // returned call-ups from the flags too, so the UI shows exactly who was
+    // called up rather than a drifted re-selection. RNG-free either way.
+    const alreadyFlagged = this.anyOnInternationalDuty(window);
+    const callUps = alreadyFlagged
+      ? callUpsFromDutyFlags(this.state, window)
+      : selectInternationalSquads(this.state, window);
     if (!alreadyFlagged) {
       for (const ev of buildCallUpEvents(callUps, window)) applySeasonEvent(this.state, ev);
     }
@@ -138,7 +145,7 @@ export class InternationalBreakCoordinator {
   // which cup leg is currently reachable.
   private upcomingLeagueDate(): string {
     const fixtures: Fixture[] = this.state.league.fixtures;
-    const round = this.state.calendar.week;
+    const round = leagueRound(this.state);
     let earliest: string | null = null;
     for (const f of fixtures) {
       if (f.round !== round || !f.date) continue;

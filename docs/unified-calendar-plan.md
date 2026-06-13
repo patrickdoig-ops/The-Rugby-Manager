@@ -1,6 +1,6 @@
 # Unified Calendar / Game Cycle — Implementation Plan
 
-> **Status:** design plan, not yet implemented. Authored for a Sonnet implementation pass.
+> **Status:** commits 1–3 landed (block primitives, GameCoordinator surface, single Hub CTA + `onContinue`/`playBlock` dispatch); commits 4–6 outstanding. See `docs/unified-calendar-gap-analysis.md` for the true current state and the scoped remaining work. Authored for a Sonnet implementation pass.
 > **Branch:** `claude/unified-calendar-game-cycle-dkmodc`.
 > **Goal:** Make the game advance like Football Manager — a single calendar-driven
 > "Continue" cycle that treats every game weekend the same regardless of competition,

@@ -30,7 +30,7 @@ import type { ArchivedPlayerSeason, Fixture, GameState, SeasonEvent, TeamStandin
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
 import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
-import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, REPUTATION_OVR_NUDGE, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
+import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, REPUTATION_OVR_NUDGE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, POSITION_FLOORS, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
@@ -41,6 +41,7 @@ import { redrawCupPools, buildCupSeed } from './cupScheduler';
 import { buildYear2EuropeanSeed } from './europeanScheduler';
 import { generateStaffPool } from './staffPoolGenerator';
 import { sortStandings } from './leagueTable';
+import { positionGroup, neediestPosition, emptyGroupCounts, type PositionGroup } from './squadComposition';
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
@@ -106,16 +107,52 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   let nextRid = state.career.nextRosterId;
   const calendarAnchor = seasonOpenIso(newSeasonStartYear);
 
-  // Academy: per club, in stable id-ascending order.
+  // Per-club projected position-group counts (current squad minus this
+  // rollover's retirements / out-moves, plus in-moves). Academy intake targets
+  // the biggest per-position shortfall vs POSITION_FLOORS so the scarce
+  // specialist positions (Lock / Prop / Hooker / SH / FH) don't starve under
+  // uniform-random generation while the three-label back row bloats.
+  const posCountByClub = new Map<string, Record<PositionGroup, number>>();
+  for (const club of state.career.clubs) {
+    const counts = emptyGroupCounts();
+    for (const rid of club.squad) {
+      const g = positionGroup(state.career.roster[rid]?.position ?? '');
+      if (g !== 'Other') counts[g]++;
+    }
+    posCountByClub.set(club.id, counts);
+  }
+  for (const e of events) {
+    if (e.type === 'PLAYER_RETIRED' && e.clubId) {
+      const g = positionGroup(state.career.roster[e.rosterId]?.position ?? '');
+      const c = posCountByClub.get(e.clubId);
+      if (c && g !== 'Other') c[g] = Math.max(0, c[g] - 1);
+    } else if (e.type === 'TRANSFER_ACTIVATED') {
+      const g = positionGroup(state.career.roster[e.rosterId]?.position ?? '');
+      if (g !== 'Other') {
+        const from = posCountByClub.get(e.fromClubId); if (from) from[g] = Math.max(0, from[g] - 1);
+        const to = posCountByClub.get(e.toClubId); if (to) to[g] += 1;
+      }
+    }
+  }
+
+  // Academy: per club, in stable id-ascending order. Each graduate is generated
+  // into the club's neediest position (null → leave the random roll) so intake
+  // closes per-position gaps. The random position roll is consumed regardless,
+  // so the rngTransfer stream offset is unchanged.
   const sortedClubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
   for (const club of sortedClubs) {
     const grads = rngTransfer(ACADEMY_SUPPLY.gradsPerClub.min, ACADEMY_SUPPLY.gradsPerClub.max);
+    const counts = posCountByClub.get(club.id) ?? emptyGroupCounts();
     for (let i = 0; i < grads; i++) {
+      const targetPos = neediestPosition(counts);
       const player = generatePersona(
-        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand },
+        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand,
+          ...(targetPos ? { position: targetPos } : {}) },
         calendarAnchor,
       );
       events.push({ type: 'ACADEMY_GRADUATED', clubId: club.id, player });
+      const g = positionGroup(player.position);
+      if (g !== 'Other') counts[g] += 1;
       nextRid += 1;
     }
   }
@@ -130,6 +167,79 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     );
     events.push({ type: 'FOREIGN_IMPORT_ARRIVED', player });
     nextRid += 1;
+  }
+
+  // 3b. Squad-size floor. Project each club's post-rollover squad size from the
+  // events already queued (this rollover's retirements, pre-agreed moves, and
+  // the academy intake above) plus the loan-in players that SEASON_ROLLED_OVER
+  // releases — then top up any club below MIN_SQUAD_SIZE with extra academy
+  // graduates so no club starts the new season unable to field a 23. Runs after
+  // the regular intake, in the same stable alpha club order, so the rngTransfer
+  // sequence stays deterministic. A no-op for healthy squads (no RNG consumed).
+  const projected = new Map<string, number>();
+  for (const club of state.career.clubs) {
+    const loanInCount = club.squad.reduce((n, rid) => n + (state.career.roster[rid]?.loanIn ? 1 : 0), 0);
+    projected.set(club.id, club.squad.length - loanInCount);
+  }
+  for (const e of events) {
+    if (e.type === 'TRANSFER_ACTIVATED') {
+      projected.set(e.fromClubId, (projected.get(e.fromClubId) ?? 0) - 1);
+      projected.set(e.toClubId, (projected.get(e.toClubId) ?? 0) + 1);
+    } else if (e.type === 'PLAYER_RETIRED' && e.clubId) {
+      projected.set(e.clubId, (projected.get(e.clubId) ?? 0) - 1);
+    } else if (e.type === 'ACADEMY_GRADUATED') {
+      projected.set(e.clubId, (projected.get(e.clubId) ?? 0) + 1);
+    }
+  }
+  for (const club of sortedClubs) {
+    let size = projected.get(club.id) ?? 0;
+    const counts = posCountByClub.get(club.id) ?? emptyGroupCounts();
+    while (size < MIN_SQUAD_SIZE) {
+      const targetPos = neediestPosition(counts);
+      const player = generatePersona(
+        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand,
+          ...(targetPos ? { position: targetPos } : {}) },
+        calendarAnchor,
+      );
+      events.push({ type: 'ACADEMY_GRADUATED', clubId: club.id, player });
+      const g = positionGroup(player.position);
+      if (g !== 'Other') counts[g] += 1;
+      nextRid += 1;
+      size += 1;
+    }
+    projected.set(club.id, size); // reflect top-ups for the size-cap pass below
+  }
+
+  // 3c. Squad-size cap. For each club projected above MAX_SQUAD_SIZE, release its
+  // lowest-OVR players down to the cap — never a marquee, a loan-in, or a player
+  // retiring / moving this rollover, and never a position already at its
+  // POSITION_FLOOR (so trimming bloat — e.g. an over-deep back row — can't reopen
+  // a shortage). Higher-OVR players can be cut once the position has depth.
+  // Released players enter the free-agent pool. RNG-free (pure OVR sort, stable
+  // by rosterId), so it doesn't shift the rngTransfer stream.
+  for (const club of sortedClubs) {
+    let size = projected.get(club.id) ?? 0;
+    if (size <= MAX_SQUAD_SIZE) continue;
+    const counts = posCountByClub.get(club.id) ?? emptyGroupCounts();
+    const leaving = new Set<number>();
+    for (const e of events) {
+      if (e.type === 'PLAYER_RETIRED' && e.clubId === club.id) leaving.add(e.rosterId);
+      else if (e.type === 'TRANSFER_ACTIVATED' && e.fromClubId === club.id) leaving.add(e.rosterId);
+    }
+    const pool = club.squad
+      .filter(rid => !leaving.has(rid))
+      .map(rid => state.career.roster[rid])
+      .filter((p): p is NonNullable<typeof p> => !!p && !p.contract.isMarquee && !p.loanIn)
+      .map(p => ({ rid: p.rosterId, ovr: playerOverall(p.baseStats, p.position), group: positionGroup(p.position) }))
+      .sort((a, b) => a.ovr - b.ovr || a.rid - b.rid);
+    for (const cand of pool) {
+      if (size <= MAX_SQUAD_SIZE) break;
+      if (cand.group === 'Other') continue;
+      if (counts[cand.group] <= POSITION_FLOORS[cand.group]) continue;
+      events.push({ type: 'CONTRACT_TERMINATED', rosterId: cand.rid, reason: 'released' });
+      counts[cand.group] -= 1;
+      size -= 1;
+    }
   }
 
   // 4. Awards + season-rollover composite.

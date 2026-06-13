@@ -50,6 +50,10 @@ let activeTab: Tab = 'free-agents';
 let activeOnSubmit: () => void = () => {};
 let activeOnFinish: () => void = () => {};
 let renderImpl: (() => void) | null = null;
+// Guards the async bid flow: a second tap while the wage modal is open (or a
+// bid is resolving) would submit a duplicate offer / poach. Module-scoped so it
+// survives the re-render that rebinds the row handlers.
+let bidInFlight = false;
 
 export function showTransferMarket(onSubmit: () => void, onFinish: () => void): void {
   mode = 'signings';
@@ -436,6 +440,7 @@ export function initTransferMarketScreen(
       btn.addEventListener('click', async () => {
         const rid = Number(btn.dataset.bid);
         if (!Number.isFinite(rid)) return;
+        if (bidInFlight) return; // ignore re-entrant taps while a modal/bid resolves
         const state = gameEngine.getState();
         const p = state.career.roster[rid];
         const offer = state.career.market?.offers.find(o => o.rosterId === rid);
@@ -455,45 +460,50 @@ export function initTransferMarketScreen(
         const maxWage = Math.max(asking, Math.min(asking * 1.5, headroom));
         const read = wageReadFor(mode, state, offer, p, clubId);
 
-        const chosen = await wageOfferModal({
-          playerName: `${p.firstName} ${p.lastName}`,
-          askingWage: asking,
-          minWage,
-          maxWage,
-          initialWage: asking,
-          confirmLabel: isPoach ? 'Pre-Agree' : 'Make Offer',
-          read,
-          budgetLine: (wage: number) => budgetLineFor(usage + wage, budgetCap),
-        });
-        if (chosen === null) return;
+        bidInFlight = true;
+        try {
+          const chosen = await wageOfferModal({
+            playerName: `${p.firstName} ${p.lastName}`,
+            askingWage: asking,
+            minWage,
+            maxWage,
+            initialWage: asking,
+            confirmLabel: isPoach ? 'Pre-Agree' : 'Make Offer',
+            read,
+            budgetLine: (wage: number) => budgetLineFor(usage + wage, budgetCap),
+          });
+          if (chosen === null) return;
 
-        // Mid-season Reg 7 rows resolve immediately (no queue) — the player
-        // accepts or declines on the spot, with a one-round cooldown on decline.
-        if (isPoach && isMidseason) {
-          const result = gameEngine.submitMidseasonPoach(rid, chosen);
-          if (result === 'accepted') {
-            showToast(`Pre-agreed with ${p.firstName} ${p.lastName}`, 'info');
-          } else {
-            showToast(`${p.firstName} ${p.lastName} — not interested`, 'info');
+          // Mid-season Reg 7 rows resolve immediately (no queue) — the player
+          // accepts or declines on the spot, with a one-round cooldown on decline.
+          if (isPoach && isMidseason) {
+            const result = gameEngine.submitMidseasonPoach(rid, chosen);
+            if (result === 'accepted') {
+              showToast(`Pre-agreed with ${p.firstName} ${p.lastName}`, 'info');
+            } else {
+              showToast(`${p.firstName} ${p.lastName} — not interested`, 'info');
+            }
+            render();
+            return;
           }
+
+          const ok = gameEngine.submitBid(rid, chosen);
+          if (ok) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');
+          else playId('ui.error'); // bid rejected (e.g. over budget)
           render();
-          return;
+          requestAnimationFrame(() => {
+            const newRow = el!.querySelector<HTMLDivElement>(`.tm-row[data-row-id="${rid}"]`);
+            if (newRow && ok) {
+              newRow.style.setProperty('--tm-tag-label', isPoach ? "'REG 7'" : "'OFFER'");
+              newRow.style.setProperty('--tm-tag-color', isPoach ? 'var(--rm-stat-5)' : 'var(--rm-pitch)');
+              newRow.classList.add('tm-row--just-signed');
+              setTimeout(() => newRow.classList.add('tm-row--tag-fading'), 1400);
+              setTimeout(() => newRow.classList.remove('tm-row--just-signed', 'tm-row--tag-fading'), 1900);
+            }
+          });
+        } finally {
+          bidInFlight = false;
         }
-
-        const ok = gameEngine.submitBid(rid, chosen);
-        if (ok) showToast(`Offer made for ${p.firstName} ${p.lastName}`, 'info');
-        else playId('ui.error'); // bid rejected (e.g. over budget)
-        render();
-        requestAnimationFrame(() => {
-          const newRow = el!.querySelector<HTMLDivElement>(`.tm-row[data-roster-id="${rid}"]`);
-          if (newRow && ok) {
-            newRow.style.setProperty('--tm-tag-label', isPoach ? "'REG 7'" : "'OFFER'");
-            newRow.style.setProperty('--tm-tag-color', isPoach ? 'var(--rm-stat-5)' : 'var(--rm-pitch)');
-            newRow.classList.add('tm-row--just-signed');
-            setTimeout(() => newRow.classList.add('tm-row--tag-fading'), 1400);
-            setTimeout(() => newRow.classList.remove('tm-row--just-signed', 'tm-row--tag-fading'), 1900);
-          }
-        });
       });
     });
     el!.querySelectorAll<HTMLButtonElement>('.tm-sign[data-withdraw]').forEach(btn => {

@@ -42,6 +42,7 @@ import { createRowExpander } from './components/rowExpand';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { GameState } from '../types/gameState';
 import type { PlayerInjury } from '../types/player';
+import { leagueRound } from '../game/leagueRound';
 
 type RawPlayer = {
   id: number;
@@ -178,7 +179,7 @@ function renderLineupRow(
   const restOb = rosterEntry?.restObligation;
   const onRest = !!restOb
     && rosterEntry?.contract.clubId === state.player.teamId
-    && restOb.eligibleRounds.includes(state.calendar.week);
+    && restOb.eligibleRounds.includes(leagueRound(state));
   const restBadge = onRest
     ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${restOb!.eligibleRounds.join(', ')}">REST</span>`
     : '';
@@ -715,7 +716,10 @@ export function initPreMatchScreen(
 
     // Forward CTA — advances step, or kicks off the match at the end.
     if (step === 'tactics') {
-      screen.querySelector<HTMLButtonElement>('#pm-start')!.addEventListener('click', () => {
+      const startBtn = screen.querySelector<HTMLButtonElement>('#pm-start')!;
+      startBtn.addEventListener('click', () => {
+        if (startBtn.disabled) return; // a second tap in the 600ms exit window would kick off the match twice
+        startBtn.disabled = true;
         screen.classList.add('pm-exit');
         setTimeout(() => {
           teardownSession?.();

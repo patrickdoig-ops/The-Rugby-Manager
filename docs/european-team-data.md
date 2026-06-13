@@ -364,7 +364,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Marcel Van der Merwe | Hooker | 1993-01-01 | 33 | South Africa | 77 | 78 | 63 | 65 | 66 | 74 | 74 | 44 | 79 | 70 | 70 | 69 |
 | Toby Smith | Prop | 1995-01-01 | 31 | England | 77 | 87 | 55 | 59 | 60 | 75 | 74 | 38 | 83 | 68 | 67 | 68 |
-| Ben Tameifuna | Prop | 1992-01-01 | 34 | New Zealand | 78 | 91 | 54 | 58 | 61 | 76 | 75 | 38 | 84 | 68 | 66 | 68 |
+| Viliami Taufa | Prop | 1992-01-01 | 34 | New Zealand | 78 | 91 | 54 | 58 | 61 | 76 | 75 | 38 | 84 | 68 | 66 | 68 |
 | Lionel Massip | Lock | 1998-01-01 | 28 | France | 77 | 82 | 57 | 58 | 59 | 70 | 69 | 37 | 79 | 65 | 64 | 62 |
 | Théo Millet | Flanker | 2001-01-01 | 25 | France | 81 | 76 | 71 | 73 | 67 | 77 | 77 | 47 | 68 | 66 | 69 | 64 |
 | Arnaud Dupuy | Scrum-half | 1991-01-01 | 35 | France | 82 | 69 | 79 | 80 | 79 | 67 | 65 | 76 | 49 | 72 | 74 | 72 |
@@ -472,7 +472,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Quentin Doumayrou | Scrum-half | 1997-01-01 | 29 | France | 83 | 70 | 79 | 81 | 79 | 68 | 66 | 75 | 48 | 72 | 74 | 72 |
 | Colin Slade | Fly-half | 1987-06-11 | 38 | New Zealand | 80 | 68 | 74 | 74 | 80 | 67 | 64 | 83 | 52 | 79 | 79 | 80 |
-| Florian Vitu | Wing | 1995-01-01 | 31 | France | 81 | 71 | 83 | 81 | 74 | 66 | 63 | 63 | 50 | 66 | 71 | 67 |
+| Hugo Fontaine | Wing | 1995-01-01 | 31 | France | 81 | 71 | 83 | 81 | 74 | 66 | 63 | 63 | 50 | 66 | 71 | 67 |
 | Florian Denos | Centre | 1995-01-01 | 31 | France | 79 | 79 | 76 | 75 | 75 | 73 | 68 | 63 | 52 | 68 | 68 | 67 |
 | Eneriko Buliruarua | Centre | 1997-01-01 | 29 | Fiji | 80 | 82 | 78 | 76 | 75 | 74 | 69 | 63 | 52 | 67 | 68 | 66 |
 | Marvin O'Connor | Wing | 2000-01-01 | 26 | France | 81 | 69 | 84 | 82 | 73 | 64 | 62 | 61 | 49 | 63 | 68 | 63 |
@@ -487,7 +487,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Baptiste Chouzenoux | Lock | 2000-01-01 | 26 | France | 77 | 81 | 57 | 57 | 58 | 70 | 69 | 37 | 78 | 63 | 62 | 61 |
 | Fabien Sanconnie | Flanker | 1995-01-01 | 31 | France | 80 | 75 | 69 | 70 | 63 | 74 | 75 | 44 | 64 | 63 | 65 | 61 |
 | Arthur Coville | Scrum-half | 2001-01-01 | 25 | France | 78 | 65 | 75 | 76 | 73 | 62 | 60 | 68 | 44 | 65 | 66 | 64 |
-| Léo Coly | Fly-half | 2001-01-01 | 25 | France | 76 | 64 | 72 | 72 | 74 | 62 | 60 | 76 | 47 | 70 | 70 | 70 |
+| Nathan Lacombe | Fly-half | 2001-01-01 | 25 | France | 76 | 64 | 72 | 72 | 74 | 62 | 60 | 76 | 47 | 70 | 70 | 70 |
 | Nicolas Durand | Full-back | 1991-01-01 | 35 | France | 79 | 67 | 76 | 75 | 71 | 63 | 61 | 72 | 48 | 64 | 67 | 65 |
 
 ---
@@ -609,7 +609,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Kerron van Vuuren | Hooker | 1992-01-01 | 34 | South Africa | 82 | 82 | 67 | 69 | 69 | 79 | 80 | 47 | 84 | 77 | 76 | 75 |
 | Ntuthuko Mchunu | Prop | 1997-01-01 | 29 | South Africa | 79 | 88 | 58 | 62 | 62 | 77 | 77 | 39 | 84 | 72 | 71 | 71 |
-| Jan-Hendrik Wessels | Prop | 2000-01-01 | 26 | South Africa | 78 | 88 | 57 | 61 | 61 | 76 | 76 | 38 | 83 | 70 | 70 | 70 |
+| Pieter van Wyk | Prop | 2000-01-01 | 26 | South Africa | 78 | 88 | 57 | 61 | 61 | 76 | 76 | 38 | 83 | 70 | 70 | 70 |
 | Ruben van Heerden | Lock | 1995-01-01 | 31 | South Africa | 83 | 87 | 61 | 62 | 64 | 78 | 77 | 41 | 85 | 74 | 73 | 72 |
 | Dylan Richardson | Flanker | 1998-01-01 | 28 | South Africa | 85 | 81 | 76 | 77 | 71 | 82 | 83 | 50 | 72 | 73 | 74 | 71 |
 | Bradley Davids | Scrum-half | 2001-01-01 | 25 | South Africa | 83 | 71 | 82 | 83 | 81 | 69 | 67 | 78 | 50 | 74 | 76 | 74 |
@@ -1103,7 +1103,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Nathan Decron | Flanker | 2002-01-01 | 24 | France | 77 | 72 | 67 | 68 | 59 | 68 | 68 | 39 | 54 | 55 | 56 | 52 |
 | Victor Vito | Scrum-half | 2002-01-01 | 24 | France | 73 | 61 | 72 | 73 | 67 | 54 | 52 | 63 | 39 | 55 | 56 | 53 |
 | Xavier Mignot | Fly-half | 2001-01-01 | 25 | France | 72 | 60 | 66 | 66 | 67 | 54 | 51 | 67 | 42 | 58 | 57 | 57 |
-| Théo Barthélémy | Full-back | 2002-01-01 | 24 | France | 71 | 60 | 70 | 68 | 62 | 51 | 48 | 60 | 39 | 50 | 52 | 49 |
+| Romain Lavergne | Full-back | 2002-01-01 | 24 | France | 71 | 60 | 70 | 68 | 62 | 51 | 48 | 60 | 39 | 50 | 52 | 49 |
 
 ---
 
@@ -1211,7 +1211,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Tom Ecochard | Wing | 1999-01-01 | 27 | France | 79 | 69 | 83 | 81 | 70 | 60 | 57 | 57 | 46 | 57 | 61 | 57 |
 | Tristan Tedder | Centre | 1996-01-01 | 30 | England | 78 | 79 | 76 | 74 | 72 | 68 | 63 | 58 | 49 | 61 | 61 | 59 |
 | Gela Aprasidze | Centre | 1996-01-01 | 30 | Georgia | 78 | 79 | 75 | 73 | 71 | 67 | 62 | 57 | 48 | 60 | 60 | 58 |
-| Antoine Aucagne | Wing | 1995-01-01 | 31 | France | 78 | 68 | 82 | 80 | 68 | 58 | 55 | 55 | 45 | 56 | 59 | 55 |
+| Théo Mercier | Wing | 1995-01-01 | 31 | France | 78 | 68 | 82 | 80 | 68 | 58 | 55 | 55 | 45 | 56 | 59 | 55 |
 | Marc Artiles | Full-back | 1995-01-01 | 31 | France | 78 | 67 | 77 | 76 | 68 | 59 | 56 | 65 | 44 | 57 | 59 | 57 |
 
 **Bench**
@@ -1889,7 +1889,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Seb Davies | Lock | 1997-01-01 | 29 | Wales | 75 | 80 | 55 | 55 | 53 | 63 | 62 | 32 | 66 | 50 | 48 | 47 |
 | Shane Lewis-Hughes | Flanker | 2001-01-01 | 25 | Wales | 78 | 72 | 68 | 69 | 55 | 63 | 63 | 34 | 45 | 42 | 42 | 39 |
 | Tomos Williams | Scrum-half | 1994-10-25 | 31 | Wales | 88 | 76 | 88 | 90 | 88 | 72 | 70 | 82 | 52 | 72 | 83 | 85 |
-| Gareth Anscombe | Fly-half | 1991-01-01 | 35 | Wales | 79 | 66 | 72 | 72 | 74 | 59 | 57 | 74 | 47 | 64 | 63 | 64 |
+| Dafydd Rhys | Fly-half | 1991-01-01 | 35 | Wales | 79 | 66 | 72 | 72 | 74 | 59 | 57 | 74 | 47 | 64 | 63 | 64 |
 | Willis Halaholo | Full-back | 1992-01-01 | 34 | Wales | 76 | 68 | 73 | 72 | 65 | 52 | 49 | 56 | 39 | 45 | 46 | 44 |
 
 ---

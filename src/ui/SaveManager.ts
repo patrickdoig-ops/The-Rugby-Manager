@@ -110,6 +110,17 @@ export function setBakWriteHook(fn: ((id: SlotId, raw: string) => void) | null):
 // Parse a raw SavedGame object into a validated SavedSeason. Shared by every
 // slot loader (and parseRawSave). Returns null on any structural problem so
 // callers fall back to "no save" rather than corrupting state.
+// Carry-through guards for verbatim-restored subtrees. `null` is a meaningful
+// saved value (comp not running / no objective) and must survive the parse;
+// `undefined` (legacy save) is omitted; non-object/invalid garbage is dropped.
+function isCompState(v: unknown): v is import('../game/GameCoordinator').SavedSeason['europeanCup'] {
+  return v === null || (typeof v === 'object' && v !== undefined);
+}
+const EUROPEAN_OBJECTIVES = new Set(['participate', 'r16', 'quarterfinal', 'semifinal', 'final', 'win']);
+function isEuropeanObjective(v: unknown): boolean {
+  return typeof v === 'string' && EUROPEAN_OBJECTIVES.has(v);
+}
+
 function parseSavedGame(parsed: SavedGame): SavedSeason | null {
   try {
     if (parsed.version !== SAVE_VERSION) {
@@ -140,6 +151,9 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       homeId: f.homeId,
       awayId: f.awayId,
       ...(f.date !== undefined ? { date: f.date } : {}),
+      ...(f.isDerby === true ? { isDerby: true } : {}),
+      ...(typeof f.venue === 'string' ? { venue: f.venue } : {}),
+      ...(typeof f.venueCapacity === 'number' ? { venueCapacity: f.venueCapacity } : {}),
     }));
     const tactics: TeamTactics | undefined = parsed.tactics
       ? { ...DEFAULT_TACTICS, ...parsed.tactics } as TeamTactics
@@ -172,7 +186,8 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
           .filter((s): s is MediaStory =>
             !!s && typeof s.id === 'string' && typeof s.round === 'number' &&
             typeof s.subject === 'string' && typeof s.body === 'string' && typeof s.outlet === 'string')
-          .map(s => ({ id: s.id, round: s.round, subject: s.subject, body: s.body, outlet: s.outlet }))
+          .map(s => ({ id: s.id, round: s.round, subject: s.subject, body: s.body, outlet: s.outlet,
+            ...(s.deepLink === 'european-cup' || s.deepLink === 'european-shield' ? { deepLink: s.deepLink } : {}) }))
       : undefined;
     const captainRosterId = typeof parsed.captainRosterId === 'number'
       ? parsed.captainRosterId
@@ -186,6 +201,9 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
           objective: parsed.board.objective,
           warningIssued: parsed.board.warningIssued,
           sacked: parsed.board.sacked === true,
+          ...(isEuropeanObjective(parsed.board.europeanObjective)
+            ? { europeanObjective: parsed.board.europeanObjective }
+            : {}),
         }
       : undefined;
     return {
@@ -217,6 +235,15 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(captainRosterId !== undefined ? { captainRosterId } : {}),
       ...(board !== undefined ? { board } : {}),
       ...(parsed.scouting !== undefined ? { scouting: parsed.scouting } : {}),
+      // Carry the career-RNG offset through the parse path. Without this the
+      // field is silently dropped on load, fromSave runs advanceTransferTo(0),
+      // and the career stream resets — diverging every reloaded career.
+      ...(typeof parsed.careerRngOffset === 'number' ? { careerRngOffset: parsed.careerRngOffset } : {}),
+      // European comp state isn't replayable from `results` (fromSave restores
+      // it verbatim via CAREER_ARCHIVE_RESTORED). Carry the subtree through as
+      // object-or-null; non-object garbage is dropped → fresh European state.
+      ...(isCompState(parsed.europeanCup) ? { europeanCup: parsed.europeanCup } : {}),
+      ...(isCompState(parsed.europeanShield) ? { europeanShield: parsed.europeanShield } : {}),
     };
   } catch {
     return null;
@@ -294,6 +321,12 @@ function parseCareer(raw: unknown): SavedCareer | undefined {
     activePoachedIds,
     ...(Array.isArray(c.staff) ? { staff: c.staff } : {}),
     ...(typeof c.nextStaffId === 'number' ? { nextStaffId: c.nextStaffId } : {}),
+    // Loan pool isn't replayable from results; fromSave restores it verbatim
+    // via LOAN_POOL_SEEDED. Dropped here = the season's loan-available players
+    // vanish on reload and the next rollover regenerates a different pool.
+    ...(Array.isArray(c.loanPool)
+      ? { loanPool: (c.loanPool as unknown[]).filter((n): n is number => typeof n === 'number') }
+      : {}),
   };
 }
 

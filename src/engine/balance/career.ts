@@ -163,3 +163,32 @@ export const STARTER_FA_POOL = {
   ageBand:     { min: 23, max: 32 },
   ratingBand:  { min: 65, max: 85 },
 };
+
+// ── Roster hygiene (long-career growth control) ──────────────────────────
+// Retained-archive depth. The live archive and the saved archive are both
+// trimmed to this many most-recent seasons; older seasons' leaders / per-player
+// history are dropped. Retired roster records not referenced by the retained
+// archive (or any live structure) are pruned at rollover, so the roster — and
+// therefore the save file — stays bounded across a long career instead of
+// accumulating every player who ever retired. weightedLeaguePosition only ever
+// reads the two most-recent archive entries, so 15 is comfortably deep.
+export const ARCHIVE_CAP = 15;
+
+// Club squad-size band, enforced at each rollover. A realistic professional
+// squad is ~35-45 (a matchday 23 plus rotation + injury / international cover).
+// MIN: any club projected below this after the season's releases, this
+// rollover's retirements + pre-agreed moves, and the academy/import intake is
+// topped up with academy graduates. MAX: a club projected above this releases
+// its lowest-OVR players (protecting per-position floors) down toward the cap.
+export const MIN_SQUAD_SIZE = 35;
+export const MAX_SQUAD_SIZE = 45;
+
+// Per-position depth floors (by composition group — see squadComposition.ts).
+// A squad meeting every floor can field a 23 with cover at each position; they
+// sum to 33, comfortably inside MIN_SQUAD_SIZE. Academy intake is targeted at
+// the biggest shortfall first, and the size-cap release never cuts a position
+// below its floor — together they fix the uniform-random-position starvation
+// (Lock / Prop / Hooker / SH / FH falling to 0 while the back row bloats).
+export const POSITION_FLOORS = {
+  Prop: 5, Hooker: 3, Lock: 4, BackRow: 6, SH: 3, FH: 3, Centre: 4, Back3: 5, UtilBack: 0,
+} as const;

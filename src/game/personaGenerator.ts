@@ -90,6 +90,10 @@ export interface PersonaSeed {
   clubId?: string;           // when omitted, generates with a random nationality
   ageBand: { min: number; max: number };
   ratingBand: { min: number; max: number };
+  // When set, forces the generated position (academy intake targeting a thin
+  // position). The random position roll is still consumed either way, so the
+  // rngTransfer stream stays aligned whether or not a position is forced.
+  position?: Position;
 }
 
 // Generate one persona, fully deterministic given the current rngTransfer
@@ -105,8 +109,11 @@ export function generatePersona(seed: PersonaSeed, calendarDate: string): Player
   const firstName = pool.first[rngTransfer(0, pool.first.length - 1)];
   const lastName  = pool.last [rngTransfer(0, pool.last.length - 1)];
 
-  // Position uniformly random across the 12 generic positions.
-  const position = ALL_POSITIONS[rngTransfer(0, ALL_POSITIONS.length - 1)];
+  // Position: forced (intake targeting a thin position) or uniformly random
+  // across the 12 generic positions. The roll is consumed either way so the
+  // rngTransfer stream offset is identical whether or not a position is forced.
+  const rolledPosition = ALL_POSITIONS[rngTransfer(0, ALL_POSITIONS.length - 1)];
+  const position = seed.position ?? rolledPosition;
 
   // Age within band, dob anchored to season-open year. Birth month +
   // day picked randomly so birthdays are spread across the calendar.

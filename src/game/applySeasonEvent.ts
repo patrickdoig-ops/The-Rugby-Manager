@@ -3,12 +3,13 @@
 // variant has a single branch, and the exhaustive `default: const _: never`
 // catches missing branches at compile time when SeasonEvent grows.
 
-import type { CupKnockoutMatch, EuropeanCompState, EuropeanKnockoutMatch, Fixture, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
+import type { CupKnockoutMatch, EuropeanCompState, EuropeanKnockoutMatch, GameState, PlayoffMatch, PremCupState, SeasonEvent, TeamSeasonStats, TeamStanding } from '../types/gameState';
 import { zeroStanding, zeroTeamSeasonStats } from '../types/gameState';
 import type { MoraleReason } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
-import { SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION } from '../engine/balance';
+import { SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION, ARCHIVE_CAP } from '../engine/balance';
 import { applyResultToStanding } from './leagueTable';
+import { leagueRound, earliestDateForRound } from './leagueRound';
 
 // Sum of senior cap + dispensation credits — the league's absolute
 // ceiling on any club's non-marquee wage spend. The takeover boost
@@ -30,7 +31,7 @@ function setMoraleNote(p: { moraleNote?: { reason: MoraleReason; week: number } 
   }
 }
 import { assertSeasonInvariants } from './seasonInvariants';
-import { addDaysIso, getAge } from './age';
+import { getAge } from './age';
 import { playerOverall } from '../engine/RatingEngine';
 
 export function applySeasonEvent(state: GameState, event: SeasonEvent): void {
@@ -71,9 +72,11 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       return;
     }
     case 'WEEK_ADVANCED': {
-      state.calendar.week += 1;
-      const nextRoundDate = earliestDateForRound(state.league.fixtures, state.calendar.week);
-      state.calendar.date = nextRoundDate ?? addDaysIso(state.calendar.date, SEASON_VALUES.weekLengthDays);
+      // Monotonic week counter — no longer a league-round index, so it doesn't
+      // touch calendar.date (the caller re-homes the date to the next league
+      // round's earliest fixture). `weeks` lets a single event span a multi-week
+      // gap (e.g. an international break) so the counter tracks elapsed weeks.
+      state.calendar.week += event.weeks ?? 1;
       // Prune mid-season FA rejection cooldowns that have aged out:
       // an entry with weekUntilClear ≤ current week is now approachable
       // again. Rebuild via Object.fromEntries rather than deleting from
@@ -87,9 +90,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       return;
     }
     case 'MATCHDAY_ADVANCED': {
-      // Step the calendar to the next cup / European matchday. calendar.week
-      // (the league-round cursor) deliberately does NOT move, so league
-      // scheduling, standings, break detection and upcomingGap are untouched.
+      // Sets only the calendar date — the monotonic `calendar.week` counter is
+      // untouched. Used by the cup / European matchday flow to step to the next
+      // matchday, and by `runWeeklyTick` to re-home the league date after a
+      // WEEK_ADVANCED (the date advance was split off WEEK_ADVANCED in F-2 step 3).
       state.calendar.date = event.toDate;
       return;
     }
@@ -249,7 +253,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (!p) return;
       p.injury = undefined;
       // Returning from injury carries a fading form penalty (rustiness).
-      p.formReturn = { round: state.calendar.week, penalty: FORM_MODEL.injuryReturnPenalty };
+      p.formReturn = { round: leagueRound(state), penalty: FORM_MODEL.injuryReturnPenalty };
       return;
     }
     case 'MARQUEE_DESIGNATED': {
@@ -497,6 +501,15 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         ...(event.leaders ? { leaders: cloneLeaders(event.leaders) } : {}),
         ...(event.playerSeasonHistory ? { playerSeasonHistory: clonePlayerHistory(event.playerSeasonHistory) } : {}),
       });
+      // Cap the live archive to the retained depth (the save payload already
+      // slices to ARCHIVE_CAP; keep the in-memory copy in lockstep so the prune
+      // below sees exactly the persisted reference set), then drop retired
+      // roster records no longer referenced by anything — without this the
+      // roster, and the save file, grow unbounded across a long career.
+      if (state.career.archive.length > ARCHIVE_CAP) {
+        state.career.archive = state.career.archive.slice(-ARCHIVE_CAP);
+      }
+      pruneRetiredRoster(state);
       state.career.seasonsCompleted += 1;
       state.calendar.seasonLabel = event.newSeasonLabel;
       state.calendar.week = 1;
@@ -719,7 +732,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       p.internationalDuty = undefined;
       p.condition = Math.max(0, Math.min(100, event.condition));
       // Returning from international duty carries a fading form penalty.
-      p.formReturn = { round: state.calendar.week, penalty: FORM_MODEL.intlReturnPenalty };
+      p.formReturn = { round: leagueRound(state), penalty: FORM_MODEL.intlReturnPenalty };
       if (event.restEligibleRounds && event.restEligibleRounds.length > 0) {
         p.restObligation = { window: event.window, eligibleRounds: [...event.restEligibleRounds] };
       } else {
@@ -1272,6 +1285,49 @@ function cupWinnerId(match: CupKnockoutMatch): string | null {
   return match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId;
 }
 
+// Drop retired roster records that nothing references any more. A retired
+// player is removed from squads / free agents / pending moves / loan pool /
+// market on retirement, so the only things that can still point at one are the
+// retained archive (leaders, top-scorer/MVP, per-player history) and the
+// player-scope captain/scouting maps. Collect every live rosterId reference,
+// then delete retired entries outside that set. RNG-neutral: every per-season
+// RNG loop already skips retired players, so removing them can't shift a draw.
+// Only ever removes retired records, so it can't orphan a squad/FA reference
+// (assertSeasonInvariants stays satisfied).
+function pruneRetiredRoster(state: GameState): void {
+  const career = state.career;
+  const referenced = new Set<number>();
+  for (const club of career.clubs) for (const id of club.squad) referenced.add(id);
+  for (const id of career.freeAgents) referenced.add(id);
+  for (const m of career.pendingMoves) referenced.add(m.rosterId);
+  if (career.loanPool) for (const id of career.loanPool) referenced.add(id);
+  for (const id of career.activePoachedIds) referenced.add(id);
+  for (const k of Object.keys(career.midseasonRejections)) referenced.add(Number(k));
+  if (career.market) {
+    for (const id of career.market.expiringRosterIds) referenced.add(id);
+    for (const o of career.market.offers) referenced.add(o.rosterId);
+    for (const b of career.market.bids) referenced.add(b.rosterId);
+  }
+  if (typeof state.player.captainRosterId === 'number') referenced.add(state.player.captainRosterId);
+  if (state.player.scouting) for (const k of Object.keys(state.player.scouting)) referenced.add(Number(k));
+  for (const season of career.archive) {
+    if (season.topScorerRosterId !== null) referenced.add(season.topScorerRosterId);
+    if (season.mvpRosterId !== null) referenced.add(season.mvpRosterId);
+    if (season.leaders) {
+      for (const cat of [season.leaders.topTries, season.leaders.topCarries, season.leaders.topTackles, season.leaders.topRating]) {
+        for (const l of cat) referenced.add(l.rosterId);
+      }
+    }
+    if (season.playerSeasonHistory) {
+      for (const k of Object.keys(season.playerSeasonHistory)) referenced.add(Number(k));
+    }
+  }
+  for (const key of Object.keys(career.roster)) {
+    const rid = Number(key);
+    if (career.roster[rid].retired && !referenced.has(rid)) delete career.roster[rid];
+  }
+}
+
 // Deep-clone an EuropeanCompState for restore (CAREER_ARCHIVE_RESTORED).
 function cloneEuropean(comp: EuropeanCompState): EuropeanCompState {
   const cloneMatch = (m: EuropeanKnockoutMatch): EuropeanKnockoutMatch => ({
@@ -1325,16 +1381,4 @@ function findOrCreate(standings: TeamStanding[], teamId: string): TeamStanding {
     standings.push(s);
   }
   return s;
-}
-
-// Min ISO date across fixtures in a given round. Returns null if no fixture
-// in that round carries a date (random-gen seasons), or the round doesn't
-// exist (season finished).
-function earliestDateForRound(fixtures: Fixture[], round: number): string | null {
-  let min: string | null = null;
-  for (const f of fixtures) {
-    if (f.round !== round || !f.date) continue;
-    if (min === null || f.date < min) min = f.date;
-  }
-  return min;
 }

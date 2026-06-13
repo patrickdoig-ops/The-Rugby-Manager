@@ -60,6 +60,8 @@ import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/e
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
 import { upcomingGap, upcomingGapFromDate, splitGapIntoPeriods, nextPlayableDate } from './trainingCalendar';
+import { leagueRound, earliestDateForRound } from './leagueRound';
+import { addDaysIso } from './age';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
 import { computeRollover } from './careerRollover';
 import { generateStaffPool, staffWageForRating } from './staffPoolGenerator';
@@ -79,7 +81,7 @@ import { computeBudgetEvents } from './budgetPlanner';
 import { computeAttendance } from './attendance';
 import { eventBus } from '../utils/eventBus';
 import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, hashSeed } from '../utils/rng';
-import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE, AI_EARLY_RENEWAL_CADENCE_ROUNDS } from '../engine/balance';
+import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE, AI_EARLY_RENEWAL_CADENCE_ROUNDS, ARCHIVE_CAP } from '../engine/balance';
 import type { SquadStatusKey } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
 import type { RawTeamInput } from '../types/teamData';
@@ -371,8 +373,16 @@ export class GameCoordinator {
         result: { ...r },
       });
     }
+    // Restore the monotonic week counter to the saved value. WEEK_ADVANCED no
+    // longer touches calendar.date, so re-home the date onto the next league
+    // round's earliest kick-off (the saved value of calendar.date is derived,
+    // not persisted — same as before this loop owned the date).
     while (coord.state.calendar.week < save.currentWeek) {
       applySeasonEvent(coord.state, { type: 'WEEK_ADVANCED' });
+    }
+    const loadedRoundDate = earliestDateForRound(coord.state.league.fixtures, leagueRound(coord.state));
+    if (loadedRoundDate && loadedRoundDate !== coord.state.calendar.date) {
+      applySeasonEvent(coord.state, { type: 'MATCHDAY_ADVANCED', toDate: loadedRoundDate });
     }
     if (save.tactics) {
       applySeasonEvent(coord.state, { type: 'PLAYER_TACTICS_SET', tactics: save.tactics });
@@ -465,7 +475,7 @@ export class GameCoordinator {
   counselPlayer(rosterId: number): void {
     const p = this.state.career.roster[rosterId];
     if (!p) return;
-    const expiresAfterRound = this.state.calendar.week + DISCIPLINE_COUNSEL.durationRounds;
+    const expiresAfterRound = leagueRound(this.state) + DISCIPLINE_COUNSEL.durationRounds;
     applySeasonEvent(this.state, { type: 'PLAYER_DISCIPLINE_COUNSELLED', rosterId, expiresAfterRound });
   }
 
@@ -610,10 +620,13 @@ export class GameCoordinator {
   }
 
   async advanceMatchdayCalendar(toDate: string): Promise<void> {
-    if (toDate && toDate !== this.state.calendar.date) {
-      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
-    }
-    await this.advanceEuropeanCompetitions();
+    // Cup / European / playoff matchdays now drive the elapsed-week passes for
+    // the weeks they advance, so season progression (week counter, morale
+    // decay, scouting accuracy, AI European catch-up) is competition-agnostic
+    // rather than batched at the next league round. `tickElapsedWeeks` sets the
+    // date AND advances Europe, so the trailing advanceEuropeanCompetitions is
+    // no longer needed here.
+    await this.tickElapsedWeeks(toDate);
   }
 
   async recordPlayerCupPoolResult(
@@ -700,7 +713,7 @@ export class GameCoordinator {
   // The gap from the current cup matchday to the player's next matchday — used
   // by the training screen so a cup-week training session shows a single,
   // matchday-scoped week rather than the surrounding multi-week league break
-  // (which `upcomingGap`, keyed off calendar.week, would report). Mirrors the
+  // (which `upcomingGap`, keyed off the derived leagueRound, would report). Mirrors the
   // span runCupMatchdayTraining itself recovers/develops over.
   cupMatchdayGap(): { weeks: number; days: number } {
     return upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
@@ -1240,8 +1253,10 @@ export class GameCoordinator {
     await this.simLeagueRound(round);
 
     // Yellow card accumulation ban: check if any human squad player has hit
-    // the threshold for the first time this season. calendar.week is still
-    // the round just played; the ban covers the next round (week + 1).
+    // the threshold for the first time this season. `round` is the league round
+    // just played; the ban covers the NEXT league round (round + 1). Keyed off
+    // the league round, not the monotonic calendar.week — read back via
+    // leagueRound(state) in selectionUnavailableIds / inbox.
     const humanClub = this.state.career.clubs.find(c => c.id === this.state.player.teamId);
     if (humanClub) {
       for (const rid of humanClub.squad) {
@@ -1251,56 +1266,21 @@ export class GameCoordinator {
           applySeasonEvent(this.state, {
             type: 'PLAYER_SUSPENDED',
             rosterId: rid,
-            forRound: this.state.calendar.week + 1,
+            forRound: round + 1,
           });
         }
       }
     }
 
-    // Reconcile PGA rest obligations for the round just played (calendar.week
-    // still points at this round). A player whose obligation covered this
-    // round and who didn't feature has satisfied it. Runs before
-    // WEEK_ADVANCED so the round number is correct.
-    for (const ev of reconcileRestObligations(this.state, this.humanMatchdaySquadIds())) {
+    // Reconcile PGA rest obligations for the round just played. A player whose
+    // obligation covered this round and who didn't feature has satisfied it.
+    // `round` is the just-played league round (the obligation eligibleRounds are
+    // league-round numbers).
+    for (const ev of reconcileRestObligations(this.state, round, this.humanMatchdaySquadIds())) {
       applySeasonEvent(this.state, ev);
     }
 
-    applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
-    // Play out any European fixtures whose date has now arrived (AI sides;
-    // the player plays their own live). The bracket fills in over the season.
-    await this.advanceEuropeanCompetitions();
-    // Morale decay now runs once per week of the gap to the next fixture, so a
-    // multi-week international break decays idle players toward baseline
-    // proportionally more than a normal one-week turnaround — the weekly-pass
-    // cadence is no longer pinned to a single league round. This mirrors how
-    // injury recovery + scouting accuracy already scale by the gap above.
-    // RNG-free + order-stable, so determinism holds. max(1, …) keeps an
-    // ordinary turnaround (recoveryWeeks === 1) byte-for-byte unchanged; only
-    // break weeks differ. (Transfer-request + poach-threat passes stay
-    // round-based: their promise-deadline / streak edges aren't safe to loop.)
-    const moraleWeeks = Math.max(1, recoveryWeeks);
-    for (let w = 0; w < moraleWeeks; w++) {
-      for (const ev of computeMoraleDecayEvents(this.state)) {
-        applySeasonEvent(this.state, ev);
-      }
-    }
-    this.transfers.checkTransferRequestsAndPromises();
-    for (let w = 0; w < recoveryWeeks; w++) this.staff.advanceScoutingAccuracy();
-    eventBus.emit('game:weekAdvanced', { state: this.state });
-
-    // Background poach-threat assessment — RNG-free, runs every round.
-    // Keeps the Hub Transfers badge current without the user opening
-    // the screen first.
-    if (!this.state.career.market) {
-      this.transfers.updatePoachThreats();
-    }
-
-    // AI early-renewal cadence: every AI_EARLY_RENEWAL_CADENCE_ROUNDS rounds,
-    // each AI club attempts to lock in its best expiring player before the
-    // off-season window.
-    if (this.state.calendar.week % AI_EARLY_RENEWAL_CADENCE_ROUNDS === 1) {
-      this.transfers.runAIEarlyRenewals();
-    }
+    await this.runWeeklyTick();
 
     // Last regular-season fixture just resolved → seed the playoff
     // bracket from the final standings. game:bracketSeeded is the post-
@@ -1310,6 +1290,105 @@ export class GameCoordinator {
     // the season final resolves and fires game:seasonComplete.
     if (this.playoffs.allRegularFixturesPlayed() && this.state.league.playoffs === null) {
       this.playoffs.seedPlayoffBracket();
+    }
+  }
+
+  // The competition-agnostic elapsed-week seam. Advances calendar.date to
+  // `toDate` and runs every season pass that fires purely on the passage of
+  // game time, scaled by the whole-week gap from the current cursor: the
+  // monotonic week counter, AI European catch-up, morale decay, and
+  // scouting-accuracy gain. Called from EVERY competition's advance — the
+  // league tick (via runWeeklyTick), and the cup / European / playoff matchday
+  // flow (via advanceMatchdayCalendar) — so each elapsed week is ticked exactly
+  // once, as it passes, rather than batched at the next league round.
+  //
+  // The cursor is **forward-only**: a `toDate` at or before the current
+  // `calendar.date` ticks 0 weeks AND leaves `calendar.date` untouched (no
+  // backward `MATCHDAY_ADVANCED`). Only a strictly-later `toDate` advances the
+  // date and ticks weeks. This is the load-bearing invariant — without it a
+  // matchday whose date the league cursor has already skipped past would move
+  // the cursor backward and (via the `days <= 0 → weeks:1` floor) tick a
+  // phantom extra week.
+  //
+  // `weeks` = round(daysBetween(currentDate, toDate) / 7), min 1 for a real
+  // forward advance (matchdays are ≥5 days apart in the real schedule, so this
+  // never floors a genuine gap); a no-op or backward advance ticks nothing.
+  // Summed across a season — every advance counting only the strictly-forward
+  // days since the last cursor position — the increments total the true
+  // calendar span (first→last fixture) with no week double-counted and none
+  // skipped, including across international breaks (each break matchday ticks
+  // the days since the previous one) and on bye weeks (the next block's start
+  // date carries the cursor through).
+  //
+  // Round-based passes (transfer-request/promise checks, poach threats, AI
+  // early-renewal cadence, playoff seeding) are NOT here — they stay tied to
+  // league rounds in recordPlayerMatchResult, since their streak edges /
+  // cadence counters are per-league-round and would misfire if looped per
+  // calendar week or re-run on every cup/European matchday during a break.
+  private async tickElapsedWeeks(toDate: string): Promise<void> {
+    const forward = !!toDate && toDate > this.state.calendar.date;
+    const weeks = forward ? upcomingGapFromDate(this.state.calendar.date, toDate).weeks : 0;
+    if (forward) {
+      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
+    }
+    if (weeks > 0) {
+      applySeasonEvent(this.state, { type: 'WEEK_ADVANCED', weeks });
+    }
+    // Play out any European fixtures whose date has now arrived (AI sides;
+    // the player plays their own live). The bracket fills in over the season.
+    // Date-gated + idempotent over already-simmed fixtures, so the European
+    // record paths re-calling it after recording a player result is harmless.
+    await this.advanceEuropeanCompetitions();
+    // Morale decay + scouting accuracy run once per elapsed week, so a
+    // multi-week international break decays idle players toward baseline /
+    // accrues scouting accuracy proportionally more than a one-week turnaround.
+    // RNG-free + order-stable, so determinism holds.
+    for (let w = 0; w < weeks; w++) {
+      for (const ev of computeMoraleDecayEvents(this.state)) {
+        applySeasonEvent(this.state, ev);
+      }
+    }
+    for (let w = 0; w < weeks; w++) this.staff.advanceScoutingAccuracy();
+    eventBus.emit('game:weekAdvanced', { state: this.state });
+  }
+
+  // The league-round weekly tick. Advances the cursor only as far as the next
+  // actual calendar event — the next unplayed block's start date across ALL
+  // competitions, NOT the next league round. During an international break that
+  // next event is the first cup/European matchday, so the league round ticks
+  // only up to it and the break's own matchdays tick forward through the rest;
+  // re-homing straight to the next league round would jump the cursor past the
+  // whole break and force the break's matchdays to move it backward (the H1
+  // double-count bug). For a pure league-to-league gap with no intervening
+  // matchday the next block IS the next league round, so behaviour is
+  // unchanged. The block start date exists regardless of whether the player has
+  // a fixture in it, so byes still advance the cursor correctly. Falls back to
+  // the next league round's kick-off (then +1 week) when no block remains.
+  // Then the league-round-keyed passes that are NOT safe to fire per-calendar-
+  // week: transfer-request/promise checks, poach-threat assessment, AI
+  // early-renewal cadence.
+  private async runWeeklyTick(): Promise<void> {
+    const nextBlockDate = this.getNextBlock()?.startDate;
+    const newDate = nextBlockDate
+      ?? earliestDateForRound(this.state.league.fixtures, leagueRound(this.state))
+      ?? addDaysIso(this.state.calendar.date, SEASON_VALUES.weekLengthDays);
+    await this.tickElapsedWeeks(newDate);
+
+    this.transfers.checkTransferRequestsAndPromises();
+
+    // Background poach-threat assessment — RNG-free, runs every round.
+    // Keeps the Hub Transfers badge current without the user opening
+    // the screen first.
+    if (!this.state.career.market) {
+      this.transfers.updatePoachThreats();
+    }
+
+    // AI early-renewal cadence: every AI_EARLY_RENEWAL_CADENCE_ROUNDS league
+    // rounds, each AI club attempts to lock in its best expiring player before
+    // the off-season window. Keyed off the league round (the cadence is a
+    // round count), not the monotonic calendar.week.
+    if (leagueRound(this.state) % AI_EARLY_RENEWAL_CADENCE_ROUNDS === 1) {
+      this.transfers.runAIEarlyRenewals();
     }
   }
 
@@ -1619,9 +1698,6 @@ export class GameCoordinator {
   // sub-trees are returned by reference — no defensive cloning (CLAUDE.md §2:
   // never deep-clone just to stringify).
   //
-  // Archive is capped at the most recent 15 seasons to keep localStorage
-  // within the 5 MB browser quota on long careers (~30 KB/season).
-  static readonly ARCHIVE_CAP = 15;
 
   toSavePayload(): SavedSeason {
     return {
@@ -1643,7 +1719,7 @@ export class GameCoordinator {
         nextRosterId: this.state.career.nextRosterId,
         clubs: this.state.career.clubs.map(c => ({ id: c.id, squad: c.squad, salaryBudget: c.salaryBudget })),
         roster: this.state.career.roster,
-        archive: this.state.career.archive.slice(-GameCoordinator.ARCHIVE_CAP),
+        archive: this.state.career.archive.slice(-ARCHIVE_CAP),
         freeAgents: this.state.career.freeAgents,
         market: this.state.career.market,
         pendingMoves: this.state.career.pendingMoves,

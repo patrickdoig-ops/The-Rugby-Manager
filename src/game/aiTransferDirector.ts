@@ -15,6 +15,7 @@ import {
   WAGE_FLOOR, WAGE_ROUNDING_UNIT, AI_SIGNING_POLICY, WAGE_NEGOTIATION,
 } from '../engine/balance/transfers';
 import { SQUAD_STATUS_WAGE_MULT } from '../engine/balance/morale';
+import { MIN_SQUAD_SIZE } from '../engine/balance/career';
 import { seedContractFields } from './contractSeeder';
 import { parseSeasonStartYear } from './age';
 import { clubBudgetUsage } from './teamStats';
@@ -131,10 +132,22 @@ export function decideAIOffers(state: GameState, clubId: string): { acceptIds: s
     return { offer: o, ovr };
   }).sort((a, b) => b.ovr - a.ovr || a.offer.rosterId - b.offer.rosterId);
 
+  // Keep marginal (sub-floor-OVR) expiring players rather than releasing every
+  // one. Shedding them only to academy-promote replacements at the next rollover
+  // is a churn treadmill that inflates the roster over a long career. Keep the
+  // BEST sub-floor players (ranked is OVR-desc) down to MIN_SQUAD_SIZE — the same
+  // floor the rollover top-up targets — and release the rest. `retainedRegardless`
+  // is the squad minus the sub-floor cohort (non-expiring + above-floor expiring);
+  // kept marginals still pass through the wage/headroom gate below.
+  const subFloorIds = ranked.filter(r => r.ovr < RENEWAL.aiReleaseRatingFloor).map(r => r.offer.id);
+  const retainedRegardless = club.squad.length - subFloorIds.length;
+  const keepCount = Math.max(0, MIN_SQUAD_SIZE - retainedRegardless);
+  const keepMarginal = new Set(subFloorIds.slice(0, keepCount));
+
   const acceptIds: string[] = [];
   const rejectIds: string[] = [];
   for (const { offer, ovr } of ranked) {
-    if (ovr < RENEWAL.aiReleaseRatingFloor) {
+    if (ovr < RENEWAL.aiReleaseRatingFloor && !keepMarginal.has(offer.id)) {
       rejectIds.push(offer.id);
       continue;
     }

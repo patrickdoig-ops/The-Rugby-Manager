@@ -11,12 +11,14 @@ import type { FormResult } from './teamStats';
 import { teamSeasonStat } from './seasonLeaderboards';
 import type { TeamTactics } from '../types/team';
 import { sortStandings } from './leagueTable';
+import { leagueRound } from './leagueRound';
 import { getAge } from './age';
 import { playoffRaceStatus } from './playoffRace';
 import { generateSeasonPrediction } from './media/mediaManager';
 import { confidenceBand, europeanObjectiveText } from './board';
 import { hashSeed } from '../utils/rng';
 import { nextBlock } from './calendarBlocks';
+import { stageLabelLong } from './stageLabel';
 import { europeanTeams } from '../data/european-teams';
 
 export interface InboxItem {
@@ -92,25 +94,7 @@ function resolveNextOpponent(state: GameState, allTeams: RawTeamInput[]): NextOp
   const opp = premOpp ?? europeanTeams.find(t => t.id === oppId);
   if (!opp) return null;
 
-  let stageLabel: string;
-  switch (fix.comp) {
-    case 'league':
-      stageLabel = `Round ${fix.round}`;
-      break;
-    case 'cup':
-      stageLabel = fix.ref.kind === 'knockout'
-        ? (fix.ref.stage === 'final' ? 'League Cup Final' : 'League Cup Semi-Final')
-        : 'League Cup';
-      break;
-    case 'european': {
-      const compName = fix.ref.competition === 'europeanCup' ? 'European Cup' : 'European Shield';
-      stageLabel = fix.ref.kind === 'knockout' ? `${compName} Knockout` : compName;
-      break;
-    }
-    case 'playoff':
-      stageLabel = fix.ref.kind === 'final' ? 'Play-off Final' : 'Play-off Semi-Final';
-      break;
-  }
+  const stageLabel = stageLabelLong(fix);
 
   return { opp, oppId, stageLabel, date: fix.date, hasLeagueData: premOpp !== undefined };
 }
@@ -144,7 +128,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   // --- B&I Lions returnees (2025/26 season-open post-tour stand-down) ---
   const lionsBack = club.squad
     .map(rid => state.career.roster[rid])
-    .filter((p): p is Player => !!p && p.lionsReturnRound !== undefined && state.calendar.week < p.lionsReturnRound!);
+    .filter((p): p is Player => !!p && p.lionsReturnRound !== undefined && leagueRound(state) < p.lionsReturnRound!);
   if (lionsBack.length > 0) {
     const returnRound = lionsBack[0].lionsReturnRound!;
     const listed = lionsBack.map(p => `${p.lastName} (${Math.round(p.condition)}%)`).slice(0, 6).join(', ');
@@ -162,7 +146,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   // --- England / Wales summer-tour returners (2025/26 season open) ---
   const summerBack = club.squad
     .map(rid => state.career.roster[rid])
-    .filter((p): p is Player => !!p && p.summerTourReturn === true && state.calendar.week === 1);
+    .filter((p): p is Player => !!p && p.summerTourReturn === true && leagueRound(state) === 1);
   if (summerBack.length > 0) {
     const listed = summerBack.map(p => `${p.lastName} (${Math.round(p.condition)}%)`).slice(0, 6).join(', ');
     const extra = summerBack.length > 6 ? `, plus ${summerBack.length - 6} more` : '';
@@ -205,7 +189,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     // Show only the rounds still ahead, so the label tightens to "round 8" on
     // the final eligible round rather than always reading the full window.
     const allRounds = obligated[0].restObligation!.eligibleRounds;
-    const ahead = allRounds.filter(r => r >= state.calendar.week);
+    const ahead = allRounds.filter(r => r >= leagueRound(state));
     const rounds = ahead.length > 0 ? ahead : allRounds;
     const rangeLabel = rounds.length > 1 ? `one of rounds ${rounds[0]}–${rounds[rounds.length - 1]}` : `round ${rounds[0]}`;
     items.push({
@@ -287,7 +271,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     // and the starts delta hasn't been met.
     const promise = p?.playingTimePromise;
     if (!promise) continue;
-    if (state.calendar.week < promise.toRound) continue;
+    if (leagueRound(state) < promise.toRound) continue;
     const startsGained = (p.seasonStats.starts ?? 0) - promise.startsAtPromise;
     if (startsGained >= promise.startsRequired) continue;
     const name = `${p.firstName} ${p.lastName}`;
@@ -310,10 +294,10 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     const name = `${p.firstName} ${p.lastName}`;
     const yellows = p.seasonStats.yellowCards;
     const hasActiveAdvice = p.disciplineAdvice?.mode === 'ease_off'
-      && state.calendar.week <= p.disciplineAdvice.expiresAfterRound;
+      && leagueRound(state) <= p.disciplineAdvice.expiresAfterRound;
 
     // Suspension notification — player banned for the current round
-    if (p.suspension?.forRound === state.calendar.week) {
+    if (p.suspension?.forRound === leagueRound(state)) {
       items.push({
         id: `disc:suspended:${season}:${rid}`,
         category: 'squad',
@@ -663,7 +647,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   }
 
   // --- Owner's season objectives (WK1 only) ---
-  if (state.calendar.week === 1) {
+  if (leagueRound(state) === 1) {
     const ambition = myTeam?.boardAmbition ?? 'playoffs';
     const lastSeason = state.career.archive[state.career.archive.length - 1];
 
@@ -748,7 +732,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   // --- Owner's block report (R6 after Autumn Internationals, R11 after Six Nations) ---
   // Rounds are fixed so the cadence is consistent across seasons regardless of fixture dates.
   const BLOCK_REPORT_ROUNDS = new Set([6, 11]);
-  if (BLOCK_REPORT_ROUNDS.has(state.calendar.week)) {
+  if (BLOCK_REPORT_ROUNDS.has(leagueRound(state))) {
     const ambition = myTeam?.boardAmbition ?? 'playoffs';
         const sorted = sortStandings(state.league.standings);
         const pos = sorted.findIndex(s => s.teamId === teamId) + 1;
@@ -832,7 +816,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         }
 
         items.push({
-          id: `owner-block:${season}:r${state.calendar.week}`,
+          id: `owner-block:${season}:r${leagueRound(state)}`,
           category: 'league',
           priority: 120,
           subject: 'Owner\'s message — mid-season review',
@@ -890,7 +874,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   }
 
   // --- Media: pre-season prediction (week 1 only) ---
-  if (state.calendar.week === 1) {
+  if (leagueRound(state) === 1) {
     // Forecast tier from last season's finish, falling back to board ambition
     // for a club's first season.
     const lastSeason = state.career.archive[state.career.archive.length - 1];

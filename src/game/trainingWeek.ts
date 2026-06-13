@@ -31,6 +31,7 @@ import { rngTransfer, rngTransferRaw } from '../utils/rng';
 import { pickPlan as pickAIPlan } from './aiTrainingDirector';
 import { pickSeverity } from './injuryEffects';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
+import { leagueRound } from './leagueRound';
 
 const TRAINING_INJURY_KINDS = ['muscle_strain', 'ligament_sprain', 'knock'] as const;
 type TrainingInjuryKind = typeof TRAINING_INJURY_KINDS[number];
@@ -121,7 +122,7 @@ function pushClubTrainingEvents(
     // they come back at the reduced seed condition and build fitness from the
     // following week. They become selectable a round earlier (`week <
     // lionsReturnRound`, see selectionUnavailableIds).
-    if (p.lionsReturnRound !== undefined && state.calendar.week <= p.lionsReturnRound) continue;
+    if (p.lionsReturnRound !== undefined && leagueRound(state) <= p.lionsReturnRound) continue;
 
     const focus: [keyof PlayerStats, keyof PlayerStats] = isForward(p.position) ? fwdFocus : bckFocus;
     const ageInNewSeason = p.dob ? (getAge(p.dob, seasonOpenDate) ?? 25) : 25;

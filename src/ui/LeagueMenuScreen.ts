@@ -9,6 +9,7 @@
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { RawTeamInput } from '../types/teamData';
 import { sortStandings } from '../game/leagueTable';
+import { leagueRound } from '../game/leagueRound';
 import { injectTeamColors } from './teamColors';
 import { formatDateMedium } from '../utils/formatDate';
 import { helpButtonHtml } from './help/helpButton';
@@ -75,7 +76,7 @@ export function initLeagueMenuScreen(opts: InitLeagueMenuOpts): void {
   function render(): void {
     const state = opts.getGameEngine().getState();
     const totalRounds = state.league.fixtures.reduce((m, f) => Math.max(m, f.round), 0);
-    const pct = totalRounds > 0 ? (state.calendar.week / totalRounds) * 100 : 0;
+    const pct = totalRounds > 0 ? (leagueRound(state) / totalRounds) * 100 : 0;
 
     const playerTeam = teamsById.get(state.player.teamId);
     const sorted = sortStandings(state.league.standings);

@@ -103,7 +103,6 @@ function frameAt(b: Beat, idx: number, t: number): Frame {
 function draw(b: Beat, f: Frame): void {
   drawPitch();
   // attack-direction arrow + attacking team
-  const ax = px0 + pw + 0; void ax;
   ctx.save();
   ctx.fillStyle = b.atkSide === 'home' ? '#1f6feb' : '#f85149';
   ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
@@ -178,7 +177,9 @@ eventBus.on('engine:paused', ({ payload }) => {
   if (!p || typeof p.onChoice !== 'function') return;
   switch (p.type) {
     case 'kickoff_choice': p.onChoice('high_ball'); break;
-    case 'penalty_choice': p.onChoice(['kick_to_touch', 'scrum', 'tap_and_go'][Math.floor(Math.random() * 3)]); break;
+    // Dev viewer: auto-resolve the penalty modal with a fixed default (no rng — the
+    // viewer just needs play to continue; the choice has no bearing on what we watch).
+    case 'penalty_choice': p.onChoice('kick_to_touch'); break;
     case 'team_talk_choice': p.onChoice({ attack: 0, defend: 0, decayMinutes: 0 }); break;
     case 'forced_substitution_choice': p.onChoice(p.bench && p.bench.length ? p.bench[0].squadNumber : null); break;
     default: p.onChoice(null);

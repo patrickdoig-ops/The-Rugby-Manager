@@ -54,6 +54,7 @@ await new Promise<void>(resolve => {
     offFinished();
     offEvent();
     engine.destroy();
+    setCaptureAnnotations(false);  // restore the module-global so it can't leak into any later buildWorld
     resolve();
   });
   engine.initialize();

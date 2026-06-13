@@ -258,8 +258,6 @@ const scenarios: Scenario[] = [
       // Run tick by tick — record prev positions, step, measure displacement.
       const TICKS = 60; // 6 s — enough for separation to saturate if unclamped
       const EPSILON = 0.02; // float arithmetic tolerance
-      let maxDisp = 0;
-      let offenderSlot = -1;
 
       for (let t = 0; t < TICKS; t++) {
         // Snapshot all positions before the tick.
@@ -270,7 +268,6 @@ const scenarios: Scenario[] = [
           const dx = a.pos.x - prev[i].x;
           const dy = a.pos.y - prev[i].y;
           const disp = Math.sqrt(dx * dx + dy * dy);
-          if (disp > maxDisp) { maxDisp = disp; offenderSlot = a.slot; }
           // topSpeed × speedScale × SPATIAL_DT is the max legal displacement
           const cap = deriveTopSpeed(a.pace, a.fatigueSnapshot) * a.speedScale * SPATIAL_DT;
           if (disp > cap + EPSILON) {
@@ -278,7 +275,6 @@ const scenarios: Scenario[] = [
           }
         }
       }
-      void offenderSlot; // suppress unused-var for the slot that set maxDisp
       return null;
     },
   },

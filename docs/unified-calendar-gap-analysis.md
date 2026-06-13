@@ -260,8 +260,67 @@ if** the week semantics actually serialise differently.
   are seeded; seeding happens during `simRestOfBlock`/record, so confirm the *next*
   `getNextBlock` sees the freshly seeded match (`calendarBlocks.ts:50–91` already skips
   null-sided knockouts — verify the re-derive timing).
-- **Mixed player fixtures.** If a block ever holds two player fixtures (league +
-  European overlap), commit 4's loop plays them sequentially before results — confirm
-  with real 2025-26 data whether this occurs at all; if not, it's untested-but-handled.
-</content>
-</invoke>
+- **Mixed player fixtures.** Moot — §6 commit 4 shows mixed blocks never occur.
+
+---
+
+## 8. Commit 5 — implementation plan (for the authorised Stage B pass)
+
+Grounded in a full code read (2026-06). Two findings reshape the original §5.4 sketch:
+
+- **No golden hash.** `scripts/checkSeasonDeterminism.ts` asserts only run-to-run
+  reproducibility + a save/load round-trip — there is **no pinned behaviour baseline**.
+  So a reorg that *changes* season outcomes still passes `verify` as long as it stays
+  reproducible. The Category-D "baselines will move" risk (§7) is therefore overstated;
+  the real constraint is "don't introduce nondeterminism."
+- **The harness is a second driver.** `checkSeasonDeterminism.ts` drives the season via
+  the **legacy** methods (`getCurrentFixture`/`recordPlayerMatchResult`, `drainCupBreak`,
+  `drainEuropean`, `playOutPlayoffs`), *not* the block surface. Any change to those
+  methods' contract (e.g. moving weekly passes out of `recordPlayerMatchResult`) must
+  update the harness in the **same commit**, or `verify` breaks.
+
+### 8.1 The model fork (decide before coding)
+
+The plan's headline — "make `calendar.week` a monotonic week counter, derive a separate
+`leagueRound`" — forces re-basing **~40 reads** (§5), many in UI screens that **no
+automated test covers** (`verify` only exercises the headless season sim). That's the
+real silent-regression surface. Two ways to land Stage B:
+
+- **Option F-1 — `runWeeklyTick` extraction only (recommended; low risk).** Extract the
+  weekly-pass set into `GameCoordinator.runWeeklyTick(weeks)` and have *every*
+  competition's record path (and the harness) call it for the weeks it advances —
+  making the passes genuinely competition-agnostic. **Leave `calendar.week` meaning
+  "the league-round cursor"** (Category-A reads untouched). Deadlines (Category B) stay
+  round-based — which the existing code comment says is *intended* for transfer/poach.
+  Delivers the architectural goal (one competition-agnostic weekly seam) at a fraction
+  of the risk; no ~40-read audit, likely **no `SAVE_VERSION` bump** (no field semantics
+  change).
+- **Option F-2 — full monotonic-week split (plan §5.4 as written; high risk).** Adds the
+  `calendar.week` → monotonic + derived `leagueRound` split on top of F-1, re-basing all
+  Category-A/B reads and bumping `SAVE_VERSION`. Only worth it if break weeks *must* tick
+  the round-based deadlines (a behaviour the team previously chose **against**).
+
+### 8.2 Ordered sub-steps (each builds + `verify`s green; version-bump each)
+
+1. **Extract `runWeeklyTick(weeks)` (pure relocation).** Move `recordPlayerMatchResult`
+   lines ~1268–1303 (WEEK_ADVANCED + `advanceEuropeanCompetitions` + morale×`weeks` +
+   transfer/promise check + scouting×`weeks` + `game:weekAdvanced` + poach + AI-renewal
+   cadence) into a new `async runWeeklyTick(recoveryWeeks)`. Call it from
+   `recordPlayerMatchResult` with the same `recoveryWeeks` — **behaviour-identical**.
+2. **Route cup/European/playoff record paths through `runWeeklyTick`.** Replace each
+   path's `MATCHDAY_ADVANCED` (date-only) with a `runWeeklyTick(weeksAdvanced)` call so
+   the weekly passes fire on those weeks too. **This is the behavioural integration** —
+   season outcomes shift (still reproducible → `verify` green). Update
+   `checkSeasonDeterminism.ts`'s `drainCupBreak`/`drainEuropean` in the same commit.
+3. **Remove `MATCHDAY_ADVANCED`** once no caller remains (the union's `never` check
+   enforces completeness). Update `applySeasonEvent` + `docs/game-engine.md`.
+4. **(F-2 only) Split `calendar.week`.** Introduce derived `leagueRound`; re-base
+   Category-A reads (§5) to it; make `week` monotonic; re-base Category-B offsets;
+   `SAVE_VERSION` bump + `checkSaveSchema` snapshot + migration. Walk §5 read-by-read.
+5. **Docs + version bump.** `game-engine.md` (`runWeeklyTick`, `MATCHDAY_ADVANCED`
+   removal), `league-cup.md`, `european-cups-2025-26.md`, `helpContent.ts` if any
+   surfaced control changed.
+
+> Sub-steps 1–3 (F-1) achieve the "competition-agnostic weekly seam" the whole migration
+> was about. Sub-step 4 (F-2) is the high-risk tail that buys only round-deadline-during-
+> breaks — recommended to defer unless explicitly wanted.

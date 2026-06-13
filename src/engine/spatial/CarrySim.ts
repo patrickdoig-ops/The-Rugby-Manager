@@ -100,14 +100,15 @@ export function seedWorld(world: World, params: ShapeParams): void {
 
 // Build the pass-sweep frames that PREFIX a carry (WP5): the ball travels from the
 // ruck (scrum-half) through the backline to the carrier (already at his receiving
-// point — out wide for a back, the mark for a forward). Frame-ONLY: it snapshots
-// the chain members it repositions and RESTORES them + the ball before returning,
-// so the carry runs from byte-identical state to the silent path (no rng, no
-// outcome impact — headless league sims stay in lockstep with live). Live-only
-// (the caller passes [] for silent). The carrier is never moved here (he stays at
-// the receiving point solveCarryCorridor set); only the upstream chain members are
-// posted for the sweep, then restored — so only those 1-2 dots reset at the
-// pass→carry seam (a within-beat visual the WP8 renderer will interpolate).
+// point — out wide for a back, the mark for a forward). Runs in BOTH live and
+// silent (the caller passes input.silent through). Pure deterministic position math
+// (no rng): the scrum-half is placed at the ruck; intervening receivers are staged
+// behind their catch points and run FORWARD onto the ball over the flight;
+// reanchorAttack (called every carry tick) then reshapes off-ball attackers, and
+// the slot-9 anchor keeps the scrum-half at the ruck. Because the position math is
+// identical in live and silent, the carry begins from byte-identical state in both
+// — that is why headless league sims stay in lockstep with live, with NO snapshot
+// or restore needed. Frames are captured only when not silent.
 function runPassPhase(world: World, params: ShapeParams, passChain: number[], silent: boolean): Frame[] {
   if (passChain.length < 2) return [];
   const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
@@ -183,15 +184,13 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
   const carrier = solveCarryCorridor(world, params);
   solveAttackSpread(world, params);
 
-  // PASS PHASE (WP5): on a live beat, prefix the carry with the ball sweeping from
-  // the ruck (scrum-half) through the backline to the carrier (positioned at his
-  // receiving point by solveCarryCorridor) — so a wide play visibly moves the ball
-  // across the backline before the carrier runs. Frame-only: it snapshots and
-  // RESTORES the chain members it repositions, so the carry runs from byte-identical
-  // state to the silent path (headless league sims stay in lockstep with live).
-  // Runs in BOTH live and silent (it moves the chain deterministically — receivers
-  // running onto the ball, no restore — so the carry starts from identical state and
-  // live == silent); frames are produced only when not silent.
+  // PASS PHASE (WP5): prefix the carry with the ball sweeping from the ruck
+  // (scrum-half) through the backline to the carrier (positioned at his receiving
+  // point by solveCarryCorridor) — so a wide play visibly moves the ball across the
+  // backline before the carrier runs. Runs in BOTH live and silent paths: pure
+  // deterministic position math (no rng) means the carry begins from byte-identical
+  // state regardless — NO snapshot or restore; live == silent via determinism.
+  // Frames are produced only when not silent.
   const passFrames = runPassPhase(world, params, input.passChain, input.silent);
 
   // WP3 contact state — mutable across ticks, written into by the contact hook.

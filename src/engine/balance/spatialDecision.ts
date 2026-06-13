@@ -48,4 +48,13 @@ export const PASS_CHAIN = {
   // between the ruck and the carrier's receiving point during the pass phase, at
   // this depth behind the gain line — a flat-ish backline the ball travels across.
   linkDepth: 3.0,
+
+  // The scrum-half plays at the RUCK base, this far behind the mark — so the pass
+  // chain starts at the ball and he never drifts out into the backline fan.
+  scrumHalfDepth: 1.5,
+
+  // Run-onto-the-ball: an intervening receiver starts this much DEEPER than his
+  // catch point and runs forward onto the pass over the flight — so a receiver is
+  // moving onto the ball, not standing still while it flies through him.
+  runOnDepth: 4.0,
 } as const;

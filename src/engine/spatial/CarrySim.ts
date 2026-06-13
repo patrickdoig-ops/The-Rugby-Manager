@@ -108,45 +108,50 @@ export function seedWorld(world: World, params: ShapeParams): void {
 // the receiving point solveCarryCorridor set); only the upstream chain members are
 // posted for the sweep, then restored — so only those 1-2 dots reset at the
 // pass→carry seam (a within-beat visual the WP8 renderer will interpolate).
-function runPassPhase(world: World, params: ShapeParams, passChain: number[]): Frame[] {
+function runPassPhase(world: World, params: ShapeParams, passChain: number[], silent: boolean): Frame[] {
   if (passChain.length < 2) return [];
   const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
   const base = params.attackSide === 'home' ? 0 : AGENTS_PER_SIDE;
+  const dir = params.attackDir;
   const members = passChain.map(slot => world.agents[base + slot - 1]);
   const carrier = members[members.length - 1];
-  const saved = members.map(a => ({ x: a.pos.x, y: a.pos.y, vx: a.vel.x, vy: a.vel.y }));
-  const savedBall = { x: world.ball.pos.x, y: world.ball.pos.y, slot: world.ball.carrierSlot };
 
-  // Post the upstream chain: scrum-half at the ruck, intervening receivers evenly
-  // along the line toward the carrier's lateral channel at linkDepth behind the line.
+  // Post the chain for the pass: scrum-half at the ruck (the ball starts there);
+  // intervening receivers DEEP (behind their catch point) + lateral toward the
+  // carrier, so they RUN ONTO the ball; the carrier is already at his receiving
+  // point. NO snapshot/restore — the receivers flow into the carry (reanchorAttack
+  // reshapes the off-ball ones, the slot-9 anchor keeps the scrum-half at the ruck),
+  // so nothing teleports at the pass→carry seam. Pure deterministic position math
+  // (no rng); the caller runs it in BOTH live and silent (so live == silent), and
+  // frames are captured only when not silent.
   members[0].pos.x = clamp(params.mark.x, 2, 98);
   members[0].pos.y = clamp(params.mark.y, 3, 97);
+  members[0].vel.x = 0; members[0].vel.y = 0;
   for (let i = 1; i < members.length - 1; i++) {
     const frac = i / (members.length - 1);
-    members[i].pos.x = clamp(params.mark.x - params.attackDir * PASS_CHAIN.linkDepth, 2, 98);
+    members[i].pos.x = clamp(params.mark.x - dir * (PASS_CHAIN.linkDepth + PASS_CHAIN.runOnDepth), 2, 98);
     members[i].pos.y = clamp(params.mark.y + (carrier.pos.y - params.mark.y) * frac, 3, 97);
+    members[i].vel.x = 0; members[i].vel.y = 0;
   }
 
-  // Sweep the ball through the chain, a frame per flight tick.
   const frames: Frame[] = [];
   let t = 0;
   world.ball.carrierSlot = undefined;  // in flight
   for (let i = 0; i < members.length - 1; i++) {
-    const from = members[i].pos, to = members[i + 1].pos;
+    const passer = members[i], receiver = members[i + 1];
+    const isCarrier = i + 1 === members.length - 1;   // the carrier catches at his point, then runs
+    const startX = receiver.pos.x;
     for (let k = 1; k <= PASS_CHAIN.flightTicks; k++) {
       const f = k / PASS_CHAIN.flightTicks;
-      world.ball.pos.x = from.x + (to.x - from.x) * f;
-      world.ball.pos.y = from.y + (to.y - from.y) * f;
-      frames.push(captureFrame(world, t++));
+      // An intervening receiver runs FORWARD onto the ball over the flight; the ball
+      // flies to where he IS, so it meets a moving man, not a statue.
+      if (!isCarrier) receiver.pos.x = clamp(startX + dir * PASS_CHAIN.runOnDepth * f, 2, 98);
+      world.ball.pos.x = passer.pos.x + (receiver.pos.x - passer.pos.x) * f;
+      world.ball.pos.y = passer.pos.y + (receiver.pos.y - passer.pos.y) * f;
+      if (!silent) frames.push(captureFrame(world, t++));
     }
   }
-
-  // RESTORE everything the sweep touched — the carry proceeds from identical state.
-  for (let i = 0; i < members.length; i++) {
-    members[i].pos.x = saved[i].x; members[i].pos.y = saved[i].y;
-    members[i].vel.x = saved[i].vx; members[i].vel.y = saved[i].vy;
-  }
-  world.ball.pos.x = savedBall.x; world.ball.pos.y = savedBall.y; world.ball.carrierSlot = savedBall.slot;
+  world.ball.pos.x = carrier.pos.x; world.ball.pos.y = carrier.pos.y; world.ball.carrierSlot = carrier.slot;
   return frames;
 }
 
@@ -184,7 +189,10 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
   // across the backline before the carrier runs. Frame-only: it snapshots and
   // RESTORES the chain members it repositions, so the carry runs from byte-identical
   // state to the silent path (headless league sims stay in lockstep with live).
-  const passFrames = input.silent ? [] : runPassPhase(world, params, input.passChain);
+  // Runs in BOTH live and silent (it moves the chain deterministically — receivers
+  // running onto the ball, no restore — so the carry starts from identical state and
+  // live == silent); frames are produced only when not silent.
+  const passFrames = runPassPhase(world, params, input.passChain, input.silent);
 
   // WP3 contact state — mutable across ticks, written into by the contact hook.
   // Pre-allocated: no allocation in the hot path.

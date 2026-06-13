@@ -113,12 +113,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // opponent's defensive line tactic + field position, scaled by his composure.
 //
 // WP5 authored shape consumption: a team's effective attackingStyle can select a
-// hand-authored attacking formation (AUTHORED_ATTACK_SHAPES); the spatial engine
-// positions the named slots into it (the wide_wide seed spreads the backline ~61 m
-// across the pitch). Off-ball positions feed commitRuck's carrier-isolation, so
-// breakdown outcomes shift (by design); every § 13 band holds (pts 24.00, tries
-// 3.70, TO 2.14, pen 12.49, tackMade 64.6, home-win 54.00 on the 5-seed sweep).
-const GOLDEN = 'c63a24613ca665aeddd8958a07fa7a329f304b2b89b250f8192f984dd8165dc1';
+// hand-authored attacking formation (AUTHORED_ATTACK_SHAPES).
+//
+// WP5 dynamic pass (run-onto-ball): the pass phase now runs in BOTH live + silent
+// (deterministic position math) — the scrum-half plays at the ruck, intervening
+// receivers RUN ONTO the ball, and there is NO snapshot/restore, so the receivers
+// flow into the carry (no pass→carry teleport). Positions feed commitRuck, so
+// outcomes shift (by design); every § 13 band holds (pts 24.73, tries 3.79, TO 2.08,
+// pen 12.68, tackMade 64.4, home-win 53.56 on the 5-seed sweep).
+const GOLDEN = '6097c4e3f41cdc7e7e7c4e7908c93e0224bd8de91f69c7dd04093637899e9858';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

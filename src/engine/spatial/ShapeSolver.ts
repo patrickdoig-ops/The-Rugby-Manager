@@ -270,6 +270,12 @@ function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
   const offBacks: Agent[] = [];
   for (const a of attackers) {
     if (a.role === 'corridor' || a.slot === p.carrierSlot) continue;
+    // The scrum-half holds the RUCK base (the mark), not the backline fan — so the
+    // pass chain starts at the ball and he is always goal-side of the breakdown.
+    if (a.slot === SLOT.SCRUM_HALF) {
+      setAttackTarget(a, clampX(p.mark.x - p.attackDir * PASS_CHAIN.scrumHalfDepth), clampY(p.mark.y));
+      continue;
+    }
     const s = shape?.slots[a.slot];
     if (s) {
       // fwd is attack-oriented (negative = behind the gain line); lat is toward the

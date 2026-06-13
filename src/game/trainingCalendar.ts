@@ -1,9 +1,10 @@
 // Pure helpers for reasoning about the gap between the player's matches.
 // The season calendar stores only `calendar.date` (the upcoming round's
-// earliest fixture) and `calendar.week` (the upcoming round number), so the
-// real rest gap for the manager's own team — which varies with Fri/Sat/Sun
-// kick-offs and the Autumn Nations / Six Nations breaks — is derived on
-// demand from the fixture list rather than stored.
+// earliest fixture) and the monotonic `calendar.week` counter; the upcoming
+// round number is derived (`leagueRound`). So the real rest gap for the
+// manager's own team — which varies with Fri/Sat/Sun kick-offs and the Autumn
+// Nations / Six Nations breaks — is derived on demand from the fixture list
+// rather than stored.
 //
 // Both the engine injury-recovery tick (GameCoordinator.recordPlayerMatchResult)
 // and the Training UI read `upcomingGap`, and they agree because at both call

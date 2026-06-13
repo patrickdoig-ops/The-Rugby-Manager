@@ -90,9 +90,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       return;
     }
     case 'MATCHDAY_ADVANCED': {
-      // Step the calendar to the next cup / European matchday. calendar.week
-      // (the league-round cursor) deliberately does NOT move, so league
-      // scheduling, standings, break detection and upcomingGap are untouched.
+      // Sets only the calendar date — the monotonic `calendar.week` counter is
+      // untouched. Used by the cup / European matchday flow to step to the next
+      // matchday, and by `runWeeklyTick` to re-home the league date after a
+      // WEEK_ADVANCED (the date advance was split off WEEK_ADVANCED in F-2 step 3).
       state.calendar.date = event.toDate;
       return;
     }

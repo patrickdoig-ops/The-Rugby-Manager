@@ -710,7 +710,7 @@ export class GameCoordinator {
   // The gap from the current cup matchday to the player's next matchday — used
   // by the training screen so a cup-week training session shows a single,
   // matchday-scoped week rather than the surrounding multi-week league break
-  // (which `upcomingGap`, keyed off calendar.week, would report). Mirrors the
+  // (which `upcomingGap`, keyed off the derived leagueRound, would report). Mirrors the
   // span runCupMatchdayTraining itself recovers/develops over.
   cupMatchdayGap(): { weeks: number; days: number } {
     return upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));

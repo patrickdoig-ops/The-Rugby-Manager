@@ -192,7 +192,7 @@ export function assertSeasonInvariants(state: GameState): void {
   }
   // calendar.date must stay a parseable ISO date (catches a malformed
   // MATCHDAY_ADVANCED toDate). A strict monotonicity assert is deliberately
-  // omitted: WEEK_ADVANCED jumps to the earliest fixture of the next round,
+  // omitted: the date is re-homed to the earliest fixture of the next round,
   // which can sit before a just-played later-in-round fixture.
   if (Number.isNaN(new Date(state.calendar.date).getTime())) {
     fail('calendar.date', `${state.calendar.date}`);

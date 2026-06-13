@@ -110,11 +110,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // (the ball sweeps from the ruck through the backline to him before he runs).
 //
 // WP5 carrier utility AI: the playmaker shades the wide-vs-hard read by the
-// opponent's defensive line tactic + field position, scaled by his composure (the
-// rng() draw is preserved — only the threshold moves). Decision distribution
-// shifts (by design); every § 13 band holds (pts 24.01, tries 3.69, TO 2.05,
-// pen 12.47, tackMade 64.2, home-win 54.89 on the 5-seed/450-fixture sweep).
-const GOLDEN = 'd539ae71c2251385194d16031223faf7af9c5208513181811171c2e11047f200';
+// opponent's defensive line tactic + field position, scaled by his composure.
+//
+// WP5 authored shape consumption: a team's effective attackingStyle can select a
+// hand-authored attacking formation (AUTHORED_ATTACK_SHAPES); the spatial engine
+// positions the named slots into it (the wide_wide seed spreads the backline ~61 m
+// across the pitch). Off-ball positions feed commitRuck's carrier-isolation, so
+// breakdown outcomes shift (by design); every § 13 band holds (pts 24.00, tries
+// 3.70, TO 2.14, pen 12.49, tackMade 64.6, home-win 54.00 on the 5-seed sweep).
+const GOLDEN = 'c63a24613ca665aeddd8958a07fa7a329f304b2b89b250f8192f984dd8165dc1';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

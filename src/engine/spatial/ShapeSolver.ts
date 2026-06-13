@@ -34,6 +34,7 @@ import {
   GAP_BREAK,
 } from '../balance/spatialShape';
 import { PASS_CHAIN } from '../balance/spatialDecision';
+import { AUTHORED_ATTACK_SHAPES } from '../balance/attackShapes';
 import { deriveFoldSpeedMult } from '../balance/spatialSteering';
 import { isForwardSlot, SLOT } from '../Slot';
 import type { Agent } from './types';
@@ -262,10 +263,20 @@ function setAttackTarget(a: Agent, x: number, y: number): void {
 function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
   const attackers = sideAgents(world, p.attackSide);
   const openSign = p.mark.y <= 50 ? 1 : -1;
+  // An AUTHORED shape for this attacking style drives the slots it names (WP5 shape
+  // editor); the rest fall back to the procedural pods/backline below.
+  const shape = AUTHORED_ATTACK_SHAPES[p.attackingStyle];
   const offForwards: Agent[] = [];
   const offBacks: Agent[] = [];
   for (const a of attackers) {
     if (a.role === 'corridor' || a.slot === p.carrierSlot) continue;
+    const s = shape?.slots[a.slot];
+    if (s) {
+      // fwd is attack-oriented (negative = behind the gain line); lat is toward the
+      // open side and mirrored to the live open side via openSign.
+      setAttackTarget(a, clampX(gainX + p.attackDir * s.fwd), clampY(p.mark.y + openSign * s.lat));
+      continue;
+    }
     (isForwardSlot(a.slot) ? offForwards : offBacks).push(a);
   }
   // Forwards → pods. Pod centres fan toward the open side, spaced per attacking

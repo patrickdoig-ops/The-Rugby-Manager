@@ -250,6 +250,25 @@ tells you which narration chain it represents.
 
 ---
 
+## 6.1 Shape editor (subset roster + spatial shape)
+
+The **Roster** panel (top of the authoring sidebar) chooses **which players a shape
+animates** — per-player chips plus quick-selects (Home 15 / Away 15 / Home backs /
+Away backs / All / None). Excluded players are dimmed + inert and **left out of the
+export**, so you can author just one team's backs, all 15 of a team, or any subset;
+the engine fills in the rest. Re-importing a subset restores its selection; the ball
+anchor is always kept.
+
+**"Export spatial shape"** emits the active HOME players as **mark-relative,
+attack-oriented** offsets for `AUTHORED_ATTACK_SHAPES` in
+`src/engine/balance/attackShapes.ts`: `fwd = player.x − ball.x` (negative = behind
+the gain line), `lat = player.y − ball.y` (toward the open side — the engine mirrors
+it to whichever side is actually open). Author one team here; the spatial engine
+plays the shape off either touchline. Paste the output under the desired
+`attackingStyle` key; the engine drives the named slots into the formation and the
+remaining slots keep the procedural pods/backline. (Per-team selection + named
+set-moves are the WP6 playbook.)
+
 ## 7. Export format
 
 `t` is normalised `0..1`; `x`/`y` are game coordinates (so they map straight onto

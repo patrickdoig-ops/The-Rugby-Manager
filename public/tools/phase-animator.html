@@ -257,6 +257,7 @@
     <h2>Export / Import</h2>
     <div class="btns">
       <button id="exportBtn">Export JSON</button>
+      <button id="exportShapeBtn" title="Mark-relative formation for AUTHORED_ATTACK_SHAPES (active HOME players)">Export spatial shape</button>
       <button id="copyBtn">Copy</button>
       <button id="importBtn">Import ↓</button>
     </div>
@@ -836,6 +837,25 @@
     };
   }
   document.getElementById('exportBtn').onclick = () => { document.getElementById('io').value = JSON.stringify(exportObj(), null, 2); };
+  // Spatial shape: active HOME players as mark-relative, attack-oriented offsets for
+  // AUTHORED_ATTACK_SHAPES (src/engine/balance/attackShapes.ts). Home attacks toward
+  // x=100 here, so fwd = player.x − ball.x (negative = behind the gain line); lat =
+  // player.y − ball.y (toward the open side, mirrored to the live open side by the
+  // engine). Author one team here; the engine plays it off either touchline.
+  function exportSpatialShape() {
+    const ball = entities.find(e => e.id === 'ball');
+    const bp = posAt(ball, playhead);
+    const slots = {};
+    entities.filter(e => e.kind === 'home' && e.active)
+      .sort((a, b) => (+a.jersey) - (+b.jersey))
+      .forEach(e => { const pp = posAt(e, playhead); slots[+e.jersey] = { fwd: +(pp.x - bp.x).toFixed(1), lat: +(pp.y - bp.y).toFixed(1) }; });
+    return { name: phaseName === '(blank)' ? 'authored shape' : phaseName, slots };
+  }
+  document.getElementById('exportShapeBtn').onclick = () => {
+    document.getElementById('io').value =
+      '// paste into AUTHORED_ATTACK_SHAPES[<style>] in src/engine/balance/attackShapes.ts\n'
+      + JSON.stringify(exportSpatialShape(), null, 2);
+  };
   document.getElementById('copyBtn').onclick = async () => {
     const t = document.getElementById('io'); if (!t.value) t.value = JSON.stringify(exportObj(), null, 2);
     try { await navigator.clipboard.writeText(t.value); } catch {} t.select();

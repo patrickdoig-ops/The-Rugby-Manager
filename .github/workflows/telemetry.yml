@@ -4,24 +4,17 @@ name: Telemetry
 # and commits the markdown report to telemetry/latest.md on main. The file
 # is browsable from the GitHub mobile app at:
 #   github.com/<owner>/<repo>/blob/main/telemetry/latest.md
-# Each push to main produces a new revision; `git log telemetry/latest.md`
+# Each run produces a new revision; `git log telemetry/latest.md`
 # is the historical archive.
 #
 # Also writes the report to $GITHUB_STEP_SUMMARY so it renders inline on
 # the Actions run page (handy if you want to view the result before it
 # even commits).
 #
-# Triggers:
-#   - workflow_dispatch: fire manually (e.g. from GitHub mobile app)
-#   - push to main: every deploy gets a telemetry update
-#
-# Loop safety: the commit uses GITHUB_TOKEN, whose pushes do NOT re-trigger
-# workflows by design. paths-ignore is set anyway as belt-and-braces.
+# Trigger: workflow_dispatch only — fire manually from the Actions tab
+# or the GitHub mobile app when you want a telemetry refresh.
 
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['telemetry/**']
   workflow_dispatch:
 
 permissions:

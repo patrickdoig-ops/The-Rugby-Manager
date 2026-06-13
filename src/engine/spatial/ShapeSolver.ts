@@ -222,9 +222,13 @@ export function reanchorDefence(roles: LineRole[], carrier: Agent, p: ShapeParam
 // (set by solveCarryCorridor); each holds its lateral channel and sits
 // supportDepth behind the carrier's current x along attackDir.
 export function reanchorSupport(world: World, carrier: Agent, p: ShapeParams): void {
-  const attackers = sideAgents(world, p.attackSide);
+  // Index iteration over the attack block — no sideAgents().slice().filter() so this
+  // per-tick call allocates nothing (empty slots have role !== 'corridor', so the
+  // role check skips them exactly as the old filter did).
+  const base = p.attackSide === 'home' ? 0 : AGENTS_PER_SIDE;
   const trailX = clampX(carrier.pos.x - p.attackDir * CARRY_CORRIDOR.supportDepth);
-  for (const a of attackers) {
+  for (let i = 0; i < AGENTS_PER_SIDE; i++) {
+    const a = world.agents[base + i];
     if (a === carrier || a.role !== 'corridor') continue;
     const t = a.intent.target;
     if (!t) continue;
@@ -262,15 +266,25 @@ function setAttackTarget(a: Agent, x: number, y: number): void {
 // up as PODS fanned to the open side; backs form an angled backline deeper + wider
 // per man. Deterministic: agents partitioned in slot-iteration order.
 function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
-  const attackers = sideAgents(world, p.attackSide);
+  // SINGLE allocation-free pass (called every micro-tick via reanchorAttack). It
+  // walks the attack block by index — no sideAgents().slice().filter(), no
+  // offForwards/offBacks partition arrays. Each off-ball forward/back is placed
+  // immediately using a running pod/backline counter (fwdRank / backRank), which
+  // is byte-identical to the old two-pass partition-then-place (same iteration
+  // order ⇒ same rank ⇒ same target) but allocates nothing per tick.
+  const base = p.attackSide === 'home' ? 0 : AGENTS_PER_SIDE;
   const openSign = p.mark.y <= 50 ? 1 : -1;
   // An AUTHORED shape for this attacking style drives the slots it names (WP5 shape
   // editor); the rest fall back to the procedural pods/backline below.
   const shape = AUTHORED_ATTACK_SHAPES[p.attackingStyle];
-  const offForwards: Agent[] = [];
-  const offBacks: Agent[] = [];
-  for (const a of attackers) {
-    if (a.role === 'corridor' || a.slot === p.carrierSlot) continue;
+  const podSpread = FORWARD_POD.spread[p.attackingStyle];
+  let fwdRank = 0;   // index among off-ball forwards (pod placement)
+  let backRank = 0;  // index among off-ball backs (backline placement)
+  for (let i = 0; i < AGENTS_PER_SIDE; i++) {
+    const a = world.agents[base + i];
+    // Skip empty slots (carded side), corridor agents (carrier + support pod), and
+    // the carrier himself — exactly the set the old sideAgents-filter + guards skipped.
+    if (a.role === 'empty' || a.role === 'corridor' || a.slot === p.carrierSlot) continue;
     // The scrum-half holds the RUCK base (the mark), not the backline fan — so the
     // pass chain starts at the ball and he is always goal-side of the breakdown.
     if (a.slot === SLOT.SCRUM_HALF) {
@@ -284,26 +298,24 @@ function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
       setAttackTarget(a, clampX(gainX + p.attackDir * s.fwd), clampY(p.mark.y + openSign * s.lat));
       continue;
     }
-    (isForwardSlot(a.slot) ? offForwards : offBacks).push(a);
-  }
-  // Forwards → pods. Pod centres fan toward the open side, spaced per attacking
-  // style (tight = near the ruck, wide = flung to the edges); within a pod the
-  // members bunch tightly with a small lateral + depth stagger.
-  const podSpread = FORWARD_POD.spread[p.attackingStyle];
-  for (let i = 0; i < offForwards.length; i++) {
-    const podIndex = Math.floor(i / FORWARD_POD.podSize);
-    const inPod = i % FORWARD_POD.podSize;
-    const podY = p.mark.y + openSign * (podSpread.firstPodOffset + podIndex * podSpread.podSpacing);
-    const sign = inPod % 2 === 0 ? 1 : -1;
-    const lateral = sign * Math.ceil(inPod / 2) * FORWARD_POD.inPodSpread;
-    const depth = FORWARD_POD.podDepth + inPod * FORWARD_POD.inPodStagger;
-    setAttackTarget(offForwards[i], clampX(gainX - p.attackDir * depth), clampY(podY + lateral));
-  }
-  // Backs → angled backline off the open side, deeper + wider per man.
-  for (let i = 0; i < offBacks.length; i++) {
-    const lateral = openSign * (ATTACK_SPREAD.backFirstOffset + i * ATTACK_SPREAD.backLateralStep);
-    const depth = ATTACK_SPREAD.backDepth + i * ATTACK_SPREAD.backDepthStep;
-    setAttackTarget(offBacks[i], clampX(gainX - p.attackDir * depth), clampY(p.mark.y + lateral));
+    if (isForwardSlot(a.slot)) {
+      // Forwards → pods. Pod centres fan toward the open side, spaced per attacking
+      // style; within a pod the members bunch tightly with a lateral + depth stagger.
+      const rank = fwdRank++;
+      const podIndex = Math.floor(rank / FORWARD_POD.podSize);
+      const inPod = rank % FORWARD_POD.podSize;
+      const podY = p.mark.y + openSign * (podSpread.firstPodOffset + podIndex * podSpread.podSpacing);
+      const sign = inPod % 2 === 0 ? 1 : -1;
+      const lateral = sign * Math.ceil(inPod / 2) * FORWARD_POD.inPodSpread;
+      const depth = FORWARD_POD.podDepth + inPod * FORWARD_POD.inPodStagger;
+      setAttackTarget(a, clampX(gainX - p.attackDir * depth), clampY(podY + lateral));
+    } else {
+      // Backs → angled backline off the open side, deeper + wider per man.
+      const rank = backRank++;
+      const lateral = openSign * (ATTACK_SPREAD.backFirstOffset + rank * ATTACK_SPREAD.backLateralStep);
+      const depth = ATTACK_SPREAD.backDepth + rank * ATTACK_SPREAD.backDepthStep;
+      setAttackTarget(a, clampX(gainX - p.attackDir * depth), clampY(p.mark.y + lateral));
+    }
   }
 }
 

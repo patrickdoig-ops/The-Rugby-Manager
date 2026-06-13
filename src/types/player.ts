@@ -281,7 +281,7 @@ export interface Player {
   internationalCaps?: number;
   // 2025/26 only: the Premiership round a returning 2025 B&I Lions tourist
   // becomes available, after the PGA mandatory post-tour rest. While
-  // `calendar.week < lionsReturnRound` the player is unavailable for selection
+  // `leagueRound(state) < lionsReturnRound` the player is unavailable for selection
   // and skips club training (so they return at their reduced seed condition).
   // Set once at newSeason, cleared at SEASON_ROLLED_OVER. Absent ⇔ not a 2025
   // Lions returnee. See LIONS_RETURN_ROUND.

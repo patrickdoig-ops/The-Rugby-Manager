@@ -785,14 +785,19 @@ export type SeasonEvent =
       story: MediaStory;
     }
   | {
+      // Advances the monotonic week counter (calendar.week) by `weeks` (default
+      // 1). Purely a week tick: it does NOT touch calendar.date — the caller
+      // (recordPlayerMatchResult / runWeeklyTick) re-homes the date to the next
+      // league round. Also prunes aged-out mid-season FA rejection cooldowns,
+      // which are genuinely week-based.
       type: 'WEEK_ADVANCED';
+      weeks?: number;
     }
   | {
-      // Advances calendar.date ONLY (to the next cup / European matchday),
-      // leaving calendar.week (the league-round cursor) untouched. Consumes
-      // no RNG and runs none of WEEK_ADVANCED's league-round-scoped passes
-      // (rejection pruning, morale decay, poach threats) — a cup matchday is
-      // not a league round.
+      // Advances calendar.date ONLY, leaving calendar.week (the monotonic week
+      // counter) untouched. Used (a) to step to the next cup / European matchday
+      // and (b) by runWeeklyTick / fromSave to re-home the date onto the next
+      // league round (WEEK_ADVANCED no longer owns the date). Consumes no RNG.
       type: 'MATCHDAY_ADVANCED';
       toDate: string;
     }

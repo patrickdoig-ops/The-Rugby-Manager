@@ -217,12 +217,12 @@ export function initContractsScreen(
       // holds the round the player is approachable again).
       const cooldownUntil = state.career.midseasonRejections[p.rosterId];
       const onCooldown = cooldownUntil !== undefined && cooldownUntil > state.calendar.week;
-      const cooldownDate = onCooldown
-        ? (() => { let m: string | undefined; for (const f of state.league.fixtures) if (f.round === cooldownUntil && f.date && (!m || f.date < m)) m = f.date; return m ? formatDateMedium(m) : `Round ${cooldownUntil}`; })()
-        : '';
+      // cooldownUntil is a monotonic-week value (not a league round), so show the
+      // remaining wait as a week count rather than mapping it to a fixture date.
+      const cooldownWeeks = onCooldown ? cooldownUntil - state.calendar.week : 0;
       const renewHtml = (onOfferRenewal && mode === 'hub' && expiring)
         ? (onCooldown
-            ? `<button class="ct-renew-btn" disabled>Approached · back ${cooldownDate}</button>`
+            ? `<button class="ct-renew-btn" disabled>Approached · back in ${cooldownWeeks} week${cooldownWeeks !== 1 ? 's' : ''}</button>`
             : `<button class="ct-renew-btn" data-renew="${p.rosterId}">Offer Renewal</button>`)
         : '';
       const expandPanel = isExpandable

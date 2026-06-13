@@ -42,6 +42,7 @@ import { discardConfirm } from './components/discardConfirm';
 import { playHaptic } from './HapticsManager';
 import { helpButtonHtml } from './help/helpButton';
 import { formatDateMedium } from '../utils/formatDate';
+import { leagueRound } from '../game/leagueRound';
 
 export interface InitSquadManagementOpts {
   // Always called fresh — see HubScreen for the rationale.
@@ -188,7 +189,7 @@ export function initSquadManagementScreen(opts: InitSquadManagementOpts): void {
     for (const rid of club.squad) {
       const r = state.career.roster[rid];
       if (r && r.firstName === p.firstName && r.lastName === p.lastName) {
-        return (r.lionsReturnRound !== undefined && state.calendar.week < r.lionsReturnRound)
+        return (r.lionsReturnRound !== undefined && leagueRound(state) < r.lionsReturnRound)
           ? r.lionsReturnRound
           : undefined;
       }

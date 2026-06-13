@@ -37,6 +37,7 @@ import {
   INTENSITY_EFFECTS, ageMultiplier,
 } from '../engine/balance/training';
 import { rollDevelopmentGains } from './trainingWeek';
+import { leagueRound } from './leagueRound';
 import { pickSeverity } from './injuryEffects';
 import { proximityMultiplier } from '../engine/balance/career';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
@@ -62,9 +63,10 @@ function clamp(v: number, lo: number, hi: number): number {
 
 // Returns the international window the calendar has just advanced into (the
 // player's upcoming round equals a window's return round), or null. Called
-// from applyTrainingBlock, where calendar.week === the post-break round.
+// from applyTrainingBlock, where the upcoming league round === the post-break
+// round.
 export function isInternationalBreak(state: GameState): InternationalWindow | null {
-  const round = state.calendar.week;
+  const round = leagueRound(state);
   for (const key of Object.keys(INTERNATIONAL_WINDOWS) as InternationalWindow[]) {
     if (INTERNATIONAL_WINDOWS[key].returnRound === round) return key;
   }
@@ -293,7 +295,7 @@ export function resolveInternationalBreak(
 export function mustRestThisRound(p: Player, state: GameState): boolean {
   const ob = p.restObligation;
   if (!ob || ob.eligibleRounds.length === 0) return false;
-  const round = state.calendar.week;
+  const round = leagueRound(state);
   if (!ob.eligibleRounds.includes(round)) return false;
   const isHuman = p.contract.clubId === state.player.teamId;
   const trigger = isHuman ? Math.max(...ob.eligibleRounds) : Math.min(...ob.eligibleRounds);
@@ -336,7 +338,7 @@ export function selectionUnavailableIds(state: GameState, clubId: string): Set<n
   const out = new Set<number>();
   const club = state.career.clubs.find(c => c.id === clubId);
   if (!club) return out;
-  const week = state.calendar.week;
+  const week = leagueRound(state);
   for (const rid of club.squad) {
     const p = state.career.roster[rid];
     // internationalDuty is only set during a break (when the sole matches are
@@ -352,13 +354,11 @@ function isSuspended(p: Player, week: number): boolean {
 }
 
 // Per-round reconciliation of rest obligations. Called from
-// recordPlayerMatchResult AFTER the round's results are recorded but BEFORE
-// WEEK_ADVANCED, so state.calendar.week is still the just-played round. A
-// player whose obligation covers this round and who did NOT feature (human:
-// not in the matchday 23; AI: force-rested at their single eligible round)
-// has satisfied the obligation → REST_OBLIGATION_RESOLVED.
-export function reconcileRestObligations(state: GameState, humanMatchdayIds: ReadonlySet<number>): SeasonEvent[] {
-  const round = state.calendar.week;
+// recordPlayerMatchResult AFTER the round's results are recorded, passing the
+// league round just played. A player whose obligation covers this round and who
+// did NOT feature (human: not in the matchday 23; AI: force-rested at their
+// single eligible round) has satisfied the obligation → REST_OBLIGATION_RESOLVED.
+export function reconcileRestObligations(state: GameState, round: number, humanMatchdayIds: ReadonlySet<number>): SeasonEvent[] {
   const out: SeasonEvent[] = [];
   const ids = Object.keys(state.career.roster).map(Number).sort((a, b) => a - b);
   for (const rid of ids) {

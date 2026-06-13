@@ -42,6 +42,7 @@ import { createRowExpander } from './components/rowExpand';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { GameState } from '../types/gameState';
 import type { PlayerInjury } from '../types/player';
+import { leagueRound } from '../game/leagueRound';
 
 type RawPlayer = {
   id: number;
@@ -178,7 +179,7 @@ function renderLineupRow(
   const restOb = rosterEntry?.restObligation;
   const onRest = !!restOb
     && rosterEntry?.contract.clubId === state.player.teamId
-    && restOb.eligibleRounds.includes(state.calendar.week);
+    && restOb.eligibleRounds.includes(leagueRound(state));
   const restBadge = onRest
     ? `<span class="rest-badge" title="International duty — must be rested in one of rounds ${restOb!.eligibleRounds.join(', ')}">REST</span>`
     : '';

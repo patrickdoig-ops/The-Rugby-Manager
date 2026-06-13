@@ -145,7 +145,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
   // --- B&I Lions returnees (2025/26 season-open post-tour stand-down) ---
   const lionsBack = club.squad
     .map(rid => state.career.roster[rid])
-    .filter((p): p is Player => !!p && p.lionsReturnRound !== undefined && state.calendar.week < p.lionsReturnRound!);
+    .filter((p): p is Player => !!p && p.lionsReturnRound !== undefined && leagueRound(state) < p.lionsReturnRound!);
   if (lionsBack.length > 0) {
     const returnRound = lionsBack[0].lionsReturnRound!;
     const listed = lionsBack.map(p => `${p.lastName} (${Math.round(p.condition)}%)`).slice(0, 6).join(', ');
@@ -288,7 +288,7 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     // and the starts delta hasn't been met.
     const promise = p?.playingTimePromise;
     if (!promise) continue;
-    if (state.calendar.week < promise.toRound) continue;
+    if (leagueRound(state) < promise.toRound) continue;
     const startsGained = (p.seasonStats.starts ?? 0) - promise.startsAtPromise;
     if (startsGained >= promise.startsRequired) continue;
     const name = `${p.firstName} ${p.lastName}`;
@@ -311,10 +311,10 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
     const name = `${p.firstName} ${p.lastName}`;
     const yellows = p.seasonStats.yellowCards;
     const hasActiveAdvice = p.disciplineAdvice?.mode === 'ease_off'
-      && state.calendar.week <= p.disciplineAdvice.expiresAfterRound;
+      && leagueRound(state) <= p.disciplineAdvice.expiresAfterRound;
 
     // Suspension notification — player banned for the current round
-    if (p.suspension?.forRound === state.calendar.week) {
+    if (p.suspension?.forRound === leagueRound(state)) {
       items.push({
         id: `disc:suspended:${season}:${rid}`,
         category: 'squad',

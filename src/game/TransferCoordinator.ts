@@ -37,6 +37,7 @@ import { MORALE, SQUAD_STATUS_THRESHOLDS } from '../engine/balance';
 import { rngTransfer } from '../utils/rng';
 import type { PreSeasonTransfer } from '../data/transfers-2025-26';
 import { PARTNERSHIP_CLUB } from '../data/partnershipClubs';
+import { leagueRound } from './leagueRound';
 
 // Outcome of a one-shot mid-season early renewal (Hub → Contracts).
 // `accepted` carries the agreed terms for the toast; `declined` carries
@@ -1081,7 +1082,9 @@ export class TransferCoordinator {
     const teamId = this.state.player.teamId;
     const club = this.state.career.clubs.find(c => c.id === teamId);
     if (!club) return;
-    const week = this.state.calendar.week;
+    // Playing-time promise deadline (toRound) is a league-round number, set from
+    // leagueRound when the promise is made — compare against the same.
+    const week = leagueRound(this.state);
     const gamesPlayed = this.state.league.results.filter(
       r => r.homeId === teamId || r.awayId === teamId,
     ).length;
@@ -1127,7 +1130,7 @@ export class TransferCoordinator {
   makePlayingTimePromise(rosterId: number): void {
     const p = this.state.career.roster[rosterId];
     if (!p) return;
-    const toRound = this.state.calendar.week + PLAYING_TIME_PROMISE.windowRounds;
+    const toRound = leagueRound(this.state) + PLAYING_TIME_PROMISE.windowRounds;
     const startsRequired = PLAYING_TIME_PROMISE.startsRequired;
     applySeasonEvent(this.state, {
       type: 'PLAYING_TIME_PROMISED',
@@ -1167,7 +1170,7 @@ export class TransferCoordinator {
       type: 'PLAYER_LOANED_OUT',
       rosterId,
       partnerClub,
-      fromRound: this.state.calendar.week,
+      fromRound: leagueRound(this.state),
     });
   }
 
@@ -1185,7 +1188,7 @@ export class TransferCoordinator {
       type: 'LOAN_PLAYER_SIGNED',
       rosterId,
       clubId: this.state.player.teamId,
-      fromRound: this.state.calendar.week,
+      fromRound: leagueRound(this.state),
     });
   }
 

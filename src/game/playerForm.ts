@@ -13,6 +13,7 @@ import { FORM_MODEL, MORALE } from '../engine/balance';
 import type { GameState } from '../types/gameState';
 import type { Player } from '../types/player';
 import { getAge } from './age';
+import { leagueRound } from './leagueRound';
 
 export interface FormInputs {
   bias: number;
@@ -52,7 +53,7 @@ function ageVolatility(age: number | null): number {
 }
 
 export function computeFormInputs(state: GameState, p: Player): FormInputs {
-  const currentRound = state.calendar.week;
+  const currentRound = leagueRound(state);
   const bias =
     recentRatingBias(p.recentRatings) +
     conditionBias(p.condition) +

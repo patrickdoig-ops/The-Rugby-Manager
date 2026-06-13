@@ -84,6 +84,74 @@
   body.frames-mode .trail { display: none !important; }
   #frameOverlay { position: absolute; inset: 0; z-index: 4; display: none; pointer-events: none; }
   body.frames-mode #frameOverlay { display: block; }
+
+  /* Play-editor mode: hide keyframe-authoring panels and the normal timeline;
+     show the play panel and play timeline instead. */
+  body.play-mode #authoringControls,
+  body.play-mode #authoringControls2 { display: none; }
+  body.play-mode #framesPanel { display: none !important; }
+  body.play-mode #playPanel { display: block !important; }
+  body.play-mode #timeline > .tlrow:first-of-type,
+  body.play-mode #tlbar,
+  body.play-mode #timeline > .hint:first-of-type { display: none; }
+  body.play-mode #frameTimeline { display: none !important; }
+  body.play-mode #playTimeline { display: block !important; }
+  /* Hide the normal entity dots, ghosts, trails — play editor owns the pitch. */
+  body.play-mode .dot:not(.playdot):not(.playball),
+  body.play-mode .ghost,
+  body.play-mode .trail { display: none !important; }
+  #playPanel { display: none; }
+  #playTimeline { display: none; }
+  /* Play editor: mark (origin), role dots, run-line trails, action pips */
+  .playmark { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+              border-radius: 50%; border: 3px solid var(--accent); background: rgba(62,229,146,.18);
+              z-index: 8; cursor: grab; box-shadow: 0 0 10px var(--accent-soft); }
+  .playmark:active { cursor: grabbing; }
+  .playball { position: absolute; width: 26px; height: 18px; margin: -9px 0 0 -13px; border-radius: 50%;
+              background: var(--ball); border: 2px solid #b9791a; z-index: 7; pointer-events: none; }
+  .playdot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+             border: 2px solid rgba(255,255,255,.92); color: #fff; font: 800 10px/18px system-ui;
+             text-align: center; cursor: grab; user-select: none; z-index: 5;
+             box-shadow: 0 2px 6px rgba(0,0,0,.45); background: var(--home);
+             transition: transform .12s ease, outline-color .12s ease; }
+  .playdot:hover { transform: scale(1.1); z-index: 9; }
+  .playdot:active { cursor: grabbing; }
+  .playdot.sel { outline: 3px solid var(--sel); outline-offset: 2px;
+                 box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 14px rgba(255,210,63,.55); z-index: 7; }
+  .playtrail { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+               background: rgba(168,41,79,.45); z-index: 2; pointer-events: none; }
+  .playtrail.wp { width: 10px; height: 10px; margin: -5px 0 0 -5px; background: rgba(168,41,79,.75);
+                  border: 1px solid rgba(255,255,255,.4); }
+  .playaction { position: absolute; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 3px;
+                background: var(--sel); border: 1px solid rgba(0,0,0,.4); z-index: 6;
+                pointer-events: none; font: 800 8px/11px system-ui; color: #000; text-align: center; }
+  /* Role list in play panel */
+  #playRoleList { margin-top: 6px; }
+  .prole-row { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px;
+               cursor: pointer; transition: background .12s ease; border: 1px solid transparent; }
+  .prole-row:hover { background: var(--panel-hi); }
+  .prole-row.sel { background: var(--accent-soft); border-color: var(--line-hi); }
+  .prole-name { flex: 1; font: 700 12px/1.4 system-ui; }
+  .prole-slot { color: var(--muted); font-size: 11px; }
+  /* Action list */
+  #playActionList { margin-top: 4px; max-height: 120px; overflow-y: auto; }
+  .paction-row { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 5px;
+                 font: 11px/1.4 ui-monospace, monospace; color: var(--muted); }
+  .paction-row:hover { background: var(--panel-hi); color: var(--ink); }
+  /* Waypoint list */
+  #playWpList { margin-top: 4px; max-height: 100px; overflow-y: auto; }
+  .pwp-row { display: flex; justify-content: space-between; gap: 6px; padding: 3px 8px; border-radius: 5px;
+             font: 11px/1.4 ui-monospace, monospace; color: var(--muted); cursor: pointer; }
+  .pwp-row:hover { background: var(--panel-hi); color: var(--ink); }
+  .pwp-row.active { background: var(--accent-soft); color: var(--ink); }
+  /* Compact form rows */
+  .frow { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+  .frow label { color: var(--muted); font-size: 11px; min-width: 70px; flex: none; }
+  .frow input[type=text], .frow input[type=number], .frow select { flex: 1; padding: 5px 8px;
+    background: var(--bg2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+    font: 12px/1.4 system-ui; }
+  .frow input[type=text]:focus, .frow input[type=number]:focus, .frow select:focus { outline: 2px solid var(--accent); }
+  .cbrow { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); margin: 3px 0; }
   .fdot { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
           border: 2px solid rgba(255,255,255,.9); color: #fff; font: 800 9px/16px system-ui;
           text-align: center; z-index: 4; pointer-events: auto; cursor: pointer;
@@ -210,6 +278,7 @@
       <button class="seg-btn active" data-mode="single">Single phases</button>
       <button class="seg-btn" data-mode="transitions">Transitions</button>
       <button class="seg-btn" data-mode="frames">Frame debugger</button>
+      <button class="seg-btn" data-mode="play">Play editor</button>
     </div>
     <div id="authoringControls">
     <select id="phaseSel"><option value="">— blank phase —</option></select>
@@ -230,6 +299,94 @@
       <h2>Decision annotation</h2>
       <p class="hint" id="annoInfo">Click a dot to inspect why it moved this tick.</p>
       <div id="annoBox"></div>
+    </div>
+
+    <div id="playPanel">
+      <p class="hint">Author a play: set a mark, add roles, drag dots to draw run lines, add timed actions. Import a seed play to start from an existing example.</p>
+
+      <h2>Play meta</h2>
+      <div class="frow"><label>ID</label><input type="text" id="playId" placeholder="e.g. switch" /></div>
+      <div class="frow"><label>Name</label><input type="text" id="playName" placeholder="e.g. Switch (scissors)" /></div>
+      <div class="frow"><label>Origin</label>
+        <select id="playOrigin">
+          <option value="ruck">ruck</option>
+          <option value="scrum">scrum</option>
+          <option value="lineout">lineout</option>
+        </select>
+      </div>
+      <div class="frow"><label>Lifetime ticks</label><input type="number" id="playLifetime" min="1" max="60" value="18" style="width:70px;flex:none" /></div>
+
+      <h2>Trigger</h2>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Phases</div>
+          <label class="cbrow"><input type="checkbox" id="trigFirstPhase" value="FirstPhase" /> FirstPhase</label>
+          <label class="cbrow"><input type="checkbox" id="trigPhasePlay" value="PhasePlay" /> PhasePlay</label>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Channels</div>
+          <label class="cbrow"><input type="checkbox" id="trigTight" value="tight" /> tight</label>
+          <label class="cbrow"><input type="checkbox" id="trigMid" value="mid" /> mid</label>
+          <label class="cbrow"><input type="checkbox" id="trigWide" value="wide" /> wide</label>
+        </div>
+      </div>
+      <div class="frow"><label>minSpaceWide</label><input type="number" id="trigMinSpace" min="0" placeholder="none" style="width:70px;flex:none" /></div>
+
+      <h2>Abort</h2>
+      <label class="cbrow"><input type="checkbox" id="abortTurnover" value="turnover" /> turnover</label>
+      <label class="cbrow"><input type="checkbox" id="abortIntercept" value="intercept_risk" /> intercept_risk</label>
+      <label class="cbrow"><input type="checkbox" id="abortCovered" value="receiver_covered" /> receiver_covered</label>
+
+      <h2>Mark (origin)</h2>
+      <p class="hint" id="playMarkInfo">Mark: x 50.0, y 50.0 &nbsp;|&nbsp; openSign: +1 &nbsp;|&nbsp; attackDir: +1 (→ x=100)</p>
+      <div class="btns">
+        <button id="playFlipDir">Attack ↑/↓ (flip dir)</button>
+      </div>
+
+      <h2>Roles</h2>
+      <div id="playRoleList"></div>
+      <div class="btns" style="margin-top:8px">
+        <button id="playAddRole" class="primary">+ Add role</button>
+        <button id="playRemoveRole" class="warn">Remove selected</button>
+      </div>
+
+      <div id="playSelRoleSection" style="display:none">
+        <h2>Selected role: <span id="playSelRoleName" style="color:var(--ink);font-weight:700;text-transform:none;letter-spacing:0"></span></h2>
+        <div class="frow"><label>Slot</label><input type="number" id="playRoleSlot" min="1" max="15" /></div>
+
+        <h2>Waypoints</h2>
+        <div id="playWpList"></div>
+        <div class="btns" style="margin-top:4px">
+          <button id="playSetWp" class="primary">Set waypoint @ tick</button>
+          <button id="playDelWp" class="warn">Delete waypoint</button>
+        </div>
+
+        <h2>Actions</h2>
+        <div id="playActionList"></div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:4px">
+          <select id="playActionDo" style="width:auto">
+            <option value="pass">pass</option>
+            <option value="dummy">dummy</option>
+            <option value="receive">receive</option>
+            <option value="carry">carry</option>
+          </select>
+          <span style="font-size:11px;color:var(--muted)">to:</span>
+          <select id="playActionTo" style="width:auto"><option value="">—</option></select>
+          <button id="playAddAction">+ Add action @ tick</button>
+        </div>
+      </div>
+
+      <h2>Import / Export</h2>
+      <div class="frow">
+        <label>Seed play</label>
+        <select id="playImportSel"><option value="">— choose —</option></select>
+      </div>
+      <div class="btns" style="margin-top:6px">
+        <button id="playImportBtn">Import selected</button>
+        <button id="playExportBtn" class="primary">Export play JSON</button>
+        <button id="playCopyBtn">Copy</button>
+      </div>
+      <textarea id="playIo" placeholder="Exported play JSON appears here. Paste here and Import to reload."></textarea>
     </div>
 
     <div id="authoringControls2">
@@ -298,6 +455,18 @@
       </div>
       <input type="range" id="fdScrub" min="0" max="0" value="0" step="1" style="width:100%;margin:10px 0;accent-color:var(--accent)" />
       <p class="hint">Read-only micro-tick playback (10 Hz). Scrub the slider or play; click a dot to read its decision annotations. <span class="kbd">Space</span> play/pause · <span class="kbd">←</span> <span class="kbd">→</span> step tick.</p>
+    </div>
+
+    <div id="playTimeline">
+      <div class="tlrow">
+        <button id="ptPlay" class="primary">▶ Play</button>
+        <button id="ptStop">⏹</button>
+        <span class="pill">Tick <span id="ptTickLabel">0 / 18</span></span>
+        <span class="pill" id="ptDirPill" style="color:var(--accent)">attackDir: +1</span>
+      </div>
+      <input type="range" id="ptScrub" min="0" max="18" value="0" step="1" style="width:100%;margin:10px 0;accent-color:var(--accent)" />
+      <p class="hint">Scrub to preview the play at any tick. Drag role dots to set waypoints. Drag the green ring to reposition the mark.<br>
+      <span class="kbd">Space</span> play/pause · <span class="kbd">←</span> <span class="kbd">→</span> step tick</p>
     </div>
   </div>
 </div>
@@ -892,6 +1061,780 @@
     document.getElementById('phaseInfo').textContent = 'phases.js not found — start blank, or load a trace.json.';
   }
   render();
+})();
+</script>
+
+<!-- Play editor (WP6) — author named set-plays in attack-oriented, mark-relative
+     coordinates matching the Play schema in src/data/playbook/types.ts.
+     Self-contained: reuses pitch coordinate mapping; owns its own DOM, dots,
+     and scrubber so it never touches the keyframe-authoring or frame-debugger IIFEs. -->
+<script>
+(() => {
+  // Same 0–100 → screen-% mapping as the authoring tool (mirroring pitchCoords.ts).
+  const TOP0 = 8, TOPSPAN = 84, LEFT0 = 3.5, LEFTSPAN = 93;
+  const xToTop  = x => TOP0 + (100 - x) / 100 * TOPSPAN;
+  const yToLeft = y => LEFT0 + y / 100 * LEFTSPAN;
+  const topToX  = t => 100 - (t - TOP0) / TOPSPAN * 100;
+  const leftToY = l => (l - LEFT0) / LEFTSPAN * 100;
+  const clamp   = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const pitch = document.getElementById('pitch');
+
+  // ---- Embedded seed plays (faithful JS copy of src/data/playbook/index.ts) ----
+  const PLAYBOOK_SEED = [
+    {
+      id: 'switch',
+      name: 'Switch (scissors)',
+      origin: 'ruck',
+      lifetimeTicks: 18,
+      trigger: { phases: ['FirstPhase', 'PhasePlay'], channels: ['mid', 'wide'] },
+      roles: {
+        firstReceiver: {
+          slot: 10,
+          line: [{ t: 0, fwd: -5, lat: 8 }, { t: 6, fwd: -1, lat: 5 }, { t: 10, fwd: 3, lat: 3 }],
+          actions: [{ t: 8, do: 'pass', to: 'strike' }],
+        },
+        strike: {
+          slot: 12,
+          line: [{ t: 0, fwd: -7, lat: 18 }, { t: 6, fwd: -3, lat: 9 }, { t: 8, fwd: 0, lat: 5 }, { t: 16, fwd: 9, lat: 4 }],
+          actions: [{ t: 8, do: 'receive' }, { t: 9, do: 'carry' }],
+        },
+      },
+      abort: ['turnover', 'intercept_risk', 'receiver_covered'],
+    },
+    {
+      id: 'miss-2-blocker',
+      name: 'Miss-2 + blocker',
+      origin: 'ruck',
+      lifetimeTicks: 18,
+      trigger: { phases: ['FirstPhase', 'PhasePlay'], channels: ['wide'], minSpaceWide: 28 },
+      roles: {
+        firstReceiver: {
+          slot: 10,
+          line: [{ t: 0, fwd: -5, lat: 6 }, { t: 5, fwd: -3, lat: 5 }],
+          actions: [{ t: 5, do: 'pass', to: 'strike' }],
+        },
+        blocker: {
+          slot: 12,
+          line: [{ t: 0, fwd: -6, lat: 14 }, { t: 8, fwd: 2, lat: 14 }],
+          actions: [{ t: 4, do: 'dummy' }],
+        },
+        strike: {
+          slot: 13,
+          line: [{ t: 0, fwd: -8, lat: 30 }, { t: 5, fwd: -4, lat: 26 }, { t: 14, fwd: 6, lat: 24 }],
+          actions: [{ t: 5, do: 'receive' }, { t: 6, do: 'carry' }],
+        },
+      },
+      abort: ['turnover', 'intercept_risk', 'receiver_covered'],
+    },
+    {
+      id: 'loop',
+      name: 'Loop',
+      origin: 'ruck',
+      lifetimeTicks: 20,
+      trigger: { phases: ['FirstPhase', 'PhasePlay'], channels: ['mid', 'wide'] },
+      roles: {
+        firstReceiver: {
+          slot: 10,
+          line: [{ t: 0, fwd: -5, lat: 8 }, { t: 4, fwd: -3, lat: 10 }, { t: 12, fwd: -1, lat: 18 }, { t: 18, fwd: 5, lat: 20 }],
+          actions: [{ t: 4, do: 'pass', to: 'link' }, { t: 13, do: 'receive' }, { t: 14, do: 'carry' }],
+        },
+        link: {
+          slot: 12,
+          line: [{ t: 0, fwd: -7, lat: 16 }, { t: 4, fwd: -5, lat: 15 }, { t: 12, fwd: -2, lat: 14 }],
+          actions: [{ t: 4, do: 'receive' }, { t: 12, do: 'pass', to: 'firstReceiver' }],
+        },
+      },
+      abort: ['turnover', 'intercept_risk', 'receiver_covered'],
+    },
+    {
+      id: 'crash-tip',
+      name: 'Crash + tip-on',
+      origin: 'ruck',
+      lifetimeTicks: 16,
+      trigger: { phases: ['FirstPhase', 'PhasePlay'], channels: ['tight', 'mid'] },
+      roles: {
+        crash: {
+          slot: 12,
+          line: [{ t: 0, fwd: -3, lat: 6 }, { t: 3, fwd: 0, lat: 6 }, { t: 9, fwd: 4, lat: 6 }],
+          actions: [{ t: 3, do: 'receive' }, { t: 4, do: 'carry' }, { t: 8, do: 'pass', to: 'link' }],
+        },
+        link: {
+          slot: 8,
+          line: [{ t: 0, fwd: -5, lat: 11 }, { t: 8, fwd: 2, lat: 8 }, { t: 14, fwd: 7, lat: 7 }],
+          actions: [{ t: 9, do: 'receive' }, { t: 10, do: 'carry' }],
+        },
+      },
+      abort: ['turnover', 'receiver_covered'],
+    },
+    {
+      id: 'dummy-switch',
+      name: 'Dummy switch',
+      origin: 'ruck',
+      lifetimeTicks: 18,
+      trigger: { phases: ['FirstPhase', 'PhasePlay'], channels: ['mid'] },
+      roles: {
+        firstReceiver: {
+          slot: 10,
+          line: [{ t: 0, fwd: -5, lat: 8 }, { t: 6, fwd: -1, lat: 6 }, { t: 16, fwd: 9, lat: 7 }],
+          actions: [{ t: 6, do: 'dummy', to: 'decoy' }, { t: 7, do: 'carry' }],
+        },
+        decoy: {
+          slot: 12,
+          line: [{ t: 0, fwd: -7, lat: 18 }, { t: 6, fwd: -2, lat: 9 }, { t: 12, fwd: 2, lat: 4 }],
+        },
+      },
+      abort: ['turnover', 'receiver_covered'],
+    },
+  ];
+
+  // ---- Play editor state ----
+  let playDoc = null;   // the editable play object (null = no play loaded)
+  let mark = { x: 50, y: 50 };  // draggable origin on the pitch
+  let attackDir = 1;             // +1 attacks toward x=100 (top), -1 toward x=0
+  let playSel = null;            // currently-selected role name
+  let playTick = 0;              // current scrub tick integer
+  let ptPlaying = false;         // play-mode playback flag
+  let ptRaf = null;              // rAF handle
+  let ptLastTs = 0;              // last rAF timestamp
+  let inPlayMode = false;        // true when body.play-mode is active
+
+  // DOM elements created once per play-mode session
+  let markEl = null;       // .playmark draggable ring
+  let ballEl = null;       // .playball (always at mark)
+  let roleDots = {};       // roleName → .playdot element
+  let roleTrails = [];     // all .playtrail and .playaction elements
+
+  // ---- Coordinate transform (mirrors playGeometry.ts exactly) ----
+  function openSign() { return mark.y <= 50 ? 1 : -1; }
+
+  // mark-relative → absolute pitch coord
+  function playPointToPitch(fwd, lat) {
+    return {
+      x: mark.x + attackDir * fwd,
+      y: mark.y + openSign() * lat,
+    };
+  }
+
+  // absolute pitch coord → mark-relative offset
+  function pitchToPlayPoint(x, y) {
+    return {
+      fwd: +(( x - mark.x) * attackDir).toFixed(1),
+      lat: +((y - mark.y) * openSign()).toFixed(1),
+    };
+  }
+
+  // Interpolate fwd/lat across a role's line waypoints at tick t.
+  function offsetAt(line, tick) {
+    if (!line || line.length === 0) return { fwd: 0, lat: 0 };
+    if (tick <= line[0].t) return { fwd: line[0].fwd, lat: line[0].lat };
+    if (tick >= line[line.length - 1].t) {
+      const last = line[line.length - 1];
+      return { fwd: last.fwd, lat: last.lat };
+    }
+    for (let i = 0; i < line.length - 1; i++) {
+      if (tick >= line[i].t && tick <= line[i + 1].t) {
+        const span = line[i + 1].t - line[i].t || 1;
+        const f = (tick - line[i].t) / span;
+        return {
+          fwd: line[i].fwd + (line[i + 1].fwd - line[i].fwd) * f,
+          lat: line[i].lat + (line[i + 1].lat - line[i].lat) * f,
+        };
+      }
+    }
+    return { fwd: line[0].fwd, lat: line[0].lat };
+  }
+
+  // Upsert a waypoint at a given tick in a role's line array.
+  function upsertWaypoint(line, tick, fwd, lat) {
+    const existing = line.find(w => w.t === tick);
+    if (existing) { existing.fwd = fwd; existing.lat = lat; }
+    else line.push({ t: tick, fwd, lat });
+    line.sort((a, b) => a.t - b.t);
+  }
+
+  // ---- Build a blank play doc ----
+  function blankPlayDoc() {
+    return {
+      id: '',
+      name: '',
+      origin: 'ruck',
+      lifetimeTicks: 18,
+      trigger: { phases: [], channels: [], minSpaceWide: null },
+      roles: {},
+      abort: [],
+    };
+  }
+
+  // Deep-clone a seed play into the editable playDoc shape.
+  function cloneSeed(seed) {
+    return {
+      id: seed.id,
+      name: seed.name,
+      origin: seed.origin,
+      lifetimeTicks: seed.lifetimeTicks,
+      trigger: {
+        phases: (seed.trigger.phases || []).slice(),
+        channels: (seed.trigger.channels || []).slice(),
+        minSpaceWide: seed.trigger.minSpaceWide != null ? seed.trigger.minSpaceWide : null,
+      },
+      roles: Object.fromEntries(
+        Object.entries(seed.roles).map(([name, role]) => [name, {
+          slot: role.slot,
+          line: role.line.map(w => ({ t: w.t, fwd: w.fwd, lat: w.lat })),
+          actions: (role.actions || []).map(a => ({ t: a.t, do: a.do, ...(a.to != null ? { to: a.to } : {}) })),
+        }])
+      ),
+      abort: (seed.abort || []).slice(),
+    };
+  }
+
+  // ---- DOM cleanup helpers ----
+  function clearPlayDots() {
+    if (markEl) { markEl.remove(); markEl = null; }
+    if (ballEl) { ballEl.remove(); ballEl = null; }
+    for (const el of Object.values(roleDots)) el.remove();
+    roleDots = {};
+    for (const el of roleTrails) el.remove();
+    roleTrails = [];
+  }
+
+  // ---- Rendering: place mark, ball, role dots and run trails onto the pitch ----
+  function renderPlayPitch() {
+    if (!inPlayMode || !playDoc) {
+      clearPlayDots();
+      return;
+    }
+
+    // Ensure mark element
+    if (!markEl) {
+      markEl = document.createElement('div');
+      markEl.className = 'playmark';
+      pitch.appendChild(markEl);
+      makeDraggable(markEl, 'mark');
+    }
+    markEl.style.top = xToTop(mark.x) + '%';
+    markEl.style.left = yToLeft(mark.y) + '%';
+
+    // Ensure ball at mark
+    if (!ballEl) {
+      ballEl = document.createElement('div');
+      ballEl.className = 'playball';
+      pitch.appendChild(ballEl);
+    }
+    ballEl.style.top = xToTop(mark.x) + '%';
+    ballEl.style.left = yToLeft(mark.y) + '%';
+
+    // Remove stale role dots for roles no longer in playDoc
+    for (const [name, el] of Object.entries(roleDots)) {
+      if (!playDoc.roles[name]) { el.remove(); delete roleDots[name]; }
+    }
+
+    // Ensure a dot per role
+    for (const [name, role] of Object.entries(playDoc.roles)) {
+      if (!roleDots[name]) {
+        const el = document.createElement('div');
+        el.className = 'playdot';
+        el.dataset.role = name;
+        pitch.appendChild(el);
+        roleDots[name] = el;
+        makeDraggable(el, 'role', name);
+      }
+      const el = roleDots[name];
+      el.textContent = String(role.slot);
+      el.classList.toggle('sel', name === playSel);
+
+      const off = offsetAt(role.line, playTick);
+      const abs = playPointToPitch(off.fwd, off.lat);
+      el.style.top = xToTop(clamp(abs.x, 0, 100)) + '%';
+      el.style.left = yToLeft(clamp(abs.y, 0, 100)) + '%';
+    }
+
+    // Redraw run trails (remove old, add new)
+    for (const el of roleTrails) el.remove();
+    roleTrails = [];
+
+    for (const [name, role] of Object.entries(playDoc.roles)) {
+      // Trail: one dot per waypoint
+      for (const wp of role.line) {
+        const abs = playPointToPitch(wp.fwd, wp.lat);
+        const el = document.createElement('div');
+        el.className = 'playtrail wp';
+        el.style.top = xToTop(clamp(abs.x, 0, 100)) + '%';
+        el.style.left = yToLeft(clamp(abs.y, 0, 100)) + '%';
+        pitch.appendChild(el);
+        roleTrails.push(el);
+      }
+      // Interpolated trail dots between waypoints for smoother path visualisation
+      if (role.line.length >= 2) {
+        const steps = playDoc.lifetimeTicks;
+        for (let step = 0; step <= steps; step++) {
+          const t = step;
+          const isWp = role.line.some(w => w.t === t);
+          if (isWp) continue; // already drawn above
+          const off2 = offsetAt(role.line, t);
+          const abs2 = playPointToPitch(off2.fwd, off2.lat);
+          const el = document.createElement('div');
+          el.className = 'playtrail';
+          el.style.top = xToTop(clamp(abs2.x, 0, 100)) + '%';
+          el.style.left = yToLeft(clamp(abs2.y, 0, 100)) + '%';
+          pitch.appendChild(el);
+          roleTrails.push(el);
+        }
+      }
+      // Action pips
+      for (const act of (role.actions || [])) {
+        const off2 = offsetAt(role.line, act.t);
+        const abs2 = playPointToPitch(off2.fwd, off2.lat);
+        const pip = document.createElement('div');
+        pip.className = 'playaction';
+        pip.title = act.do + (act.to ? ' → ' + act.to : '');
+        pip.textContent = act.do[0].toUpperCase();
+        pip.style.top = xToTop(clamp(abs2.x, 0, 100)) + '%';
+        pip.style.left = yToLeft(clamp(abs2.y, 0, 100)) + '%';
+        pitch.appendChild(pip);
+        roleTrails.push(pip);
+      }
+    }
+
+    // Update scrubber + labels
+    const scrub = document.getElementById('ptScrub');
+    scrub.max = String(playDoc.lifetimeTicks);
+    scrub.value = String(playTick);
+    document.getElementById('ptTickLabel').textContent = playTick + ' / ' + playDoc.lifetimeTicks;
+    document.getElementById('ptDirPill').textContent = 'attackDir: ' + (attackDir > 0 ? '+1' : '-1');
+    document.getElementById('playMarkInfo').textContent =
+      'Mark: x ' + mark.x.toFixed(1) + ', y ' + mark.y.toFixed(1) +
+      ' | openSign: ' + (openSign() > 0 ? '+1' : '-1') +
+      ' | attackDir: ' + (attackDir > 0 ? '+1 (→ x=100)' : '-1 (← x=0)');
+  }
+
+  // ---- Dragging on the pitch in play mode ----
+  // Each draggable play element registers its type/role in a closure; all share
+  // the pitch pointerdown / pointermove / pointerup via a single handler below.
+  let playDrag = null;  // { kind: 'mark'|'role', roleName? }
+
+  function makeDraggable(el, kind, roleName) {
+    el.addEventListener('pointerdown', ev => {
+      if (!inPlayMode) return;
+      playDrag = { kind, roleName: roleName || null };
+      try { el.setPointerCapture(ev.pointerId); } catch {}
+      ev.stopPropagation();
+      ev.preventDefault();
+      if (kind === 'role' && roleName) selectRole(roleName);
+    });
+  }
+
+  pitch.addEventListener('pointermove', ev => {
+    if (!inPlayMode || !playDrag) return;
+    const r = pitch.getBoundingClientRect();
+    const topPct = (ev.clientY - r.top) / r.height * 100;
+    const leftPct = (ev.clientX - r.left) / r.width * 100;
+    const x = clamp(topToX(topPct), 0, 100);
+    const y = clamp(leftToY(leftPct), 0, 100);
+
+    if (playDrag.kind === 'mark') {
+      mark.x = +x.toFixed(1);
+      mark.y = +y.toFixed(1);
+      renderPlayPitch();
+    } else if (playDrag.kind === 'role' && playDrag.roleName && playDoc) {
+      const role = playDoc.roles[playDrag.roleName];
+      if (role) {
+        const off = pitchToPlayPoint(x, y);
+        upsertWaypoint(role.line, playTick, off.fwd, off.lat);
+        renderPlayPanel();
+        renderPlayPitch();
+      }
+    }
+  }, { passive: true });
+
+  pitch.addEventListener('pointerup', () => { playDrag = null; });
+
+  // ---- Sidebar panel rendering ----
+  function renderPlayPanel() {
+    if (!playDoc) return;
+
+    // Meta fields
+    const idEl = document.getElementById('playId');
+    if (idEl !== document.activeElement) idEl.value = playDoc.id;
+    const nameEl = document.getElementById('playName');
+    if (nameEl !== document.activeElement) nameEl.value = playDoc.name;
+    document.getElementById('playOrigin').value = playDoc.origin;
+    const ltEl = document.getElementById('playLifetime');
+    if (ltEl !== document.activeElement) ltEl.value = String(playDoc.lifetimeTicks);
+
+    // Trigger checkboxes
+    document.getElementById('trigFirstPhase').checked = playDoc.trigger.phases.includes('FirstPhase');
+    document.getElementById('trigPhasePlay').checked = playDoc.trigger.phases.includes('PhasePlay');
+    document.getElementById('trigTight').checked = (playDoc.trigger.channels || []).includes('tight');
+    document.getElementById('trigMid').checked = (playDoc.trigger.channels || []).includes('mid');
+    document.getElementById('trigWide').checked = (playDoc.trigger.channels || []).includes('wide');
+    const mswEl = document.getElementById('trigMinSpace');
+    if (mswEl !== document.activeElement)
+      mswEl.value = playDoc.trigger.minSpaceWide != null ? String(playDoc.trigger.minSpaceWide) : '';
+
+    // Abort checkboxes
+    document.getElementById('abortTurnover').checked = playDoc.abort.includes('turnover');
+    document.getElementById('abortIntercept').checked = playDoc.abort.includes('intercept_risk');
+    document.getElementById('abortCovered').checked = playDoc.abort.includes('receiver_covered');
+
+    // Role list
+    const roleList = document.getElementById('playRoleList');
+    roleList.innerHTML = '';
+    for (const [name, role] of Object.entries(playDoc.roles)) {
+      const row = document.createElement('div');
+      row.className = 'prole-row' + (name === playSel ? ' sel' : '');
+      row.innerHTML = '<span class="prole-name">' + name + '</span><span class="prole-slot">slot ' + role.slot + '</span>';
+      row.onclick = () => selectRole(name);
+      roleList.appendChild(row);
+    }
+
+    // Selected role section
+    const sec = document.getElementById('playSelRoleSection');
+    if (!playSel || !playDoc.roles[playSel]) {
+      sec.style.display = 'none';
+      return;
+    }
+    sec.style.display = '';
+    const role = playDoc.roles[playSel];
+    document.getElementById('playSelRoleName').textContent = playSel;
+    const slotEl = document.getElementById('playRoleSlot');
+    if (slotEl !== document.activeElement) slotEl.value = String(role.slot);
+
+    // Waypoint list
+    const wpList = document.getElementById('playWpList');
+    wpList.innerHTML = '';
+    for (const wp of role.line) {
+      const row = document.createElement('div');
+      row.className = 'pwp-row' + (wp.t === playTick ? ' active' : '');
+      row.innerHTML = '<span>t ' + wp.t + '</span><span>fwd ' + wp.fwd.toFixed(1) + '  lat ' + wp.lat.toFixed(1) + '</span>';
+      row.onclick = () => { playTick = wp.t; renderPlayPitch(); renderPlayPanel(); };
+      wpList.appendChild(row);
+    }
+
+    // Actions list
+    const actList = document.getElementById('playActionList');
+    actList.innerHTML = '';
+    for (let i = 0; i < (role.actions || []).length; i++) {
+      const act = role.actions[i];
+      const row = document.createElement('div');
+      row.className = 'paction-row';
+      row.innerHTML = '<span>t' + act.t + ' ' + act.do + (act.to ? ' → ' + act.to : '') + '</span>';
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.style.cssText = 'padding:2px 6px;font-size:10px;margin-left:auto';
+      del.title = 'Delete action';
+      const idx = i;
+      del.onclick = () => { role.actions.splice(idx, 1); renderPlayPanel(); renderPlayPitch(); };
+      row.appendChild(del);
+      actList.appendChild(row);
+    }
+
+    // Populate "to" select for add-action with current role names (excluding self)
+    const toSel = document.getElementById('playActionTo');
+    const prevTo = toSel.value;
+    toSel.innerHTML = '<option value="">—</option>';
+    for (const rname of Object.keys(playDoc.roles)) {
+      if (rname === playSel) continue;
+      const o = document.createElement('option');
+      o.value = rname; o.textContent = rname;
+      toSel.appendChild(o);
+    }
+    if (prevTo) toSel.value = prevTo;
+  }
+
+  function selectRole(name) {
+    playSel = name;
+    renderPlayPanel();
+    renderPlayPitch();
+  }
+
+  // ---- Enter / leave play mode ----
+  function enterPlayMode() {
+    inPlayMode = true;
+    if (!playDoc) {
+      playDoc = blankPlayDoc();
+    }
+    // Populate seed import dropdown
+    const sel = document.getElementById('playImportSel');
+    sel.innerHTML = '<option value="">— choose —</option>';
+    for (const s of PLAYBOOK_SEED) {
+      const o = document.createElement('option');
+      o.value = s.id; o.textContent = s.name;
+      sel.appendChild(o);
+    }
+    renderPlayPanel();
+    renderPlayPitch();
+  }
+
+  function leavePlayMode() {
+    inPlayMode = false;
+    ptStop();
+    clearPlayDots();
+  }
+
+  // ---- Mode toggle: wire play mode ----
+  document.querySelectorAll('#modeToggle .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wasPlay = document.body.classList.contains('play-mode');
+      const isPlay = btn.dataset.mode === 'play';
+      document.body.classList.toggle('play-mode', isPlay);
+      if (isPlay && !wasPlay) enterPlayMode();
+      else if (!isPlay && wasPlay) leavePlayMode();
+    });
+  });
+
+  // ---- Play timeline playback ----
+  function ptStop() {
+    ptPlaying = false;
+    if (ptRaf) { cancelAnimationFrame(ptRaf); ptRaf = null; }
+    document.getElementById('ptPlay').textContent = '▶ Play';
+  }
+  function ptPlay() {
+    if (!playDoc) return;
+    if (playTick >= playDoc.lifetimeTicks) playTick = 0;
+    ptPlaying = true;
+    ptLastTs = 0;
+    document.getElementById('ptPlay').textContent = '⏸ Pause';
+    const loop = ts => {
+      if (!ptPlaying) return;
+      if (!ptLastTs) ptLastTs = ts;
+      const dt = (ts - ptLastTs) / 1000;
+      ptLastTs = ts;
+      // 10 ticks/sec at 1×
+      playTick = Math.min(playDoc.lifetimeTicks, playTick + dt * 10);
+      if (playTick >= playDoc.lifetimeTicks) {
+        playTick = playDoc.lifetimeTicks;
+        ptStop();
+        renderPlayPitch();
+        renderPlayPanel();
+        return;
+      }
+      renderPlayPitch();
+      renderPlayPanel();
+      ptRaf = requestAnimationFrame(loop);
+    };
+    ptRaf = requestAnimationFrame(loop);
+  }
+
+  document.getElementById('ptPlay').onclick = () => { ptPlaying ? ptStop() : ptPlay(); };
+  document.getElementById('ptStop').onclick = () => { ptStop(); playTick = 0; renderPlayPitch(); renderPlayPanel(); };
+
+  document.getElementById('ptScrub').oninput = ev => {
+    playTick = parseInt(ev.target.value, 10);
+    renderPlayPitch();
+    renderPlayPanel();
+  };
+
+  // Keyboard shortcuts in play mode
+  window.addEventListener('keydown', ev => {
+    if (!inPlayMode) return;
+    if (ev.target && /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
+    if (ev.key === ' ') { ev.preventDefault(); ptPlaying ? ptStop() : ptPlay(); }
+    else if (ev.key === 'ArrowRight') { ev.preventDefault(); ptStop(); playTick = Math.min(playDoc ? playDoc.lifetimeTicks : 0, playTick + 1); renderPlayPitch(); renderPlayPanel(); }
+    else if (ev.key === 'ArrowLeft') { ev.preventDefault(); ptStop(); playTick = Math.max(0, playTick - 1); renderPlayPitch(); renderPlayPanel(); }
+  });
+
+  // ---- Meta field listeners ----
+  document.getElementById('playId').oninput = ev => { if (playDoc) playDoc.id = ev.target.value; };
+  document.getElementById('playName').oninput = ev => { if (playDoc) playDoc.name = ev.target.value; };
+  document.getElementById('playOrigin').onchange = ev => { if (playDoc) playDoc.origin = ev.target.value; };
+  document.getElementById('playLifetime').oninput = ev => {
+    if (!playDoc) return;
+    const v = parseInt(ev.target.value, 10);
+    if (v > 0) {
+      playDoc.lifetimeTicks = v;
+      playTick = Math.min(playTick, v);
+      renderPlayPitch();
+    }
+  };
+
+  // Trigger checkboxes
+  function syncTrigger() {
+    if (!playDoc) return;
+    const phases = [];
+    if (document.getElementById('trigFirstPhase').checked) phases.push('FirstPhase');
+    if (document.getElementById('trigPhasePlay').checked) phases.push('PhasePlay');
+    playDoc.trigger.phases = phases;
+    const channels = [];
+    if (document.getElementById('trigTight').checked) channels.push('tight');
+    if (document.getElementById('trigMid').checked) channels.push('mid');
+    if (document.getElementById('trigWide').checked) channels.push('wide');
+    playDoc.trigger.channels = channels;
+    const msv = document.getElementById('trigMinSpace').value;
+    playDoc.trigger.minSpaceWide = msv !== '' ? parseFloat(msv) : null;
+  }
+  ['trigFirstPhase','trigPhasePlay','trigTight','trigMid','trigWide','trigMinSpace'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', syncTrigger);
+  });
+
+  // Abort checkboxes
+  function syncAbort() {
+    if (!playDoc) return;
+    const abort = [];
+    if (document.getElementById('abortTurnover').checked) abort.push('turnover');
+    if (document.getElementById('abortIntercept').checked) abort.push('intercept_risk');
+    if (document.getElementById('abortCovered').checked) abort.push('receiver_covered');
+    playDoc.abort = abort;
+  }
+  ['abortTurnover','abortIntercept','abortCovered'].forEach(id =>
+    document.getElementById(id).addEventListener('change', syncAbort));
+
+  // Attack dir flip
+  document.getElementById('playFlipDir').onclick = () => {
+    attackDir = attackDir === 1 ? -1 : 1;
+    renderPlayPitch();
+  };
+
+  // ---- Role management ----
+  document.getElementById('playAddRole').onclick = () => {
+    if (!playDoc) return;
+    const name = prompt('Role name (e.g. firstReceiver):');
+    if (!name || !name.trim()) return;
+    const slotStr = prompt('Slot (1–15):');
+    const slot = parseInt(slotStr, 10);
+    if (!slot || slot < 1 || slot > 15) { alert('Invalid slot'); return; }
+    playDoc.roles[name.trim()] = { slot, line: [{ t: 0, fwd: 0, lat: 0 }], actions: [] };
+    selectRole(name.trim());
+    renderPlayPitch();
+  };
+
+  document.getElementById('playRemoveRole').onclick = () => {
+    if (!playDoc || !playSel) return;
+    if (!confirm('Remove role "' + playSel + '"?')) return;
+    delete playDoc.roles[playSel];
+    playSel = null;
+    renderPlayPanel();
+    renderPlayPitch();
+  };
+
+  // Selected role: slot change
+  document.getElementById('playRoleSlot').oninput = ev => {
+    if (!playDoc || !playSel) return;
+    const v = parseInt(ev.target.value, 10);
+    if (v >= 1 && v <= 15) playDoc.roles[playSel].slot = v;
+    renderPlayPitch();
+  };
+
+  // Waypoint buttons
+  document.getElementById('playSetWp').onclick = () => {
+    if (!playDoc || !playSel) return;
+    const role = playDoc.roles[playSel];
+    const el = roleDots[playSel];
+    // Get current on-screen position (from interpolation) → convert back to offset
+    const off = offsetAt(role.line, playTick);
+    upsertWaypoint(role.line, playTick, off.fwd, off.lat);
+    renderPlayPanel();
+    renderPlayPitch();
+  };
+
+  document.getElementById('playDelWp').onclick = () => {
+    if (!playDoc || !playSel) return;
+    const role = playDoc.roles[playSel];
+    const idx = role.line.findIndex(w => w.t === playTick);
+    if (idx <= 0) { if (idx === 0) alert('Cannot delete the t=0 anchor waypoint.'); return; }
+    role.line.splice(idx, 1);
+    renderPlayPanel();
+    renderPlayPitch();
+  };
+
+  // Add action button
+  document.getElementById('playAddAction').onclick = () => {
+    if (!playDoc || !playSel) return;
+    const role = playDoc.roles[playSel];
+    if (!role.actions) role.actions = [];
+    const doVal = document.getElementById('playActionDo').value;
+    const toVal = document.getElementById('playActionTo').value;
+    const act = { t: playTick, do: doVal };
+    if (toVal) act.to = toVal;
+    role.actions.push(act);
+    role.actions.sort((a, b) => a.t - b.t);
+    renderPlayPanel();
+    renderPlayPitch();
+  };
+
+  // ---- Import / Export ----
+  document.getElementById('playImportBtn').onclick = () => {
+    const id = document.getElementById('playImportSel').value;
+    if (!id) return;
+    const seed = PLAYBOOK_SEED.find(s => s.id === id);
+    if (!seed) return;
+    playDoc = cloneSeed(seed);
+    playSel = null;
+    playTick = 0;
+    renderPlayPanel();
+    renderPlayPitch();
+  };
+
+  function buildExport() {
+    if (!playDoc) return null;
+    // Serialise to the exact Play schema shape — drop empty optionals so it
+    // matches the hand-written style in src/data/playbook/index.ts.
+    const out = {
+      id: playDoc.id,
+      name: playDoc.name,
+      origin: playDoc.origin,
+      lifetimeTicks: playDoc.lifetimeTicks,
+      trigger: {},
+      roles: {},
+      abort: playDoc.abort.slice(),
+    };
+    // trigger: always emit phases; only emit channels if non-empty; only emit minSpaceWide if set
+    out.trigger.phases = playDoc.trigger.phases.slice();
+    if (playDoc.trigger.channels && playDoc.trigger.channels.length)
+      out.trigger.channels = playDoc.trigger.channels.slice();
+    if (playDoc.trigger.minSpaceWide != null)
+      out.trigger.minSpaceWide = playDoc.trigger.minSpaceWide;
+
+    for (const [name, role] of Object.entries(playDoc.roles)) {
+      const r = {
+        slot: role.slot,
+        line: role.line.map(w => ({ t: w.t, fwd: w.fwd, lat: w.lat })),
+      };
+      if (role.actions && role.actions.length) {
+        r.actions = role.actions.map(a => {
+          const act = { t: a.t, do: a.do };
+          if (a.to) act.to = a.to;
+          return act;
+        });
+      }
+      out.roles[name] = r;
+    }
+    return out;
+  }
+
+  document.getElementById('playExportBtn').onclick = () => {
+    const out = buildExport();
+    if (!out) return;
+    document.getElementById('playIo').value = JSON.stringify(out, null, 2);
+  };
+
+  document.getElementById('playCopyBtn').onclick = async () => {
+    const ta = document.getElementById('playIo');
+    if (!ta.value && playDoc) ta.value = JSON.stringify(buildExport(), null, 2);
+    try { await navigator.clipboard.writeText(ta.value); } catch {}
+    ta.select();
+  };
+
+  // Secondary: if the textarea has content and user clicks Import, treat textarea as source.
+  // The primary import (from the dropdown) is already wired above via onclick.
+  document.getElementById('playIo').addEventListener('change', () => {
+    const ta = document.getElementById('playIo');
+    if (!ta.value.trim()) return;
+    try {
+      const parsed = JSON.parse(ta.value);
+      if (parsed && parsed.id) {
+        // looks like a valid play — load it
+        playDoc = cloneSeed(parsed);
+        playSel = null;
+        playTick = 0;
+        renderPlayPanel();
+        renderPlayPitch();
+      }
+    } catch {}
+  });
+
 })();
 </script>
 

@@ -87,7 +87,7 @@ covering 14 phase types (BOX_KICK, BREAKDOWN, CONVERSION_KICK, DROP_OUT_22,
 FIRST_PHASE, KICK_OFF, KICK_RETURN, LINEOUT, MAUL, PENALTY, PHASE_PLAY, SCRUM,
 TACTICAL_KICK, TRY_SCORED).
 
-### Mode toggle — Single phases / Transitions / Frame debugger
+### Mode toggle — Single phases / Transitions / Frame debugger / Play editor
 
 A segmented toggle above the dropdown switches what's listed:
 
@@ -100,6 +100,8 @@ A segmented toggle above the dropdown switches what's listed:
   author the blend between two phases. Use this later, once the single phases are done.
 - **Frame debugger** — read-only playback of a captured 30-agent **frame stream** from
   the spatial engine. Not authoring — observation. See § 4.1 below.
+- **Play editor** — author a **set move** (WP6 playbook): run-line waypoints + a timed
+  pass/dummy/receive schedule per named role, on a draggable mark. See § 6.2 below.
 
 The rest of this section describes the labels you'll see in each mode.
 
@@ -268,6 +270,35 @@ plays the shape off either touchline. Paste the output under the desired
 `attackingStyle` key; the engine drives the named slots into the formation and the
 remaining slots keep the procedural pods/backline. (Per-team selection + named
 set-moves are the WP6 playbook.)
+
+## 6.2 Play editor (set moves → `src/data/playbook/`)
+
+The **Play editor** mode authors a **play** — a named set move as a data overlay
+(Upgrade.md § 7.1; WP6). The schema lives in `src/data/playbook/types.ts`; the
+shipped library in `src/data/playbook/index.ts`.
+
+- **The mark** is a draggable ring (the play origin — the ruck / scrum / lineout the
+  move is built off). Every role position is **mark-relative and attack-oriented**:
+  `fwd` along the attack direction (positive = forward, toward the gain line), `lat`
+  toward the **open side** (positive). One definition mirrors anywhere — the same
+  transform the engine uses (`playPointToPitch`, `src/engine/spatial/playGeometry.ts`).
+- **Attack ↑/↓** flips the attack direction so you can **preview the mirroring**: the
+  same data renders flipped. `openSign` (shown in the mark info line) flips with the
+  mark's half of the pitch, so a play authored to one side plays correctly off either
+  touchline — no hand-mirrored data.
+- **Roles** — add/remove named roles (e.g. `firstReceiver`, `strike`, `decoy`); each
+  binds to a matchday **slot** (1–15). Select a role to edit it.
+- **Run lines** — scrub the tick timeline and **drag the role's dot** to set a waypoint
+  at that tick (the run-line is drawn as a faint trail through its waypoints). The
+  `t = 0` waypoint is the role's start and is always kept; delete any later one.
+- **Actions** — per role, add a timed `pass` / `dummy` / `receive` / `carry` at the
+  current tick, with an optional target role for a pass/dummy.
+- **Meta** — `id`, `name`, `origin`, `lifetimeTicks` (10 Hz → 18 ≈ 1.8 s), trigger
+  `phases` (FirstPhase / PhasePlay) + `channels` (tight / mid / wide) + `minSpaceWide`,
+  and `abort` conditions (turnover / intercept_risk / receiver_covered).
+- **Import** loads any shipped play (dropdown) into the editor to refine; **Export play
+  JSON** emits the `Play` object to paste into `src/data/playbook/index.ts`. The editor
+  round-trips the shipped library byte-for-byte (modulo dropped empty optionals).
 
 ## 7. Export format
 

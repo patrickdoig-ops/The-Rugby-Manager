@@ -121,9 +121,9 @@ players on international duty and injured players.
 
 ## Block-driven matchdays (the unified Continue cycle)
 
-Since the unified calendar landed, the cup is driven **one date-clustered block
-per Continue** from `main.ts`'s `onContinue` → `playBlock` → `runCupBlock`,
-matching every other competition's rhythm (preview → play/sim → results →
+The cup is reached through the unified `onContinue` → `playBlock` → `runCupBlock`
+dispatch (a single Hub "Continue" CTA), driven **one date-clustered block
+per Continue**, matching every other competition's rhythm (preview → play/sim → results →
 training → Hub). Each cup matchday is a block; **byes are first-class** — a
 block in which the manager's club isn't playing still runs as its own Continue
 (preview → sim the block → leg results so far → training → Hub).

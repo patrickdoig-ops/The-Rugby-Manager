@@ -7,11 +7,12 @@
 //
 // Both the engine injury-recovery tick (GameCoordinator.recordPlayerMatchResult)
 // and the Training UI read `upcomingGap`, and they agree because at both call
-// sites `calendar.week` already points at the upcoming round: the just-played
-// match is round `week - 1`, the next is round `week`.
+// sites the derived `leagueRound(state)` already points at the upcoming round:
+// the just-played match is round `leagueRound - 1`, the next is `leagueRound`.
 
 import type { GameState } from '../types/gameState';
 import { SEASON_VALUES } from '../engine/balance';
+import { leagueRound } from './leagueRound';
 
 // Days + whole-week count between the player's previous match (round
 // week-1) and their upcoming match (round week). `weeks` is the number of
@@ -24,7 +25,7 @@ import { SEASON_VALUES } from '../engine/balance';
 // leg-0 fixture date to R1, approximating the real ~2-week window.
 export function upcomingGap(state: GameState): { weeks: number; days: number } {
   const playerId = state.player.teamId;
-  const nextRound = state.calendar.week;
+  const nextRound = leagueRound(state);
   const prevDate = playerFixtureDate(state, playerId, nextRound - 1);
   let nextDate = playerFixtureDate(state, playerId, nextRound);
 
@@ -61,8 +62,8 @@ export function upcomingGap(state: GameState): { weeks: number; days: number } {
 }
 
 // Gap for a non-league matchday (cup / European), derived from explicit
-// from/to dates rather than league-round lookup. `upcomingGap` keys off
-// `calendar.week`, which doesn't move for an intermediate cup/European
+// from/to dates rather than league-round lookup. `upcomingGap` keys off the
+// derived `leagueRound`, which doesn't move for an intermediate cup/European
 // matchday, so it would report the surrounding league gap instead of the
 // matchday-to-next-matchday gap — hence this date-explicit variant. Falls
 // back to a single 7-day week when either date is missing or the span is

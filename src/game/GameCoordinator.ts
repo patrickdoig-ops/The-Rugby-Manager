@@ -1265,6 +1265,31 @@ export class GameCoordinator {
       applySeasonEvent(this.state, ev);
     }
 
+    await this.runWeeklyTick(recoveryWeeks);
+
+    // Last regular-season fixture just resolved → seed the playoff
+    // bracket from the final standings. game:bracketSeeded is the post-
+    // match chain's trigger to route through PlayoffBracketScreen
+    // instead of straight to Hub. The end-of-season chain (EndOfSeason
+    // → Renewals → Signings → Rollover) is now triggered later, after
+    // the season final resolves and fires game:seasonComplete.
+    if (this.playoffs.allRegularFixturesPlayed() && this.state.league.playoffs === null) {
+      this.playoffs.seedPlayoffBracket();
+    }
+  }
+
+  // The competition-agnostic weekly-pass seam. Advances the league-week cursor
+  // and runs every season pass that fires on the passage of game time:
+  // European AI catch-up, morale decay, transfer-request/promise checks,
+  // scouting-accuracy gain, poach-threat assessment, and the AI early-renewal
+  // cadence. `recoveryWeeks` is the number of whole weeks elapsed since the
+  // player's previous fixture (1 for an ordinary turnaround, more across an
+  // international break); the per-week passes loop that many times.
+  //
+  // Extracted verbatim from recordPlayerMatchResult (no behaviour change) so a
+  // future block driver / the cup + European record paths can drive the weekly
+  // tick uniformly rather than the league record path owning it alone.
+  private async runWeeklyTick(recoveryWeeks: number): Promise<void> {
     applySeasonEvent(this.state, { type: 'WEEK_ADVANCED' });
     // Play out any European fixtures whose date has now arrived (AI sides;
     // the player plays their own live). The bracket fills in over the season.
@@ -1300,16 +1325,6 @@ export class GameCoordinator {
     // off-season window.
     if (this.state.calendar.week % AI_EARLY_RENEWAL_CADENCE_ROUNDS === 1) {
       this.transfers.runAIEarlyRenewals();
-    }
-
-    // Last regular-season fixture just resolved → seed the playoff
-    // bracket from the final standings. game:bracketSeeded is the post-
-    // match chain's trigger to route through PlayoffBracketScreen
-    // instead of straight to Hub. The end-of-season chain (EndOfSeason
-    // → Renewals → Signings → Rollover) is now triggered later, after
-    // the season final resolves and fires game:seasonComplete.
-    if (this.playoffs.allRegularFixturesPlayed() && this.state.league.playoffs === null) {
-      this.playoffs.seedPlayoffBracket();
     }
   }
 

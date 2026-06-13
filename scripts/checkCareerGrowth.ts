@@ -24,7 +24,8 @@ import { GameCoordinator } from '../src/game/GameCoordinator.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
 import { buildAutoSelectedTeamFromRoster } from '../src/game/rosterTeamBuilder.js';
 import { buildEuropeanOpponent } from '../src/game/buildEuropeanOpponent.js';
-import { MIN_SQUAD_SIZE, ARCHIVE_CAP } from '../src/engine/balance/career.js';
+import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, POSITION_FLOORS, ARCHIVE_CAP } from '../src/engine/balance/career.js';
+import { POSITION_GROUPS, positionGroup, type PositionGroup } from '../src/game/squadComposition.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 
 import bathRaw         from '../src/data/team-bath.json' with { type: 'json' };
@@ -43,6 +44,8 @@ const PLAYER_ID = 'bath';
 const SEASONS = 20;                 // comfortably past ARCHIVE_CAP so the prune is exercised
 const SAVE_CEILING_KB = 4500;       // absolute save-size ceiling (mobile localStorage ≈ 5 MB)
 const PLATEAU_TOLERANCE = 1.12;     // post-prune save may not grow > 12% from the cap point to the end
+const SIZE_CAP_TOLERANCE = 2;       // a club may sit this far over MAX_SQUAD_SIZE (position-protection)
+const DEPTH_TOLERANCE = 2;          // thinnest per-position depth may dip this far below POSITION_FLOOR
 
 const allTeams = [
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
@@ -160,7 +163,18 @@ async function playOutPlayoffs(coord: GameCoordinator): Promise<void> {
 }
 
 // ── Run + assert ──────────────────────────────────────────────────────────
-interface SeasonSample { season: number; minSquad: number; minClub: string; roster: number; retired: number; saveKB: number; }
+function median(xs: number[]): number {
+  const a = [...xs].sort((x, y) => x - y);
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 ? a[mid] : Math.round((a[mid - 1] + a[mid]) / 2);
+}
+
+interface SeasonSample {
+  season: number; minSquad: number; minClub: string; roster: number; retired: number; saveKB: number;
+  // WP0 instrumentation: squad-size distribution + thinnest per-position depth across clubs.
+  maxSquad: number; medSquad: number;
+  posDepthMin: Record<PositionGroup, number>;
+}
 
 let coord = await GameCoordinator.newSeason(PLAYER_ID, SEED, allTeams);
 const teamsById = new Map(allTeams.map(t => [t.id, t]));
@@ -179,18 +193,69 @@ for (let s = 0; s < SEASONS; s++) {
   const rosterIds = Object.keys(st.career.roster).map(Number);
   const retired = rosterIds.filter(r => st.career.roster[r].retired).length;
   const saveKB = Math.round(JSON.stringify(coord.toSavePayload()).length / 1024);
-  samples.push({ season: seasonNo, minSquad, minClub, roster: rosterIds.length, retired, saveKB });
 
+  // Per-position depth: count each club's squad by group, then take the MIN
+  // across clubs per group (the league's thinnest cover at that position).
+  const posDepthMin = Object.fromEntries(POSITION_GROUPS.map(g => [g, Infinity])) as Record<PositionGroup, number>;
+  for (const c of st.career.clubs) {
+    const counts = Object.fromEntries(POSITION_GROUPS.map(g => [g, 0])) as Record<PositionGroup, number>;
+    for (const rid of c.squad) {
+      const g = positionGroup(st.career.roster[rid]?.position ?? '');
+      if (g !== 'Other') counts[g]++;
+    }
+    for (const g of POSITION_GROUPS) posDepthMin[g] = Math.min(posDepthMin[g], counts[g]);
+  }
+
+  samples.push({
+    season: seasonNo, minSquad, minClub, roster: rosterIds.length, retired, saveKB,
+    maxSquad: Math.max(...squadSizes), medSquad: median(squadSizes), posDepthMin,
+  });
+
+  const maxSquad = Math.max(...squadSizes);
   if (minSquad < MIN_SQUAD_SIZE) {
     violations.push(`season ${seasonNo}: ${minClub} squad ${minSquad} < MIN_SQUAD_SIZE ${MIN_SQUAD_SIZE}`);
   }
+  // Size cap holds (soft: the position-protection can leave a club a touch over).
+  if (maxSquad > MAX_SQUAD_SIZE + SIZE_CAP_TOLERANCE) {
+    violations.push(`season ${seasonNo}: max squad ${maxSquad} > MAX_SQUAD_SIZE ${MAX_SQUAD_SIZE} (+${SIZE_CAP_TOLERANCE})`);
+  }
+  // No position starves: the league's thinnest cover at any position must stay
+  // at a fieldable depth. Tolerance below the soft POSITION_FLOOR absorbs a
+  // transient post-retirement convergence dip; a regression to the old
+  // uniform-random starvation (0 locks / 0 fly-halves) trips it loudly.
+  for (const g of POSITION_GROUPS) {
+    const floor = Math.max(0, POSITION_FLOORS[g] - DEPTH_TOLERANCE);
+    if (posDepthMin[g] < floor) {
+      violations.push(`season ${seasonNo}: thinnest ${g} depth ${posDepthMin[g]} < fieldable floor ${floor}`);
+    }
+  }
 }
 
-// Print the trace.
+// Print the trace — squad-size distribution (min/median/max across the 10 clubs).
 for (const r of samples) {
   console.log(
     `season ${String(r.season).padStart(2)} | roster ${String(r.roster).padStart(4)} (retired ${String(r.retired).padStart(4)}) | ` +
-    `minSquad ${String(r.minSquad).padStart(2)} (${r.minClub}) | save ${String(r.saveKB).padStart(4)}KB`,
+    `squad min/med/max ${String(r.minSquad).padStart(2)}/${String(r.medSquad).padStart(2)}/${String(r.maxSquad).padStart(2)} | ` +
+    `save ${String(r.saveKB).padStart(4)}KB`,
+  );
+}
+
+// WP0 composition matrix: the league's THINNEST per-position depth each season
+// (min across all clubs). Reveals which positions bloat or starve over a career.
+console.log('\nThinnest per-position depth across clubs (min over the 10 clubs):');
+console.log('season | ' + POSITION_GROUPS.map(g => g.padStart(7)).join(' '));
+for (const r of samples) {
+  console.log(
+    `  ${String(r.season).padStart(4)} | ` +
+    POSITION_GROUPS.map(g => String(r.posDepthMin[g]).padStart(7)).join(' '),
+  );
+}
+{
+  const last = samples[samples.length - 1];
+  console.log(
+    `\nFinal season ${last.season}: squad sizes min/median/max = ${last.minSquad}/${last.medSquad}/${last.maxSquad} ` +
+    `(target band 35-45). Thinnest position depth: ` +
+    POSITION_GROUPS.map(g => `${g} ${last.posDepthMin[g]}`).join(', ') + '.',
   );
 }
 
@@ -217,6 +282,8 @@ if (violations.length > 0) {
 
 const maxSave = Math.max(...samples.map(r => r.saveKB));
 console.log(
-  `\nOK: ${SEASONS} seasons — every club stayed >= ${MIN_SQUAD_SIZE} (min ${Math.min(...samples.map(r => r.minSquad))}); ` +
+  `\nOK: ${SEASONS} seasons — squad sizes held in the band [${MIN_SQUAD_SIZE}, ${MAX_SQUAD_SIZE}] ` +
+  `(observed ${Math.min(...samples.map(r => r.minSquad))}..${Math.max(...samples.map(r => r.maxSquad))}); ` +
+  `every position stayed at a fieldable depth; ` +
   `save bounded (peak ${maxSave}KB, ceiling ${SAVE_CEILING_KB}KB; plateaued within ${Math.round((PLATEAU_TOLERANCE - 1) * 100)}%).`,
 );

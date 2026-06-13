@@ -174,9 +174,21 @@ export const STARTER_FA_POOL = {
 // reads the two most-recent archive entries, so 15 is comfortably deep.
 export const ARCHIVE_CAP = 15;
 
-// Minimum club squad size guaranteed at each rollover: a matchday 23 plus cover
-// for injuries and international call-ups. After the season's releases, this
-// rollover's retirements and pre-agreed moves, and the academy/import intake,
-// any club projected below this is topped up with extra academy graduates — so
-// no AI-run club can fall below a fieldable squad over a long career.
-export const MIN_SQUAD_SIZE = 30;
+// Club squad-size band, enforced at each rollover. A realistic professional
+// squad is ~35-45 (a matchday 23 plus rotation + injury / international cover).
+// MIN: any club projected below this after the season's releases, this
+// rollover's retirements + pre-agreed moves, and the academy/import intake is
+// topped up with academy graduates. MAX: a club projected above this releases
+// its lowest-OVR players (protecting per-position floors) down toward the cap.
+export const MIN_SQUAD_SIZE = 35;
+export const MAX_SQUAD_SIZE = 45;
+
+// Per-position depth floors (by composition group — see squadComposition.ts).
+// A squad meeting every floor can field a 23 with cover at each position; they
+// sum to 33, comfortably inside MIN_SQUAD_SIZE. Academy intake is targeted at
+// the biggest shortfall first, and the size-cap release never cuts a position
+// below its floor — together they fix the uniform-random-position starvation
+// (Lock / Prop / Hooker / SH / FH falling to 0 while the back row bloats).
+export const POSITION_FLOORS = {
+  Prop: 5, Hooker: 3, Lock: 4, BackRow: 6, SH: 3, FH: 3, Centre: 4, Back3: 5, UtilBack: 0,
+} as const;

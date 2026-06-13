@@ -10561,8 +10561,8 @@ export const europeanTeams: EuropeanTeamData[] = [
       {
         id: 23,
         squadNumber: 23,
-        firstName: "Théo",
-        lastName: "Barthélémy",
+        firstName: "Romain",
+        lastName: "Lavergne",
         dob: "2002-01-01",
         nationality: "France",
         position: "Fullback",

@@ -1103,7 +1103,7 @@ See `docs/european-cups-2025-26.md` for the full competition fixture list and re
 | Nathan Decron | Flanker | 2002-01-01 | 24 | France | 77 | 72 | 67 | 68 | 59 | 68 | 68 | 39 | 54 | 55 | 56 | 52 |
 | Victor Vito | Scrum-half | 2002-01-01 | 24 | France | 73 | 61 | 72 | 73 | 67 | 54 | 52 | 63 | 39 | 55 | 56 | 53 |
 | Xavier Mignot | Fly-half | 2001-01-01 | 25 | France | 72 | 60 | 66 | 66 | 67 | 54 | 51 | 67 | 42 | 58 | 57 | 57 |
-| Théo Barthélémy | Full-back | 2002-01-01 | 24 | France | 71 | 60 | 70 | 68 | 62 | 51 | 48 | 60 | 39 | 50 | 52 | 49 |
+| Romain Lavergne | Full-back | 2002-01-01 | 24 | France | 71 | 60 | 70 | 68 | 62 | 51 | 48 | 60 | 39 | 50 | 52 | 49 |
 
 ---
 

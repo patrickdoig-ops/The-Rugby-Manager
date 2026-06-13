@@ -12,6 +12,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { MatchCoordinator } from '../src/engine/MatchCoordinator.js';
+import { setCaptureAnnotations } from '../src/engine/spatial/World.js';
 import { MatchPhase } from '../src/types/engine.js';
 import { eventBus } from '../src/utils/eventBus.js';
 import type { GameEvent } from '../src/types/match.js';
@@ -31,6 +32,10 @@ const offEvent = eventBus.on('engine:event', ({ event }) => {
     phasePlayBeats.push({ gameMinute: e.gameMinute, side: e.side, outcome: e.outcome, frames: e.frames });
   }
 });
+
+// Dev-only: capture the three-layer control annotations into the dumped frames
+// so the frame debugger can show "why is he there?" per dot.
+setCaptureAnnotations(true);
 
 await new Promise<void>(resolve => {
   const engine = new MatchCoordinator(BATH, SARACENS, { tickDelayMs: 0, seed: 0xDEADBEEF });

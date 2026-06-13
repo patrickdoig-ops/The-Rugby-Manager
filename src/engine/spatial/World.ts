@@ -60,6 +60,15 @@ function makeAgent(side: PossessionSide): Agent {
   };
 }
 
+// Dev-only: when set, freshly-built Worlds record per-tick control-layer
+// annotations (Upgrade.md § 9). Off in live play / silent fixtures (zero cost);
+// the frame-dump tool (dumpSpatialFrames) flips it on so the refreshed
+// frames.json carries the three-layer "why is he there?" overlay.
+let _captureAnnotations = false;
+export function setCaptureAnnotations(v: boolean): void {
+  _captureAnnotations = v;
+}
+
 // Allocate the World once. Agent identity (side) is fixed by index; the rest is
 // filled by resetWorld from MatchState. The 30 agents and their pos/vel/intent
 // vectors are the only allocations — done here, never in the micro-tick loop.
@@ -72,7 +81,7 @@ export function buildWorld(state: MatchState): World {
     ball: { pos: { x: 50, y: 50 }, vel: { x: 0, y: 0 }, height: 0 },
     scratchA: { x: 0, y: 0 },
     scratchB: { x: 0, y: 0 },
-    recordAnnotations: false,
+    recordAnnotations: _captureAnnotations,
   };
   resetWorld(world, state);
   return world;

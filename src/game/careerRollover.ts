@@ -41,6 +41,7 @@ import { redrawCupPools, buildCupSeed } from './cupScheduler';
 import { buildYear2EuropeanSeed } from './europeanScheduler';
 import { generateStaffPool } from './staffPoolGenerator';
 import { sortStandings } from './leagueTable';
+import { positionGroup, neediestPosition, emptyGroupCounts, type PositionGroup } from './squadComposition';
 
 export function computeRollover(state: GameState, allTeamIds: string[]): SeasonEvent[] {
   const events: SeasonEvent[] = [];
@@ -106,16 +107,52 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   let nextRid = state.career.nextRosterId;
   const calendarAnchor = seasonOpenIso(newSeasonStartYear);
 
-  // Academy: per club, in stable id-ascending order.
+  // Per-club projected position-group counts (current squad minus this
+  // rollover's retirements / out-moves, plus in-moves). Academy intake targets
+  // the biggest per-position shortfall vs POSITION_FLOORS so the scarce
+  // specialist positions (Lock / Prop / Hooker / SH / FH) don't starve under
+  // uniform-random generation while the three-label back row bloats.
+  const posCountByClub = new Map<string, Record<PositionGroup, number>>();
+  for (const club of state.career.clubs) {
+    const counts = emptyGroupCounts();
+    for (const rid of club.squad) {
+      const g = positionGroup(state.career.roster[rid]?.position ?? '');
+      if (g !== 'Other') counts[g]++;
+    }
+    posCountByClub.set(club.id, counts);
+  }
+  for (const e of events) {
+    if (e.type === 'PLAYER_RETIRED' && e.clubId) {
+      const g = positionGroup(state.career.roster[e.rosterId]?.position ?? '');
+      const c = posCountByClub.get(e.clubId);
+      if (c && g !== 'Other') c[g] = Math.max(0, c[g] - 1);
+    } else if (e.type === 'TRANSFER_ACTIVATED') {
+      const g = positionGroup(state.career.roster[e.rosterId]?.position ?? '');
+      if (g !== 'Other') {
+        const from = posCountByClub.get(e.fromClubId); if (from) from[g] = Math.max(0, from[g] - 1);
+        const to = posCountByClub.get(e.toClubId); if (to) to[g] += 1;
+      }
+    }
+  }
+
+  // Academy: per club, in stable id-ascending order. Each graduate is generated
+  // into the club's neediest position (null → leave the random roll) so intake
+  // closes per-position gaps. The random position roll is consumed regardless,
+  // so the rngTransfer stream offset is unchanged.
   const sortedClubs = [...state.career.clubs].sort((a, b) => a.id.localeCompare(b.id));
   for (const club of sortedClubs) {
     const grads = rngTransfer(ACADEMY_SUPPLY.gradsPerClub.min, ACADEMY_SUPPLY.gradsPerClub.max);
+    const counts = posCountByClub.get(club.id) ?? emptyGroupCounts();
     for (let i = 0; i < grads; i++) {
+      const targetPos = neediestPosition(counts);
       const player = generatePersona(
-        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand },
+        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand,
+          ...(targetPos ? { position: targetPos } : {}) },
         calendarAnchor,
       );
       events.push({ type: 'ACADEMY_GRADUATED', clubId: club.id, player });
+      const g = positionGroup(player.position);
+      if (g !== 'Other') counts[g] += 1;
       nextRid += 1;
     }
   }
@@ -156,12 +193,17 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   }
   for (const club of sortedClubs) {
     let size = projected.get(club.id) ?? 0;
+    const counts = posCountByClub.get(club.id) ?? emptyGroupCounts();
     while (size < MIN_SQUAD_SIZE) {
+      const targetPos = neediestPosition(counts);
       const player = generatePersona(
-        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand },
+        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand,
+          ...(targetPos ? { position: targetPos } : {}) },
         calendarAnchor,
       );
       events.push({ type: 'ACADEMY_GRADUATED', clubId: club.id, player });
+      const g = positionGroup(player.position);
+      if (g !== 'Other') counts[g] += 1;
       nextRid += 1;
       size += 1;
     }

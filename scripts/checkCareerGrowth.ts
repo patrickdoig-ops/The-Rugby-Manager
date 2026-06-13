@@ -25,6 +25,7 @@ import { simulateFixture } from '../src/game/simulateFixture.js';
 import { buildAutoSelectedTeamFromRoster } from '../src/game/rosterTeamBuilder.js';
 import { buildEuropeanOpponent } from '../src/game/buildEuropeanOpponent.js';
 import { MIN_SQUAD_SIZE, ARCHIVE_CAP } from '../src/engine/balance/career.js';
+import { POSITION_GROUPS, positionGroup, type PositionGroup } from '../src/game/squadComposition.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 
 import bathRaw         from '../src/data/team-bath.json' with { type: 'json' };
@@ -149,24 +150,6 @@ async function playOutPlayoffs(coord: GameCoordinator): Promise<void> {
 }
 
 // ── Run + assert ──────────────────────────────────────────────────────────
-// Position families used for the composition (depth) matrix — each maps the
-// generic positions to the cohort that fills a band of the matchday 23.
-const POSITION_GROUPS = ['Prop', 'Hooker', 'Lock', 'BackRow', 'SH', 'FH', 'Centre', 'Back3', 'UtilBack'] as const;
-type PositionGroup = typeof POSITION_GROUPS[number];
-function positionGroup(pos: string): PositionGroup | 'Other' {
-  switch (pos) {
-    case 'Prop': return 'Prop';
-    case 'Hooker': return 'Hooker';
-    case 'Lock': return 'Lock';
-    case 'Flanker': case 'Number 8': case 'Back Row': return 'BackRow';
-    case 'Scrum-Half': return 'SH';
-    case 'Fly-Half': return 'FH';
-    case 'Centre': return 'Centre';
-    case 'Wing': case 'Fullback': return 'Back3';
-    case 'Utility Back': return 'UtilBack';
-    default: return 'Other';
-  }
-}
 function median(xs: number[]): number {
   const a = [...xs].sort((x, y) => x - y);
   const mid = Math.floor(a.length / 2);

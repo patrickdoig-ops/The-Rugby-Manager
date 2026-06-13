@@ -16,6 +16,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { FixtureResult, TeamStanding } from '../types/gameState';
 import { sortStandings, computeStandingsFromResults } from '../game/leagueTable';
+import { leagueRound } from '../game/leagueRound';
 import { recentForm, formPoints } from '../game/teamStats';
 import { renderFormPipStrip } from './components/formPip';
 import { eventBus } from '../utils/eventBus';
@@ -192,11 +193,11 @@ export function initLeagueTableScreen(
     const inPostMatch = postMatchOnContinue !== null;
 
     // In post-match mode, compute how each team's position changed as a result
-    // of the round that was just completed. calendar.week is already the next
-    // round at this point, so justCompleted = week - 1.
+    // of the round that was just completed. leagueRound is already the next
+    // round at this point, so justCompleted = leagueRound - 1.
     let posDeltas: Map<string, number> | null = null;
     if (inPostMatch) {
-      const justCompleted = state.calendar.week - 1;
+      const justCompleted = leagueRound(state) - 1;
       const prevResults = results.filter(r => r.round < justCompleted);
       if (prevResults.length > 0) {
         posDeltas = computePositionDeltas(prevResults, state.league.standings);
@@ -207,8 +208,8 @@ export function initLeagueTableScreen(
       ? sortStandings(state.league.standings)
       : sortByForm(state.league.standings, results);
 
-    const isRunIn = ROUND_LABELS[state.calendar.week] === 'The Run In';
-    const roundsLeft = totalRounds - state.calendar.week + 1;
+    const isRunIn = ROUND_LABELS[leagueRound(state)] === 'The Run In';
+    const roundsLeft = totalRounds - leagueRound(state) + 1;
 
     const rows = sorted.map((s, i) => {
       const rank = i + 1;
@@ -270,7 +271,7 @@ export function initLeagueTableScreen(
           <span class="app-title">League Table</span>
           <div class="app-topbar-spacer">${helpButtonHtml('league-table')}</div>
         </div>
-        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)} · Round ${state.calendar.week}/${totalRounds}</div>
+        <div class="app-eyebrow">${state.calendar.seasonLabel} · ${formatDateMedium(state.calendar.date)} · Round ${leagueRound(state)}/${totalRounds}</div>
       </div>
       <div class="lt-toggle" role="tablist">
         <button class="lt-toggle__btn ${viewMode === 'standard' ? 'lt-toggle__btn--active' : ''}" data-mode="standard" role="tab" aria-selected="${viewMode === 'standard'}">Standard</button>

@@ -24,7 +24,7 @@ import { GameCoordinator } from '../src/game/GameCoordinator.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
 import { buildAutoSelectedTeamFromRoster } from '../src/game/rosterTeamBuilder.js';
 import { buildEuropeanOpponent } from '../src/game/buildEuropeanOpponent.js';
-import { MIN_SQUAD_SIZE, ARCHIVE_CAP } from '../src/engine/balance/career.js';
+import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, POSITION_FLOORS, ARCHIVE_CAP } from '../src/engine/balance/career.js';
 import { POSITION_GROUPS, positionGroup, type PositionGroup } from '../src/game/squadComposition.js';
 import type { RawTeamInput } from '../src/types/teamData.js';
 
@@ -44,6 +44,8 @@ const PLAYER_ID = 'bath';
 const SEASONS = 20;                 // comfortably past ARCHIVE_CAP so the prune is exercised
 const SAVE_CEILING_KB = 4500;       // absolute save-size ceiling (mobile localStorage ≈ 5 MB)
 const PLATEAU_TOLERANCE = 1.12;     // post-prune save may not grow > 12% from the cap point to the end
+const SIZE_CAP_TOLERANCE = 2;       // a club may sit this far over MAX_SQUAD_SIZE (position-protection)
+const DEPTH_TOLERANCE = 2;          // thinnest per-position depth may dip this far below POSITION_FLOOR
 
 const allTeams = [
   bathRaw, bristolRaw, exeterRaw, gloucesterRaw, harlequinsRaw,
@@ -198,8 +200,23 @@ for (let s = 0; s < SEASONS; s++) {
     maxSquad: Math.max(...squadSizes), medSquad: median(squadSizes), posDepthMin,
   });
 
+  const maxSquad = Math.max(...squadSizes);
   if (minSquad < MIN_SQUAD_SIZE) {
     violations.push(`season ${seasonNo}: ${minClub} squad ${minSquad} < MIN_SQUAD_SIZE ${MIN_SQUAD_SIZE}`);
+  }
+  // Size cap holds (soft: the position-protection can leave a club a touch over).
+  if (maxSquad > MAX_SQUAD_SIZE + SIZE_CAP_TOLERANCE) {
+    violations.push(`season ${seasonNo}: max squad ${maxSquad} > MAX_SQUAD_SIZE ${MAX_SQUAD_SIZE} (+${SIZE_CAP_TOLERANCE})`);
+  }
+  // No position starves: the league's thinnest cover at any position must stay
+  // at a fieldable depth. Tolerance below the soft POSITION_FLOOR absorbs a
+  // transient post-retirement convergence dip; a regression to the old
+  // uniform-random starvation (0 locks / 0 fly-halves) trips it loudly.
+  for (const g of POSITION_GROUPS) {
+    const floor = Math.max(0, POSITION_FLOORS[g] - DEPTH_TOLERANCE);
+    if (posDepthMin[g] < floor) {
+      violations.push(`season ${seasonNo}: thinnest ${g} depth ${posDepthMin[g]} < fieldable floor ${floor}`);
+    }
   }
 }
 
@@ -254,6 +271,8 @@ if (violations.length > 0) {
 
 const maxSave = Math.max(...samples.map(r => r.saveKB));
 console.log(
-  `\nOK: ${SEASONS} seasons — every club stayed >= ${MIN_SQUAD_SIZE} (min ${Math.min(...samples.map(r => r.minSquad))}); ` +
+  `\nOK: ${SEASONS} seasons — squad sizes held in the band [${MIN_SQUAD_SIZE}, ${MAX_SQUAD_SIZE}] ` +
+  `(observed ${Math.min(...samples.map(r => r.minSquad))}..${Math.max(...samples.map(r => r.maxSquad))}); ` +
+  `every position stayed at a fieldable depth; ` +
   `save bounded (peak ${maxSave}KB, ceiling ${SAVE_CEILING_KB}KB; plateaued within ${Math.round((PLATEAU_TOLERANCE - 1) * 100)}%).`,
 );

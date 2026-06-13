@@ -9,7 +9,7 @@
     "cap:sync": "npm run build:cap && cap sync ios",
     "cap:ios": "npm run build:cap && cap sync ios && cap open ios",
     "preview": "vite preview",
-    "verify": "tsx scripts/checkDeterminism.ts && tsx scripts/checkSeasonDeterminism.ts && tsx scripts/checkSilentScores.ts && tsx scripts/checkSaveSchema.ts && tsx scripts/cssLint.ts && tsx scripts/checkSpatialBands.ts && tsx scripts/checkSpatialScenarios.ts",
+    "verify": "tsx scripts/checkDeterminism.ts && tsx scripts/checkSeasonDeterminism.ts && tsx scripts/checkSilentScores.ts && tsx scripts/checkSaveSchema.ts && tsx scripts/cssLint.ts && tsx scripts/checkSpatialBands.ts && tsx scripts/checkSpatialScenarios.ts && tsx scripts/checkPlaybookSeed.ts",
     "telemetry": "tsx scripts/telemetry.ts",
     "audio:check": "tsx scripts/validateAudioManifest.ts",
     "probe": "node scripts/pitchProbeDriver.mjs",

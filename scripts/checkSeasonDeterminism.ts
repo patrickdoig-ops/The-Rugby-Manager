@@ -30,6 +30,7 @@
 
 import { createHash } from 'node:crypto';
 import { GameCoordinator } from '../src/game/GameCoordinator.js';
+import { parseRawSave, SAVE_VERSION } from '../src/ui/SaveManager.js';
 import { simulateFixture } from '../src/game/simulateFixture.js';
 import { buildAutoSelectedTeamFromRoster } from '../src/game/rosterTeamBuilder.js';
 import { buildEuropeanOpponent } from '../src/game/buildEuropeanOpponent.js';
@@ -368,10 +369,14 @@ async function runOnce(seed: number, roundTrip = false): Promise<string> {
     })));
 
     // Save/load round-trip leg — rebuild the coordinator from its own save
-    // after the rollover into the final season.
+    // after the rollover into the final season. Routed through the REAL load
+    // path (parseRawSave → parseSavedGame), not toSavePayload→fromSave directly,
+    // so any field the parser drops (e.g. careerRngOffset) breaks the hash here.
     if (roundTrip && s === SEASONS - 2) {
-      const payload = JSON.parse(JSON.stringify(coord.toSavePayload()));
-      coord = GameCoordinator.fromSave(payload, allTeams);
+      const envelope = JSON.stringify({ ...coord.toSavePayload(), version: SAVE_VERSION });
+      const parsed = parseRawSave(envelope);
+      if (!parsed) throw new Error('round-trip leg: parseRawSave returned null');
+      coord = GameCoordinator.fromSave(parsed, allTeams);
     }
   }
 

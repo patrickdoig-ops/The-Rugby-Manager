@@ -173,3 +173,10 @@ export const STARTER_FA_POOL = {
 // accumulating every player who ever retired. weightedLeaguePosition only ever
 // reads the two most-recent archive entries, so 15 is comfortably deep.
 export const ARCHIVE_CAP = 15;
+
+// Minimum club squad size guaranteed at each rollover: a matchday 23 plus cover
+// for injuries and international call-ups. After the season's releases, this
+// rollover's retirements and pre-agreed moves, and the academy/import intake,
+// any club projected below this is topped up with extra academy graduates — so
+// no AI-run club can fall below a fieldable squad over a long career.
+export const MIN_SQUAD_SIZE = 30;

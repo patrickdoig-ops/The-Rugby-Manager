@@ -30,7 +30,7 @@ import type { ArchivedPlayerSeason, Fixture, GameState, SeasonEvent, TeamStandin
 import type { Player, PlayerStats, PlayerSeasonStats } from '../types/player';
 import { isForward, PLAYER_STAT_KEYS } from '../types/player';
 import type { SeasonAwards, SeasonLeader } from '../types/gameState';
-import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, REPUTATION_OVR_NUDGE, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
+import { AGE_CURVES, STAT_NOISE, RETIREMENT_CURVE, SEASON_AWARDS, ACADEMY_SUPPLY, IMPORT_SUPPLY, REPUTATION_OVR_NUDGE, MIN_SQUAD_SIZE, proximityMultiplier, appearancesMultiplier } from '../engine/balance/career';
 import { playerOverall } from '../engine/RatingEngine';
 import { SEASON_VALUES } from '../engine/balance';
 import { getAge, parseSeasonStartYear, seasonOpenIso } from './age';
@@ -130,6 +130,41 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
     );
     events.push({ type: 'FOREIGN_IMPORT_ARRIVED', player });
     nextRid += 1;
+  }
+
+  // 3b. Squad-size floor. Project each club's post-rollover squad size from the
+  // events already queued (this rollover's retirements, pre-agreed moves, and
+  // the academy intake above) plus the loan-in players that SEASON_ROLLED_OVER
+  // releases — then top up any club below MIN_SQUAD_SIZE with extra academy
+  // graduates so no club starts the new season unable to field a 23. Runs after
+  // the regular intake, in the same stable alpha club order, so the rngTransfer
+  // sequence stays deterministic. A no-op for healthy squads (no RNG consumed).
+  const projected = new Map<string, number>();
+  for (const club of state.career.clubs) {
+    const loanInCount = club.squad.reduce((n, rid) => n + (state.career.roster[rid]?.loanIn ? 1 : 0), 0);
+    projected.set(club.id, club.squad.length - loanInCount);
+  }
+  for (const e of events) {
+    if (e.type === 'TRANSFER_ACTIVATED') {
+      projected.set(e.fromClubId, (projected.get(e.fromClubId) ?? 0) - 1);
+      projected.set(e.toClubId, (projected.get(e.toClubId) ?? 0) + 1);
+    } else if (e.type === 'PLAYER_RETIRED' && e.clubId) {
+      projected.set(e.clubId, (projected.get(e.clubId) ?? 0) - 1);
+    } else if (e.type === 'ACADEMY_GRADUATED') {
+      projected.set(e.clubId, (projected.get(e.clubId) ?? 0) + 1);
+    }
+  }
+  for (const club of sortedClubs) {
+    let size = projected.get(club.id) ?? 0;
+    while (size < MIN_SQUAD_SIZE) {
+      const player = generatePersona(
+        { rosterId: nextRid, clubId: club.id, ageBand: ACADEMY_SUPPLY.ageBand, ratingBand: ACADEMY_SUPPLY.ratingBand },
+        calendarAnchor,
+      );
+      events.push({ type: 'ACADEMY_GRADUATED', clubId: club.id, player });
+      nextRid += 1;
+      size += 1;
+    }
   }
 
   // 4. Awards + season-rollover composite.

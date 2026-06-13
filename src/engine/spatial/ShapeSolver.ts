@@ -80,6 +80,14 @@ function sideAgents(world: World, side: PossessionSide): Agent[] {
 // Returns the resolved line roles for the post-tick gap + offside passes.
 export function solveDefence(world: World, p: ShapeParams): LineRole[] {
   const defenders = sideAgents(world, p.defendSide);
+  // recoveryLockout is a PER-CARRY transient: a defender beaten in Phase-1 evasion
+  // is steered behind the play and excluded from contact for the REST of that carry.
+  // The persistent World only cleared it on a cold rebuild (resetWorld), so on a
+  // continuation beat a defender beaten last carry stayed locked out — a phantom
+  // permanently-beaten man removed from every subsequent carry's contact contest.
+  // Clear it here (solveDefence runs once per carry over exactly the agents
+  // detectContact reads) so every defender re-engages each carry.
+  for (const d of defenders) d.recoveryLockout = false;
   const cfg = DEFENSIVE_LINE[p.defensiveLine];
 
   // The line sets up `standOff` in FRONT of the mark (toward the attackers,

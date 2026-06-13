@@ -121,7 +121,7 @@ const ROOT_SEED = 0xDEADBEEF;
 // flow into the carry (no pass→carry teleport). Positions feed commitRuck, so
 // outcomes shift (by design); every § 13 band holds (pts 24.73, tries 3.79, TO 2.08,
 // pen 12.68, tackMade 64.4, home-win 53.56 on the 5-seed sweep).
-const GOLDEN = '6097c4e3f41cdc7e7e7c4e7908c93e0224bd8de91f69c7dd04093637899e9858';
+const GOLDEN = '88b770abcc90a1b8ec86aede5f9b93a8821b9fc53a68a7c9b098c63777d70044';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

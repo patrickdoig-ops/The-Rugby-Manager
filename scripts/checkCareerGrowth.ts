@@ -149,7 +149,36 @@ async function playOutPlayoffs(coord: GameCoordinator): Promise<void> {
 }
 
 // ── Run + assert ──────────────────────────────────────────────────────────
-interface SeasonSample { season: number; minSquad: number; minClub: string; roster: number; retired: number; saveKB: number; }
+// Position families used for the composition (depth) matrix — each maps the
+// generic positions to the cohort that fills a band of the matchday 23.
+const POSITION_GROUPS = ['Prop', 'Hooker', 'Lock', 'BackRow', 'SH', 'FH', 'Centre', 'Back3', 'UtilBack'] as const;
+type PositionGroup = typeof POSITION_GROUPS[number];
+function positionGroup(pos: string): PositionGroup | 'Other' {
+  switch (pos) {
+    case 'Prop': return 'Prop';
+    case 'Hooker': return 'Hooker';
+    case 'Lock': return 'Lock';
+    case 'Flanker': case 'Number 8': case 'Back Row': return 'BackRow';
+    case 'Scrum-Half': return 'SH';
+    case 'Fly-Half': return 'FH';
+    case 'Centre': return 'Centre';
+    case 'Wing': case 'Fullback': return 'Back3';
+    case 'Utility Back': return 'UtilBack';
+    default: return 'Other';
+  }
+}
+function median(xs: number[]): number {
+  const a = [...xs].sort((x, y) => x - y);
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 ? a[mid] : Math.round((a[mid - 1] + a[mid]) / 2);
+}
+
+interface SeasonSample {
+  season: number; minSquad: number; minClub: string; roster: number; retired: number; saveKB: number;
+  // WP0 instrumentation: squad-size distribution + thinnest per-position depth across clubs.
+  maxSquad: number; medSquad: number;
+  posDepthMin: Record<PositionGroup, number>;
+}
 
 let coord = await GameCoordinator.newSeason(PLAYER_ID, SEED, allTeams);
 const teamsById = new Map(allTeams.map(t => [t.id, t]));
@@ -168,18 +197,54 @@ for (let s = 0; s < SEASONS; s++) {
   const rosterIds = Object.keys(st.career.roster).map(Number);
   const retired = rosterIds.filter(r => st.career.roster[r].retired).length;
   const saveKB = Math.round(JSON.stringify(coord.toSavePayload()).length / 1024);
-  samples.push({ season: seasonNo, minSquad, minClub, roster: rosterIds.length, retired, saveKB });
+
+  // Per-position depth: count each club's squad by group, then take the MIN
+  // across clubs per group (the league's thinnest cover at that position).
+  const posDepthMin = Object.fromEntries(POSITION_GROUPS.map(g => [g, Infinity])) as Record<PositionGroup, number>;
+  for (const c of st.career.clubs) {
+    const counts = Object.fromEntries(POSITION_GROUPS.map(g => [g, 0])) as Record<PositionGroup, number>;
+    for (const rid of c.squad) {
+      const g = positionGroup(st.career.roster[rid]?.position ?? '');
+      if (g !== 'Other') counts[g]++;
+    }
+    for (const g of POSITION_GROUPS) posDepthMin[g] = Math.min(posDepthMin[g], counts[g]);
+  }
+
+  samples.push({
+    season: seasonNo, minSquad, minClub, roster: rosterIds.length, retired, saveKB,
+    maxSquad: Math.max(...squadSizes), medSquad: median(squadSizes), posDepthMin,
+  });
 
   if (minSquad < MIN_SQUAD_SIZE) {
     violations.push(`season ${seasonNo}: ${minClub} squad ${minSquad} < MIN_SQUAD_SIZE ${MIN_SQUAD_SIZE}`);
   }
 }
 
-// Print the trace.
+// Print the trace — squad-size distribution (min/median/max across the 10 clubs).
 for (const r of samples) {
   console.log(
     `season ${String(r.season).padStart(2)} | roster ${String(r.roster).padStart(4)} (retired ${String(r.retired).padStart(4)}) | ` +
-    `minSquad ${String(r.minSquad).padStart(2)} (${r.minClub}) | save ${String(r.saveKB).padStart(4)}KB`,
+    `squad min/med/max ${String(r.minSquad).padStart(2)}/${String(r.medSquad).padStart(2)}/${String(r.maxSquad).padStart(2)} | ` +
+    `save ${String(r.saveKB).padStart(4)}KB`,
+  );
+}
+
+// WP0 composition matrix: the league's THINNEST per-position depth each season
+// (min across all clubs). Reveals which positions bloat or starve over a career.
+console.log('\nThinnest per-position depth across clubs (min over the 10 clubs):');
+console.log('season | ' + POSITION_GROUPS.map(g => g.padStart(7)).join(' '));
+for (const r of samples) {
+  console.log(
+    `  ${String(r.season).padStart(4)} | ` +
+    POSITION_GROUPS.map(g => String(r.posDepthMin[g]).padStart(7)).join(' '),
+  );
+}
+{
+  const last = samples[samples.length - 1];
+  console.log(
+    `\nFinal season ${last.season}: squad sizes min/median/max = ${last.minSquad}/${last.medSquad}/${last.maxSquad} ` +
+    `(target band 35-45). Thinnest position depth: ` +
+    POSITION_GROUPS.map(g => `${g} ${last.posDepthMin[g]}`).join(', ') + '.',
   );
 }
 

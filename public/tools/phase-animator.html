@@ -805,6 +805,7 @@
     render();
   }
   document.addEventListener('keydown', ev => {
+    if (document.body.classList.contains('play-mode')) return;  // play editor owns its own transport keys
     const tag = (document.activeElement && document.activeElement.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     const step = ev.shiftKey ? 0.05 : 0.01;
@@ -1365,9 +1366,11 @@
         pitch.appendChild(el);
         roleTrails.push(el);
       }
-      // Interpolated trail dots between waypoints for smoother path visualisation
+      // Interpolated trail dots between waypoints for smoother path visualisation.
+      // Cover the whole run line even if its last waypoint sits past lifetimeTicks
+      // (role.line is sorted, so the last entry is the max t).
       if (role.line.length >= 2) {
-        const steps = playDoc.lifetimeTicks;
+        const steps = Math.max(playDoc.lifetimeTicks, role.line[role.line.length - 1].t);
         for (let step = 0; step <= steps; step++) {
           const t = step;
           const isWp = role.line.some(w => w.t === t);
@@ -1441,7 +1444,7 @@
       const role = playDoc.roles[playDrag.roleName];
       if (role) {
         const off = pitchToPlayPoint(x, y);
-        upsertWaypoint(role.line, playTick, off.fwd, off.lat);
+        upsertWaypoint(role.line, Math.round(playTick), off.fwd, off.lat);
         renderPlayPanel();
         renderPlayPitch();
       }
@@ -1588,6 +1591,7 @@
   function ptStop() {
     ptPlaying = false;
     if (ptRaf) { cancelAnimationFrame(ptRaf); ptRaf = null; }
+    playTick = Math.round(playTick);   // snap off any fractional playback position so a later edit can't write a fractional-t waypoint
     document.getElementById('ptPlay').textContent = '▶ Play';
   }
   function ptPlay() {
@@ -1688,15 +1692,22 @@
   };
 
   // ---- Role management ----
+  // True if `slot` is already bound to a role other than `exceptRole` — a play
+  // overlay drives distinct players, so two roles may not share a slot.
+  function slotInUse(slot, exceptRole) {
+    return Object.entries(playDoc.roles).some(([n, r]) => n !== exceptRole && r.slot === slot);
+  }
   document.getElementById('playAddRole').onclick = () => {
     if (!playDoc) return;
     const name = prompt('Role name (e.g. firstReceiver):');
     if (!name || !name.trim()) return;
-    const slotStr = prompt('Slot (1–15):');
-    const slot = parseInt(slotStr, 10);
+    const nm = name.trim();
+    if (playDoc.roles[nm]) { alert('Role "' + nm + '" already exists.'); return; }
+    const slot = parseInt(prompt('Slot (1–15):'), 10);
     if (!slot || slot < 1 || slot > 15) { alert('Invalid slot'); return; }
-    playDoc.roles[name.trim()] = { slot, line: [{ t: 0, fwd: 0, lat: 0 }], actions: [] };
-    selectRole(name.trim());
+    if (slotInUse(slot, null)) { alert('Slot ' + slot + ' is already used by another role.'); return; }
+    playDoc.roles[nm] = { slot, line: [{ t: 0, fwd: 0, lat: 0 }], actions: [] };
+    selectRole(nm);
     renderPlayPitch();
   };
 
@@ -1709,11 +1720,11 @@
     renderPlayPitch();
   };
 
-  // Selected role: slot change
+  // Selected role: slot change (rejected if another role already holds that slot)
   document.getElementById('playRoleSlot').oninput = ev => {
     if (!playDoc || !playSel) return;
     const v = parseInt(ev.target.value, 10);
-    if (v >= 1 && v <= 15) playDoc.roles[playSel].slot = v;
+    if (v >= 1 && v <= 15 && !slotInUse(v, playSel)) playDoc.roles[playSel].slot = v;
     renderPlayPitch();
   };
 
@@ -1724,7 +1735,7 @@
     const el = roleDots[playSel];
     // Get current on-screen position (from interpolation) → convert back to offset
     const off = offsetAt(role.line, playTick);
-    upsertWaypoint(role.line, playTick, off.fwd, off.lat);
+    upsertWaypoint(role.line, Math.round(playTick), off.fwd, off.lat);
     renderPlayPanel();
     renderPlayPitch();
   };
@@ -1732,7 +1743,7 @@
   document.getElementById('playDelWp').onclick = () => {
     if (!playDoc || !playSel) return;
     const role = playDoc.roles[playSel];
-    const idx = role.line.findIndex(w => w.t === playTick);
+    const idx = role.line.findIndex(w => w.t === Math.round(playTick));
     if (idx <= 0) { if (idx === 0) alert('Cannot delete the t=0 anchor waypoint.'); return; }
     role.line.splice(idx, 1);
     renderPlayPanel();
@@ -1746,7 +1757,7 @@
     if (!role.actions) role.actions = [];
     const doVal = document.getElementById('playActionDo').value;
     const toVal = document.getElementById('playActionTo').value;
-    const act = { t: playTick, do: doVal };
+    const act = { t: Math.round(playTick), do: doVal };
     if (toVal) act.to = toVal;
     role.actions.push(act);
     role.actions.sort((a, b) => a.t - b.t);
@@ -1822,17 +1833,19 @@
   document.getElementById('playIo').addEventListener('change', () => {
     const ta = document.getElementById('playIo');
     if (!ta.value.trim()) return;
+    let parsed;
+    try { parsed = JSON.parse(ta.value); }
+    catch (e) { alert('Invalid JSON: ' + e.message); return; }
+    if (!parsed || !parsed.id || !parsed.trigger || !parsed.roles) {
+      alert('Not a play — needs id, trigger and roles.'); return;
+    }
     try {
-      const parsed = JSON.parse(ta.value);
-      if (parsed && parsed.id) {
-        // looks like a valid play — load it
-        playDoc = cloneSeed(parsed);
-        playSel = null;
-        playTick = 0;
-        renderPlayPanel();
-        renderPlayPitch();
-      }
-    } catch {}
+      playDoc = cloneSeed(parsed);
+      playSel = null;
+      playTick = 0;
+      renderPlayPanel();
+      renderPlayPitch();
+    } catch (e) { alert('Could not load play: ' + e.message); }
   });
 
 })();

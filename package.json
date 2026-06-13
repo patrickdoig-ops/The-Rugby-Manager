@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "verify": "tsx scripts/checkDeterminism.ts && tsx scripts/checkSeasonDeterminism.ts && tsx scripts/checkSilentScores.ts && tsx scripts/checkSaveSchema.ts && tsx scripts/cssLint.ts && tsx scripts/checkSpatialBands.ts && tsx scripts/checkSpatialScenarios.ts",
     "telemetry": "tsx scripts/telemetry.ts",
+    "check:career": "tsx scripts/checkCareerGrowth.ts",
     "audio:check": "tsx scripts/validateAudioManifest.ts",
     "probe": "node scripts/pitchProbeDriver.mjs",
     "export:phases": "tsx scripts/exportPhases.ts"

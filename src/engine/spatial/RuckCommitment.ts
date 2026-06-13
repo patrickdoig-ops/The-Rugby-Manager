@@ -206,9 +206,11 @@ function steerCommitment(
   for (const a of committedAttackers) {
     setTarget(a, input.mark.x - input.attackDir * 0.5, input.mark.y);
     a.role = 'corridor';
+    a.intent.driveLayer = 2; a.intent.driveReason = 'commit ruck';   // Layer 2 DECIDE — utility beats shape
   }
   for (const d of committedDefenders) {
     setTarget(d, input.mark.x + input.attackDir * 0.5, input.mark.y);
+    d.intent.driveLayer = 2; d.intent.driveReason = 'jackal/counter-ruck';  // Layer 2 DECIDE
   }
   // Reform: uncommitted defenders fold back to the line standOff in front of the
   // mark; uncommitted attackers reset to a support depth behind the mark. These

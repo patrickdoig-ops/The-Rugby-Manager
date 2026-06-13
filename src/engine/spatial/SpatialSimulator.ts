@@ -85,11 +85,16 @@ function recordAnnotations(world: World): Record<number, FrameAnnotation> {
   const out: Record<number, FrameAnnotation> = {};
   const agents = world.agents;
   for (let i = 0; i < agents.length; i++) {
-    const target = agents[i].intent.target;
+    const intent = agents[i].intent;
+    const target = intent.target;
     if (!target) continue;
+    // The control layer that set this target this beat (Upgrade.md § 6): 1 ROLE
+    // (ShapeSolver shape/fold), 2 DECIDE (ruck commitment — utility veto over the
+    // shape), 3 REACT (contact hard interrupt — a beaten defender). The frame
+    // debugger's "why is he there?" reads this; it never affects steering.
     out[i] = {
-      layer: 1,
-      topScores: [{ option: `arrive(${target.x.toFixed(1)},${target.y.toFixed(1)})`, score: 1 }],
+      layer: intent.driveLayer ?? 1,
+      topScores: [{ option: `${intent.driveReason ?? 'shape'} → (${target.x.toFixed(1)},${target.y.toFixed(1)})`, score: 1 }],
     };
   }
   return out;

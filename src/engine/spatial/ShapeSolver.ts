@@ -253,6 +253,7 @@ function setAttackTarget(a: Agent, x: number, y: number): void {
   a.role = 'idle';
   if (a.intent.target) { a.intent.target.x = x; a.intent.target.y = y; }
   else a.intent.target = { x, y };
+  a.intent.driveLayer = 1; a.intent.driveReason = 'shape';   // Layer 1 ROLE (re-set each beat)
 }
 
 // Lay the OFF-BALL attack shape (forward pods + backline) at depth behind the
@@ -348,6 +349,7 @@ function setFoldTarget(agent: Agent, x: number, y: number): void {
   agent.role = 'idle';
   agent.intent.target = { x, y: clampY(y) };
   agent.speedScale = deriveFoldSpeedMult(agent.stamina, agent.positioning, agent.fatigueSnapshot);
+  agent.intent.driveLayer = 1; agent.intent.driveReason = 'line/fold';  // Layer 1 ROLE
 }
 
 // ── Carry corridor (Upgrade.md § 5.3, minimal) ────────────────────────────

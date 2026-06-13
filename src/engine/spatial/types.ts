@@ -35,6 +35,13 @@ export type AgentRole = 'idle' | 'empty' | 'corridor';
 export interface AgentIntent {
   // Steering target in pitch coordinates. Null ⇔ no target (agent holds).
   target: Vec2 | null;
+  // The control layer that set this target (Upgrade.md § 6 three-layer stack):
+  // 1 ROLE (ShapeSolver shape / re-anchor), 2 DECIDE (ruck commitment / utility
+  // veto over the shape), 3 REACT (contact / hard interrupt) — plus a short reason.
+  // DEV ANNOTATION ONLY — read by the frame debugger's "why is he there?"; never
+  // affects steering, so it cannot perturb outcomes or determinism.
+  driveLayer?: 1 | 2 | 3;
+  driveReason?: string;
 }
 
 // One simulated player. Identity is positional: home slots 1–15 then away

@@ -155,6 +155,7 @@ export function detectContact(
     }
     defender.intent.target.x = carrier.pos.x - attackDirSign * RECOVERY_LOCKOUT_DIST;
     defender.intent.target.y = defender.pos.y;
+    defender.intent.driveLayer = 3; defender.intent.driveReason = 'beaten — recovering';  // Layer 3 REACT — hard interrupt
 
     _result.outcome = 'broken_tackle';
     _result.tacklerSlot = defender.slot;

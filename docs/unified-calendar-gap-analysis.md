@@ -359,12 +359,15 @@ real silent-regression surface. Two ways to land Stage B:
 > Save shape unchanged (**no `SAVE_VERSION`
 > bump**); career determinism re-baselined (reproducible + round-trip), silent-scores
 > golden + save-schema green. The harness (`checkSeasonDeterminism.ts`) drives European +
-> playoff matchdays through `advanceMatchdayCalendar` in lockstep. Step 5 removes
-> `MATCHDAY_ADVANCED`.
-5. **Docs + version bump.** `game-engine.md` (`runWeeklyTick`, `MATCHDAY_ADVANCED`
-   removal), `league-cup.md`, `european-cups-2025-26.md`, `helpContent.ts` if any
-   surfaced control changed.
-
-> Sub-steps 1–3 (F-1) achieve the "competition-agnostic weekly seam" the whole migration
-> was about. Sub-step 4 (F-2) is the high-risk tail that buys only round-deadline-during-
-> breaks — recommended to defer unless explicitly wanted.
+> playoff matchdays through `advanceMatchdayCalendar` in lockstep. **Independently
+> re-verified** — build + `verify` green, and an instrumented full-season probe measured
+> `calendar.week = 37` (= the true span) with 0 backward jumps.
+>
+> **F-2 COMPLETE (steps 1–4). The original plan's step 5 is moot.** "Remove
+> `MATCHDAY_ADVANCED`" no longer applies: after the H1 fix, `MATCHDAY_ADVANCED` is the
+> canonical **forward-only date-setter** that `tickElapsedWeeks` emits for *every*
+> competition (plus the `fromSave` re-home), so it is load-bearing, not a removable
+> cup-only leftover. And the `SAVE_VERSION` bump is unnecessary — the save shape is
+> unchanged (`currentWeek` is still a number that round-trips cleanly; `checkSaveSchema`
+> green). The migration's goals — monotonic `calendar.week`, derived `leagueRound`, and
+> competition-agnostic weekly passes — are all achieved by steps 1–4.

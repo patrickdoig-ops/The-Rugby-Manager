@@ -466,11 +466,15 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     // ── Clock & period ──────────────────────────────────────────────────
     case 'CLOCK_ADVANCED': {
-      const halfTarget = state.clock.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
+      const periodTarget =
+        state.clock.period === 'first'        ? CLOCK_VALUES.halfTimeMinute
+        : state.clock.period === 'second'     ? CLOCK_VALUES.fullTimeMinute
+        : state.clock.period === 'extra_first' ? CLOCK_VALUES.extraFirstMinute
+        :                                        CLOCK_VALUES.extraSecondMinute;
       if (state.clock.clockInTheRed) {
         state.clock.gameMinute += event.delta / 2;
       } else {
-        state.clock.gameMinute = Math.min(halfTarget, state.clock.gameMinute + event.delta);
+        state.clock.gameMinute = Math.min(periodTarget, state.clock.gameMinute + event.delta);
       }
       return;
     }
@@ -481,8 +485,25 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
 
     case 'HALF_TIME_REACHED':
       state.clock.halfTimeDone = true;
+      state.clock.period = 'second';
       state.clock.clockInTheRed = false;
       state.clock.penaltyKickToTouchLineout = false;
+      return;
+
+    case 'EXTRA_TIME_STARTED':
+      state.clock.period = 'extra_first';
+      state.clock.clockInTheRed = false;
+      state.clock.penaltyKickToTouchLineout = false;
+      return;
+
+    case 'EXTRA_TIME_HALF_REACHED':
+      state.clock.period = 'extra_second';
+      state.clock.clockInTheRed = false;
+      state.clock.penaltyKickToTouchLineout = false;
+      return;
+
+    case 'EXTRA_TIME_WINNER_SET':
+      state.engine.extraTimeWinner = event.side;
       return;
 
     case 'MATCH_ENDED':

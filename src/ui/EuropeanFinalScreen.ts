@@ -8,6 +8,7 @@
 import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator, EuropeanRoundRef } from '../game/GameCoordinator';
 import { launchConfetti } from './Confetti';
+import { knockoutWinnerId } from '../game/knockoutWinner';
 
 let _render: (() => void) | null = null;
 let _onContinue: () => void = () => {};
@@ -47,7 +48,9 @@ export function initEuropeanFinalScreen(
 
     const homeTeam = final.homeId ? teamsById.get(final.homeId) : undefined;
     const awayTeam = final.awayId ? teamsById.get(final.awayId) : undefined;
-    const homeWon = (final.result?.homeScore ?? 0) >= (final.result?.awayScore ?? 0);
+    const homeWon = final.result && final.homeId && final.awayId
+      ? knockoutWinnerId(final.homeId, final.awayId, final.result.homeScore, final.result.awayScore, final.result.kickWinner) === final.homeId
+      : true;
     const homeInitial = homeTeam?.shortName[0] ?? '?';
     const awayInitial = awayTeam?.shortName[0] ?? '?';
 

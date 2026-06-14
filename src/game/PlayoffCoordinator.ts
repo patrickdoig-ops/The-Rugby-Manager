@@ -108,6 +108,7 @@ export class PlayoffCoordinator {
     homeScore: number,
     awayScore: number,
     snapshot: MatchSnapshot,
+    kickWinner?: 'home' | 'away',
   ): Promise<void> {
     const playoffs = this.state.league.playoffs;
     if (!playoffs) throw new Error('No active playoff bracket');
@@ -135,6 +136,7 @@ export class PlayoffCoordinator {
       homeTries: snapshot.homeSummary.tries,
       awayTries: snapshot.awaySummary.tries,
       playerSide,
+      ...(kickWinner ? { kickWinner } : {}),
     });
     for (const ev of collectSeasonEvents(snapshot)) {
       applySeasonEvent(this.state, ev);
@@ -154,7 +156,7 @@ export class PlayoffCoordinator {
       homeTries: snapshot.homeSummary.tries,
       awayTries: snapshot.awaySummary.tries,
       playerSide,
-    }, snapshot)) {
+    }, snapshot, kickWinner)) {
       applySeasonEvent(this.state, ev);
     }
     eventBus.emit('game:playoffsUpdated', { state: this.state });
@@ -188,7 +190,7 @@ export class PlayoffCoordinator {
       const away = buildAutoSelectedTeamFromRoster(this.state, awayJson);
       const sim = await simulateFixture(
         home, away, this.state.seed, pseudoRound,
-        { neutralVenue: match.kind === 'final' },
+        { neutralVenue: match.kind === 'final', allowExtraTime: true },
       );
       applySeasonEvent(this.state, {
         type: 'PLAYOFF_RESULT_RECORDED',
@@ -198,6 +200,7 @@ export class PlayoffCoordinator {
         homeTries:  sim.snapshot.homeSummary.tries,
         awayTries:  sim.snapshot.awaySummary.tries,
         playerSide: null,
+        ...(sim.kickWinner ? { kickWinner: sim.kickWinner } : {}),
       });
       for (const ev of collectSeasonEvents(sim.snapshot)) {
         applySeasonEvent(this.state, ev);
@@ -217,7 +220,7 @@ export class PlayoffCoordinator {
         homeTries: sim.snapshot.homeSummary.tries,
         awayTries: sim.snapshot.awaySummary.tries,
         playerSide: null,
-      }, sim.snapshot)) {
+      }, sim.snapshot, sim.kickWinner)) {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:playoffsUpdated', { state: this.state });

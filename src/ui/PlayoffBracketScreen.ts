@@ -14,6 +14,7 @@ import type { RawTeamInput } from '../types/teamData';
 import type { GameCoordinator } from '../game/GameCoordinator';
 import type { GameState, PlayoffMatch, PlayoffState } from '../types/gameState';
 import { eventBus } from '../utils/eventBus';
+import { knockoutWinnerId } from '../game/knockoutWinner';
 
 let activeOnContinue: () => void = () => {};
 let activeCtaLabel: string = 'Continue';
@@ -94,8 +95,8 @@ function matchCardHtml(
   playerId: string,
   variant: 'sf' | 'final',
 ): string {
-  const winnerId = match.result
-    ? (match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId)
+  const winnerId = match.result && match.homeId && match.awayId
+    ? knockoutWinnerId(match.homeId, match.awayId, match.result.homeScore, match.result.awayScore, match.result.kickWinner)
     : null;
   const homeScore = match.result?.homeScore ?? null;
   const awayScore = match.result?.awayScore ?? null;

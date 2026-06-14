@@ -1,0 +1,212 @@
+Defensive shape
+
+This is an example of a standard defending shape with two at the back. The away team are defending and the home team (not shown) are attacking up the pitch.
+
+The 7 and 3 have entered into the ruck to contest it. The rest of the main defensive line have formed at the offide line behind the ruck. The 1 and 2 are acting as the 'guards' either side of the ruck. As the blinside winger (14) is covering the backfield, the 9 has moved to cover tbe blindside edge.
+
+The forwards 5,8,4 and 6 are tightly spaced, ready to defend any hard forward carries. At the edge of this line stands the 10. The remaining backs (12,13 and 14) are more spaced out covering the wide back attacks, they would be trying to mark their opposite numbers.
+
+The 14 and 15 are covering the backfield. They are far enough back to cover kicks and spaced widely apart to cover the width of the pitch.
+
+{
+  "meta": {
+    "phase": "(blank)",
+    "beats": [],
+    "generatedBy": "phase-animator",
+    "coords": "game(x:long 0-100 top=100, y:lateral 0-100)"
+  },
+  "entities": [
+    {
+      "id": "ball",
+      "kind": "ball",
+      "jersey": "",
+      "kf": [
+        {
+          "t": 0,
+          "x": 64.96,
+          "y": 11.75
+        }
+      ]
+    },
+    {
+      "id": "a1",
+      "kind": "away",
+      "jersey": "1",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.98,
+          "y": 18.54
+        }
+      ]
+    },
+    {
+      "id": "a2",
+      "kind": "away",
+      "jersey": "2",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.91,
+          "y": 7.79
+        }
+      ]
+    },
+    {
+      "id": "a3",
+      "kind": "away",
+      "jersey": "3",
+      "kf": [
+        {
+          "t": 0,
+          "x": 66.13,
+          "y": 14.31
+        }
+      ]
+    },
+    {
+      "id": "a4",
+      "kind": "away",
+      "jersey": "4",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.84,
+          "y": 34.23
+        }
+      ]
+    },
+    {
+      "id": "a5",
+      "kind": "away",
+      "jersey": "5",
+      "kf": [
+        {
+          "t": 0,
+          "x": 69.06,
+          "y": 25.94
+        }
+      ]
+    },
+    {
+      "id": "a6",
+      "kind": "away",
+      "jersey": "6",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.76,
+          "y": 38.28
+        }
+      ]
+    },
+    {
+      "id": "a7",
+      "kind": "away",
+      "jersey": "7",
+      "kf": [
+        {
+          "t": 0,
+          "x": 66.2,
+          "y": 10.78
+        }
+      ]
+    },
+    {
+      "id": "a8",
+      "kind": "away",
+      "jersey": "8",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.84,
+          "y": 29.82
+        }
+      ]
+    },
+    {
+      "id": "a9",
+      "kind": "away",
+      "jersey": "9",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.98,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "a10",
+      "kind": "away",
+      "jersey": "10",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.91,
+          "y": 42.42
+        }
+      ]
+    },
+    {
+      "id": "a11",
+      "kind": "away",
+      "jersey": "11",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.84,
+          "y": 73.97
+        }
+      ]
+    },
+    {
+      "id": "a12",
+      "kind": "away",
+      "jersey": "12",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.76,
+          "y": 51.5
+        }
+      ]
+    },
+    {
+      "id": "a13",
+      "kind": "away",
+      "jersey": "13",
+      "kf": [
+        {
+          "t": 0,
+          "x": 68.84,
+          "y": 60.84
+        }
+      ]
+    },
+    {
+      "id": "a14",
+      "kind": "away",
+      "jersey": "14",
+      "kf": [
+        {
+          "t": 0,
+          "x": 88.23,
+          "y": 28.23
+        }
+      ]
+    },
+    {
+      "id": "a15",
+      "kind": "away",
+      "jersey": "15",
+      "kf": [
+        {
+          "t": 0,
+          "x": 88.3,
+          "y": 67.98
+        }
+      ]
+    }
+  ]
+}

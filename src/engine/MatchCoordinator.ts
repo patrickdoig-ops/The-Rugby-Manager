@@ -45,7 +45,7 @@ import { applyMatchEvent } from './applyMatchEvent';
 import { playerOverall } from './RatingEngine';
 import { AITacticalDirector } from './AITacticalDirector';
 import { AISubstitutionDirector } from './AISubstitutionDirector';
-import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity, HOME_ADVANTAGE, FORM_MODEL, TEAM_TALK } from './balance';
+import { COMMENTARY_BUFFER_CAP, COMMENTARY_PACING, slotFamiliarity, HOME_ADVANTAGE, FORM_MODEL, TEAM_TALK, EXTRA_TIME } from './balance';
 import { STARTING_XV_MAX } from './Slot';
 import type { TalkArgs } from '../types/ui';
 
@@ -184,13 +184,14 @@ function buildTeam(raw: RawTeamInput, tactics?: TeamTactics, kitColor?: string):
   };
 }
 
-function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, seed: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home', neutralVenue = false, homeFillRate: number = HOME_ADVANTAGE.crowdFillNeutral, isDerby = false, isPlayoffSemi = false, humanCaptainRosterId?: number, skipInvariants = false, refStrictness = 1, refCardThreshold = 1): MatchState {
+function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayMs: number, seed: number, playerTactics?: TeamTactics, humanSide: 'home' | 'away' = 'home', neutralVenue = false, homeFillRate: number = HOME_ADVANTAGE.crowdFillNeutral, isDerby = false, isPlayoffSemi = false, humanCaptainRosterId?: number, skipInvariants = false, refStrictness = 1, refCardThreshold = 1, allowExtraTime = false): MatchState {
   return {
     clock: {
       gameMinute: 0,
       halfTimeDone: false,
       clockInTheRed: false,
       penaltyKickToTouchLineout: false,
+      period: 'first',
     },
     ball: { x: 50, y: 50, lateralDir: 1 },
     engine: {
@@ -208,6 +209,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       skipInvariants,
       refStrictness,
       refCardThreshold,
+      allowExtraTime,
     },
     phase: MatchPhase.KickOff,
     score: { home: 0, away: 0 },
@@ -328,7 +330,7 @@ export class MatchCoordinator {
   constructor(
     homeRaw: RawTeamInput,
     awayRaw: RawTeamInput,
-    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean; commentaryBufferCap?: number; neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean; isPlayoffSemi?: boolean; humanCaptainRosterId?: number; humanPreTalk?: TalkArgs; humanSquadMorale?: number; refStrictness?: number; refCardThreshold?: number } = {},
+    opts: { tickDelayMs?: number; homeTactics?: TeamTactics; playerTactics?: TeamTactics; humanSide?: 'home' | 'away'; seed?: number; silent?: boolean; commentaryBufferCap?: number; neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean; isPlayoffSemi?: boolean; humanCaptainRosterId?: number; humanPreTalk?: TalkArgs; humanSquadMorale?: number; refStrictness?: number; refCardThreshold?: number; allowExtraTime?: boolean } = {},
   ) {
     const seed = (opts.seed ?? generateSeed()) >>> 0;
     setMatchSeed(seed);
@@ -338,7 +340,7 @@ export class MatchCoordinator {
     this.humanSquadMorale = opts.humanSquadMorale ?? TEAM_TALK.flatThreshold + 15; // neutral default ~65 = baseline
     this.humanPreTalk = opts.humanPreTalk;
     const tactics = opts.playerTactics ?? opts.homeTactics;
-    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide, opts.neutralVenue ?? false, opts.homeFillRate, opts.isDerby ?? false, opts.isPlayoffSemi ?? false, opts.humanCaptainRosterId, this.silent, opts.refStrictness ?? 1, opts.refCardThreshold ?? 1);
+    this.state = initMatchState(homeRaw, awayRaw, opts.tickDelayMs ?? 500, seed, tactics, this.humanSide, opts.neutralVenue ?? false, opts.homeFillRate, opts.isDerby ?? false, opts.isPlayoffSemi ?? false, opts.humanCaptainRosterId, this.silent, opts.refStrictness ?? 1, opts.refCardThreshold ?? 1, opts.allowExtraTime ?? false);
     if (opts.commentaryBufferCap !== undefined) {
       applyMatchEvent(this.state, { type: 'COMMENTARY_BUFFER_CAP_SET', value: opts.commentaryBufferCap });
     }
@@ -1066,6 +1068,9 @@ export class MatchCoordinator {
       previousPhase = MatchPhase.Penalty;
     }
 
+    // Golden point (flag-gated): an open-play score in extra time ends it.
+    if (await this.maybeGoldenPoint()) return;
+
     if (await this.handleEndOfPeriod(wasInRed, previousPhase)) return;
 
     // Stash this tick's starting phase so the next tick can detect a
@@ -1091,32 +1096,72 @@ export class MatchCoordinator {
   // the orchestrator stash + schedule the next tick (incl. the silent
   // half-time case, which plays straight on into the second half).
   private async handleEndOfPeriod(wasInRed: boolean, previousPhase: MatchPhase): Promise<boolean> {
-    const wasHalfTimeDone = this.state.clock.halfTimeDone;
     if (!this.state.clock.clockInTheRed) {
       this.clock.checkClockInRed(this.state);
-    } else if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
-      if (!this.state.clock.halfTimeDone) {
+      return false;
+    }
+    if (wasInRed && this.clock.shouldEndPeriod(this.state, previousPhase)) {
+      return await this.advancePeriodAtRedEnd();
+    }
+    return false;
+  }
+
+  // Drives the transition once a period's clock-in-red has tripped and play has
+  // reached a dead-ball break. Branches on the live period:
+  //   first        → half-time (AI/human talks + live auto-pause)
+  //   second       → full time, OR — level score + allowExtraTime — into extra time
+  //   extra_first  → the extra-time half-time turnaround
+  //   extra_second → full time, running the kicking competition first if still level
+  // Shared by the normal end-of-period path and the KickAtGoal-in-red path.
+  // Returns true when the tick is terminal (match ended, or paused for half time).
+  private async advancePeriodAtRedEnd(): Promise<boolean> {
+    switch (this.state.clock.period) {
+      case 'first': {
         this.clock.triggerHalfTime(this.state);
         // Attack direction flips at half-time — REBUILD the World from MatchState
         // next spatial beat (Upgrade.md § 3; WP4: rebuild, never mirror in place).
         this.worldDirty = true;
         if (!this.state.engine.isRunning) return true;
-      } else {
+        // Drain the queue + collect the human talk, then pause (live) or play on
+        // (silent). Returns true when it pauses the engine.
+        return await this.runHalfTimeTalks();
+      }
+      case 'second': {
+        if (this.state.engine.allowExtraTime && this.state.score.home === this.state.score.away) {
+          this.clock.triggerExtraTime(this.state);
+          this.worldDirty = true;
+          return !this.state.engine.isRunning;
+        }
+        await this.clock.endMatch(this.state);
+        return true;
+      }
+      case 'extra_first': {
+        this.clock.triggerExtraTimeHalf(this.state);
+        this.worldDirty = true;
+        return !this.state.engine.isRunning;
+      }
+      case 'extra_second': {
+        // Still level after both extra-time periods → kicking competition decides
+        // the winner (recorded on state.engine.extraTimeWinner, score untouched).
+        if (this.state.score.home === this.state.score.away) {
+          this.clock.runKickingCompetition(this.state);
+        }
         await this.clock.endMatch(this.state);
         return true;
       }
     }
+  }
 
-    // Half-time auto-pause. When triggerHalfTime fires on this tick, drain
-    // the commentary queue so the user reads the half-time line, then pause
-    // the engine and signal SimController to flip the buttons back to
-    // playable. The user clicks Play to start the second half. Skipped in
-    // silent mode so headless harnesses (determinism, telemetry, AI
-    // fixtures) blow straight through to full-time.
-    if (!wasHalfTimeDone && this.state.clock.halfTimeDone) {
-      if (await this.runHalfTimeTalks()) return true;
-    }
-    return false;
+  // Golden point (balance-flagged, off by default): in extra time the first
+  // score ends the match immediately. A no-op — no state change, no RNG, so
+  // determinism is untouched — unless EXTRA_TIME.goldenPoint is enabled.
+  private async maybeGoldenPoint(): Promise<boolean> {
+    if (!EXTRA_TIME.goldenPoint) return false;
+    const p = this.state.clock.period;
+    if (p !== 'extra_first' && p !== 'extra_second') return false;
+    if (this.state.score.home === this.state.score.away) return false;
+    await this.clock.endMatch(this.state);
+    return true;
   }
 
   // Pre-resolution narration for the phase about to resolve: the cross-tick
@@ -1264,23 +1309,17 @@ export class MatchCoordinator {
     this.emitStateChange();
     this.streamer.flush(this.state.engine.tickDelayMs, this.state);
 
+    // Golden point (flag-gated): a goal kick that takes the lead in extra time
+    // ends the match immediately.
+    if (await this.maybeGoldenPoint()) return;
+
     // Any goal kick (penalty or conversion, success or miss) resolved while
     // the clock is in the red ends the period — no restart played. World
-    // Rugby rule: time off after the kick.
+    // Rugby rule: time off after the kick. advancePeriodAtRedEnd handles the
+    // half-time / full-time / extra-time branching (incl. the dressing-room
+    // talks) identically to the open-play end-of-period path.
     if (this.state.clock.clockInTheRed) {
-      if (!this.state.clock.halfTimeDone) {
-        this.clock.triggerHalfTime(this.state);
-        // Attack direction flips at half-time — rebuild the World (Upgrade.md § 3).
-        this.worldDirty = true;
-        if (!this.state.engine.isRunning) return;
-        // Run the half-time team talks (panel + pause in live mode, AI talks
-        // only in silent mode) just like the normal end-of-period path —
-        // otherwise a half ending on a goal kick skips the dressing room.
-        if (await this.runHalfTimeTalks()) return;
-      } else {
-        await this.clock.endMatch(this.state);
-        return;
-      }
+      if (await this.advancePeriodAtRedEnd()) return;
     }
 
     if (!this.silent) this.scheduleTick(this.nextTickDelay());

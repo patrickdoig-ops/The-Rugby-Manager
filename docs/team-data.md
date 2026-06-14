@@ -347,11 +347,11 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Rhys Carre | Prop | 1998-02-08 | 28 | Wales | 82 | 94 | 65 | 69 | 74 | 88 | 86 | 51 | 88 | 77 | 83 | 81 |
-| Jamie George | Hooker | 1990-10-20 | 35 | England | 78 | 88 | 75 | 75 | 78 | 95 | 95 | 52 | 88 | 85 | 78 | 95 |
-| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy | 80 | 95 | 69 | 70 | 75 | 88 | 89 | 47 | 89 | 80 | 84 | 86 |
-| Maro Itoje | Lock | 1994-10-28 | 31 | England | 99 | 90 | 80 | 88 | 78 | 95 | 95 | 53 | 93 | 86 | 95 | 97 |
-| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 81 | 88 | 73 | 72 | 74 | 88 | 87 | 53 | 85 | 79 | 88 | 79 |
+| Rhys Carre | Prop | 1998-02-08 | 28 | Wales | 82 | 92 | 65 | 69 | 74 | 88 | 86 | 51 | 88 | 77 | 83 | 81 |
+| Jamie George | Hooker | 1990-10-20 | 35 | England | 78 | 88 | 75 | 75 | 78 | 89 | 85 | 52 | 88 | 85 | 78 | 95 |
+| Marco Riccioni | Prop | 1997-10-19 | 28 | Italy | 80 | 92 | 69 | 70 | 75 | 88 | 89 | 47 | 89 | 80 | 84 | 86 |
+| Maro Itoje | Lock | 1994-10-28 | 31 | England | 99 | 89 | 80 | 88 | 78 | 93 | 95 | 53 | 93 | 86 | 95 | 97 |
+| Nick Isiekwe | Lock | 1998-04-20 | 28 | England | 81 | 87 | 73 | 72 | 74 | 88 | 87 | 53 | 85 | 79 | 88 | 79 |
 | Juan Martin Gonzalez | Flanker | 2000-11-14 | 25 | Argentina | 85 | 90 | 83 | 82 | 81 | 96 | 91 | 61 | 82 | 78 | 87 | 81 |
 | Ben Earl | Back Row | 1998-01-07 | 28 | England | 95 | 90 | 89 | 78 | 90 | 90| 95 | 78 | 88 | 82 | 86 | 85 |
 | Tom Willis | Number 8 | 1999-01-18 | 27 | England | 86 | 95 | 82 | 85 | 80 | 89 | 85 | 64 | 81 | 82 | 93 | 92 |
@@ -359,11 +359,11 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Charlie Bracken | Scrum-half | 2003-12-09 | 22 | England | 90 | 73 | 85 | 87 | 88 | 76 | 81 | 82 | 20 | 81 | 88 | 86 |
-| Owen Farrell | Fly-half | 1991-09-24 | 34 | England | 78 | 78 | 75 | 70 | 90 | 85 | 70 | 95 | 58 | 80 | 95 | 80 |
+| Charlie Bracken | Scrum-half | 2003-12-09 | 22 | England | 90 | 63 | 85 | 82 | 87 | 72 | 81 | 82 | 20 | 81 | 88 | 86 |
+| Owen Farrell | Fly-half | 1991-09-24 | 34 | England | 78 | 78 | 75 | 70 | 90 | 85 | 60 | 95 | 58 | 70 | 95 | 80 |
 | Rotimi Segun | Wing | 1996-12-28 | 29 | England | 78 | 78 | 91 | 92 | 83 | 82 | 77 | 77 | 60 | 83 | 84 | 83 |
 | Lucio Cinti | Centre | 2000-02-23 | 26 | Argentina | 85 | 82 | 85 | 82 | 86 | 84 | 83 | 77 | 65 | 83 | 89 | 87 |
-| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales | 85 | 85 | 80 | 89 | 84 | 85 | 81 | 75 | 58 | 83 | 83 | 89 |
+| Nick Tompkins | Centre | 1995-02-16 | 31 | Wales | 85 | 80 | 80 | 80 | 84 | 85 | 81 | 75 | 58 | 83 | 83 | 89 |
 | Noah Caluori | Wing | 2006-09-22 | 19 | England | 87 | 79 | 92 | 90 | 82 | 78 | 69 | 72 | 59 | 77 | 89 | 82 |
 | Elliot Daly | Utility Back | 1992-10-08 | 33 | England | 88 | 77 | 85 | 81 | 86 | 85 | 70 | 84 | 36 | 77 | 83 | 90 |
 
@@ -376,8 +376,8 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Hugh Tizard | Lock | 2000-03-31 | 26 | England | 84 | 83 | 63 | 62 | 68 | 86 | 79 | 55 | 92 | 69 | 75 | 77 |
 | Andy Onyeama-Christie | Flanker | 1999-03-22 | 27 | Scotland | 88 | 78 | 76 | 72 | 72 | 83 | 82 | 59 | 76 | 73 | 78 | 73 |
 | Ivan van Zyl | Scrum-half | 1995-06-30 | 30 | South Africa | 77 | 78 | 80 | 81 | 78 | 72 | 76 | 85 | 61 | 76 | 85 | 81 |
-| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland | 89 | 69 | 74 | 78 | 82 | 71 | 73 | 90 | 58 | 78 | 82 | 80 |
-| Jack Bracken | Wing | 2005-10-15 | 20 | England | 76 | 67 | 90 | 85 | 78 | 75 | 70 | 67 | 57 | 74 | 82 | 78 |
+| Fergus Burke | Fly-half | 1999-09-03 | 26 | Scotland | 89 | 69 | 79 | 78 | 85 | 71 | 63 | 90 | 58 | 78 | 82 | 80 |
+| Jack Bracken | Wing | 2005-10-15 | 20 | England | 76 | 67 | 88 | 85 | 78 | 75 | 70 | 67 | 57 | 74 | 82 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
@@ -436,25 +436,25 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 **Starting XV — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Thomas du Toit | Prop | 1995-05-05 | 31 | South Africa | 89 | 99 | 78 | 78 | 78 | 99 | 99 | 54 | 99 | 97 | 99 | 98 |
-| Tom Dunn | Hooker | 1992-11-12 | 33 | England | 85 | 89 | 71 | 75 | 86 | 86 | 85 | 62 | 98 | 86 | 84 | 88 |
-| Beno Obano | Prop | 1994-10-25 | 31 | England | 81 | 97 | 69 | 71 | 80 | 87 | 85 | 59 | 99 | 79 | 79 | 85 |
-| Charlie Ewels | Lock | 1995-06-29 | 30 | England | 85 | 88 | 73 | 74 | 77 | 85 | 85 | 55 | 96 | 81 | 83 | 81 |
-| Ted Hill | Lock / Flanker | 1999-03-26 | 27 | England | 82 | 86 | 90 | 72 | 83 | 85 | 84 | 56 | 98 | 79 | 82 | 85 |
-| Sam Underhill | Flanker | 1996-07-22 | 29 | England | 99 | 92 | 78 | 78 | 78 | 99 | 99 | 63 | 78 | 78 | 81 | 78 |
+| Thomas du Toit | Prop | 1995-05-05 | 31 | South Africa | 89 | 95 | 78 | 78 | 78 | 92 | 86 | 54 | 99 | 93 | 85 | 98 |
+| Tom Dunn | Hooker | 1992-11-12 | 33 | England | 85 | 89 | 71 | 75 | 86 | 86 | 85 | 62 | 90 | 86 | 84 | 88 |
+| Beno Obano | Prop | 1994-10-25 | 31 | England | 81 | 97 | 69 | 71 | 80 | 87 | 85 | 59 | 93 | 79 | 79 | 85 |
+| Charlie Ewels | Lock | 1995-06-29 | 30 | England | 85 | 88 | 73 | 74 | 77 | 85 | 85 | 55 | 90 | 81 | 83 | 81 |
+| Ted Hill | Lock / Flanker | 1999-03-26 | 27 | England | 82 | 86 | 89 | 72 | 83 | 85 | 84 | 56 | 89 | 79 | 82 | 85 |
+| Sam Underhill | Flanker | 1996-07-22 | 29 | England | 99 | 92 | 78 | 78 | 78 | 99 | 90 | 63 | 78 | 78 | 81 | 78 |
 | Josh Bayliss | Flanker | 1997-09-18 | 28 | Scotland | 88 | 89 | 91 | 84 | 88 | 90 | 95 | 65 | 87 | 85 | 82 | 85 |
-| Alfie Barbeary | Number 8 | 2000-10-05 | 25 | England | 87 | 94 | 79 | 87 | 87 | 92 | 89 | 65 | 89 | 80 | 84 | 84 |
+| Alfie Barbeary | Number 8 | 2000-10-05 | 25 | England | 85 | 94 | 79 | 87 | 87 | 90 | 89 | 65 | 89 | 80 | 84 | 84 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Ben Spencer | Scrum-half | 1992-07-31 | 33 | England | 88 | 78 | 79 | 78 | 95 | 78 | 78 | 95 | 62 | 95 | 95 | 95 |
-| Finn Russell | Fly-half | 1992-09-23 | 33 | Scotland | 82 | 78 | 78 | 97 | 99 | 78 | 78 | 99 | 63 | 99 | 99 | 99 |
-| Henry Arundell | Wing | 2002-11-08 | 23 | England | 84 | 76 | 99 | 93 | 93 | 78 | 78 | 87 | 57 | 85 | 88 | 89 |
-| Max Ojomoh | Centre | 2000-09-14 | 25 | England | 82 | 82 | 85 | 84 | 90 | 86 | 83 | 81 | 61 | 84 | 88 | 86 |
-| Ollie Lawrence | Centre | 1999-09-18 | 26 | England | 84 | 87 | 88 | 87 | 91 | 90 | 85 | 82 | 64 | 84 | 86 | 91 |
-| Joe Cokanasiga | Wing | 1997-11-15 | 28 | England | 84 | 76 | 94 | 97 | 88 | 81 | 74 | 87 | 58 | 84 | 84 | 87 |
-| Santi Carreras | Full-back | 1998-03-30 | 28 | Argentina | 88 | 78 | 80 | 95 | 95 | 78 | 78 | 95 | 63 | 90 | 98 | 90 |
+| Finn Russell | Fly-half | 1992-09-23 | 33 | Scotland | 82 | 78 | 78 | 97 | 99 | 78 | 78 | 99 | 63 | 90 | 98 | 94 |
+| Henry Arundell | Wing | 2002-11-08 | 23 | England | 84 | 76 | 99 | 93 | 85 | 78 | 58 | 77 | 27 | 70 | 78 | 80 |
+| Max Ojomoh | Centre | 2000-09-14 | 25 | England | 82 | 82 | 85 | 84 | 90 | 86 | 73 | 81 | 41 | 84 | 88 | 86 |
+| Ollie Lawrence | Centre | 1999-09-18 | 26 | England | 84 | 87 | 88 | 80 | 80 | 80 | 85 | 72 | 64 | 84 | 86 | 91 |
+| Joe Cokanasiga | Wing | 1997-11-15 | 28 | England | 84 | 76 | 89 | 92 | 81 | 81 | 74 | 67 | 58 | 77 | 80 | 80 |
+| Santi Carreras | Full-back | 1998-03-30 | 28 | Argentina | 88 | 78 | 80 | 89 | 95 | 78 | 78 | 95 | 63 | 90 | 98 | 90 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
@@ -463,24 +463,24 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Archie Griffin | Prop | 2001-07-24 | 24 | Wales | 78 | 88 | 62 | 67 | 73 | 83 | 83 | 58 | 92 | 73 | 71 | 76 |
 | Will Stuart | Prop | 1996-07-12 | 29 | England | 78 | 85 | 62 | 66 | 68 | 87 | 78 | 54 | 89 | 72 | 76 | 74 |
 | Quinn Roux | Lock | 1990-10-30 | 35 | Ireland | 78 | 88 | 63 | 67 | 73 | 81 | 78 | 57 | 93 | 73 | 73 | 78 |
-| Guy Pepper | Flanker | 2003-04-15 | 23 | England | 78 | 78 | 70 | 80 | 74 | 88 | 90 | 67 | 82 | 75 | 80 | 77 |
+| Guy Pepper | Flanker | 2003-04-15 | 23 | England | 78 | 78 | 82 | 80 | 74 | 88 | 90 | 67 | 82 | 75 | 80 | 77 |
 | Tom Carr-Smith | Scrum-half | 2002-02-28 | 24 | England | 78 | 67 | 83 | 78 | 81 | 79 | 79 | 86 | 63 | 80 | 83 | 86 |
 | Cameron Redpath | Centre | 1999-12-23 | 26 | Scotland | 78 | 80 | 81 | 80 | 80 | 81 | 76 | 76 | 66 | 71 | 80 | 83 |
-| Will Muir | Wing | 1995-10-30 | 30 | England | 75 | 75 | 89 | 89 | 81 | 74 | 72 | 72 | 56 | 76 | 79 | 78 |
+| Will Muir | Wing | 1995-10-30 | 30 | England | 75 | 75 | 91 | 89 | 81 | 74 | 72 | 72 | 56 | 76 | 79 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Ethan Staddon | Flanker | 2002-07-03 | 23 | England | 75 | 76 | 67 | 70 | 70 | 80 | 75 | 63 | 74 | 67 | 72 | 72 |
 | Ewan Richards | Flanker | 2002-04-06 | 24 | England | 72 | 77 | 64 | 67 | 66 | 81 | 77 | 63 | 69 | 71 | 72 | 69 |
-| Francois van Wyk | Prop | 1991-07-30 | 34 | South Africa | 72 | 80 | 54 | 57 | 63 | 74 | 72 | 55 | 83 | 69 | 70 | 69 |
+| Francois van Wyk | Prop | 1991-07-30 | 34 | South Africa | 72 | 80 | 54 | 57 | 63 | 74 | 72 | 55 | 83 | 80 | 70 | 69 |
 | Thompson Cowan | Flanker | 2002-08-02 | 23 | Wales | 75 | 78 | 67 | 67 | 68 | 75 | 77 | 62 | 73 | 63 | 72 | 70 |
 | Ross Molony | Lock | 1994-05-11 | 32 | Ireland | 72 | 80 | 61 | 62 | 68 | 75 | 72 | 55 | 82 | 65 | 73 | 72 |
 | Jaco Coetzee | Number 8 | 1996-06-10 | 29 | South Africa | 72 | 80 | 69 | 70 | 72 | 78 | 78 | 69 | 71 | 68 | 66 | 67 |
 | Jasper Spandler | Hooker | 2003-05-21 | 23 | England | 70 | 72 | 55 | 64 | 72 | 74 | 72 | 59 | 81 | 63 | 72 | 69 |
 | Kieran Verden | Prop | 1998-11-06 | 27 | England | 72 | 80 | 50 | 55 | 59 | 73 | 72 | 54 | 85 | 64 | 65 | 72 |
 | Mikey Summerfield | Prop | 2002-10-30 | 23 | England | 72 | 79 | 48 | 59 | 61 | 73 | 75 | 53 | 87 | 66 | 70 | 73 |
-| Miles Reid | Flanker | 1998-09-05 | 27 | England | 76 | 74 | 63 | 68 | 70 | 74 | 75 | 69 | 67 | 69 | 72 | 70 |
+| Miles Reid | Flanker | 1998-09-05 | 27 | England | 76 | 74 | 71 | 68 | 70 | 79 | 79 | 69 | 67 | 80 | 72 | 70 |
 
 
 **Wider squad — Backs**
@@ -494,7 +494,7 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Neil le Roux | Scrum-half | 2003-04-16 | 23 | South Africa | 88 | 63 | 72 | 72 | 78 | 66 | 69 | 74 | 66 | 71 | 72 | 78 |
 | Sam Harris | Fly-half | 2003-09-03 | 22 | England | 84 | 60 | 69 | 66 | 80 | 66 | 61 | 87 | 59 | 72 | 73 | 75 |
 | Tom de Glanville | Full-back | 1999-12-10 | 26 | England | 88 | 64 | 75 | 78 | 78 | 67 | 65 | 72 | 65 | 80 | 74 | 85 |
-| Chris Harris | Centre | 1990-12-28 | 35 | Scotland | 80 | 72 | 74 | 74 | 73 | 73 | 69 | 71 | 60 | 88 | 72 | 82 |
+| Chris Harris | Centre | 1990-12-28 | 35 | Scotland | 80 | 75 | 82 | 74 | 85 | 80 | 69 | 71 | 60 | 88 | 85 | 89 |
 
 ---
 
@@ -524,33 +524,33 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Scott Sio | Prop | 1991-10-16 | 34 | Australia | 79 | 92 | 65 | 64 | 68 | 88 | 87 | 49 | 93 | 75 | 78 | 78 |
-| Joseph Dweba | Hooker | 1995-10-25 | 30 | South Africa | 82 | 84 | 70 | 69 | 74 | 82 | 89 | 49 | 90 | 81 | 80 | 79 |
+| Joseph Dweba | Hooker | 1995-10-25 | 30 | South Africa | 82 | 84 | 70 | 69 | 74 | 82 | 89 | 49 | 89 | 81 | 80 | 79 |
 | Josh Iosefa-Scott | Prop | 1996-07-16 | 29 | New Zealand | 80 | 90 | 64 | 65 | 66 | 90 | 83 | 48 | 90 | 80 | 80 | 81 |
-| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales | 94 | 83 | 69 | 67 | 75 | 85 | 86 | 50 | 94 | 86 | 91 | 95 |
-| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy | 92 | 85 | 64 | 71 | 70 | 87 | 84 | 52 | 92 | 76 | 76 | 80 |
-| Ethan Roots | Flanker | 1997-11-10 | 28 | England | 88 | 87 | 79 | 84 | 78 | 92 | 93 | 57 | 88 | 80 | 79 | 76 |
-| Christ Tshiunza | Flanker| 2002-01-09 | 24 | Wales | 87 | 86 | 78 | 79 | 74 | 88 | 89 | 55 | 82 | 74 | 79 | 76 |
-| Greg Fisilau | Number 8 | 2003-07-09 | 22 | England | 91 | 86 | 76 | 83 | 78 | 83 | 85 | 62 | 90 | 78 | 83 | 76 |
+| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales | 94 | 83 | 69 | 83 | 75 | 85 | 86 | 50 | 94 | 86 | 91 | 95 |
+| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy | 92 | 85 | 64 | 84 | 70 | 87 | 84 | 52 | 92 | 76 | 76 | 80 |
+| Ethan Roots | Flanker | 1997-11-10 | 28 | England | 88 | 87 | 79 | 82 | 78 | 92 | 93 | 57 | 88 | 80 | 79 | 76 |
+| Christ Tshiunza | Flanker| 2002-01-09 | 24 | Wales | 87 | 86 | 89 | 84 | 74 | 88 | 89 | 55 | 82 | 84| 79 | 76 |
+| Greg Fisilau | Number 8 | 2003-07-09 | 22 | England | 91 | 86 | 76 | 83 | 78 | 83 | 85 | 62 | 90 | 82 | 83 | 76 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy | 85 | 69 | 82 | 84 | 84 | 79 | 79 | 83 | 64 | 83 | 86 | 84 |
-| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 83 | 70 | 85 | 83 | 83 | 76 | 76 | 94 | 64 | 83 | 83 | 85 |
-| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 90 | 95 | 95 | 99 | 99 | 78 | 78 | 78 | 57 | 78 | 92 | 78 |
-| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 88 | 95 | 95 | 78 | 93 | 99 | 78 | 78 | 58 | 78 | 95 | 78 |
-| Henry Slade | Centre | 1993-03-19 | 33 | England | 88 | 78 | 85 | 78 | 95 | 95 | 78 | 95 | 62 | 78 | 95 | 95 |
+| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy | 85 | 69 | 82 | 89 | 84 | 79 | 79 | 90 | 24 | 83 | 86 | 84 |
+| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 83 | 70 | 85 | 85 | 90 | 69 | 76 | 94 | 34 | 90 | 93 | 90 |
+| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 90 | 95 | 95 | 99 | 99 | 78 | 78 | 78 | 47 | 78 | 92 | 78 |
+| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 88 | 95 | 89 | 78 | 93 | 99 | 78 | 78 | 58 | 78 | 95 | 78 |
+| Henry Slade | Centre | 1993-03-19 | 33 | England | 88 | 78 | 85 | 78 | 95 | 95 | 78 | 95 | 22 | 86 | 95 | 99 |
 | Paul Brown-Bampoe | Wing | 2002-05-15 | 24 | England | 90 | 76 | 92 | 92 | 86 | 75 | 73 | 80 | 63 | 77 | 83 | 75 |
-| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 88 | 78 | 88 | 88 | 87 | 80 | 75 | 86 | 57 | 78 | 89 | 80 |
+| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 88 | 78 | 88 | 88 | 87 | 80 | 75 | 86 | 37 | 78 | 89 | 80 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Max Norey | Hooker | 1999-08-05 | 26 | England | 71 | 79 | 63 | 66 | 78 | 81 | 83 | 54 | 89 | 69 | 69 | 69 |
 | Will Goodrick-Clarke | Prop | 1996-12-29 | 29 | England | 78 | 83 | 53 | 57 | 66 | 81 | 79 | 50 | 93 | 70 | 68 | 68 |
-| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa | 78 | 81 | 57 | 60 | 67 | 78 | 79 | 51 | 95 | 69 | 71 | 69 |
+| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa | 78 | 89 | 57 | 60 | 67 | 78 | 79 | 51 | 95 | 69 | 71 | 69 |
 | Alfie Bell | Lock | 2003-04-12 | 23 | England | 85 | 78 | 63 | 61 | 69 | 81 | 81 | 54 | 92 | 74 | 69 | 69 |
-| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji | 86 | 82 | 71 | 77 | 66 | 84 | 87 | 57 | 81 | 69 | 78 | 73 |
+| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji | 86 | 86 | 71 | 77 | 66 | 84 | 87 | 57 | 81 | 69 | 78 | 73 |
 | Tom Cairns | Scrum-half | 2002-06-19 | 23 | England | 82 | 65 | 78 | 78 | 78 | 69 | 77 | 78 | 61 | 75 | 78 | 79 |
 | Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England | 83 | 64 | 72 | 71 | 79 | 68 | 74 | 87 | 63 | 78 | 78 | 78 |
 | Dan John | Wing | 2001-10-04 | 24 | Wales | 80 | 67 | 83 | 82 | 78 | 73 | 67 | 70 | 57 | 75 | 78 | 78 |
@@ -560,13 +560,13 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa | 72 | 72 | 44 | 56 | 53 | 73 | 74 | 49 | 87 | 65 | 60 | 63 |
 | Bachuki Tchumbadze | Prop | 2001-11-30 | 24 | Georgia | 72 | 78 | 49 | 54 | 53 | 72 | 72 | 46 | 80 | 65 | 64 | 62 |
-| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 85 | 74 | 64 | 67 | 60 | 76 | 78 | 58 | 71 | 62 | 72 | 60 |
+| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 85 | 74 | 79 | 67 | 60 | 76 | 78 | 58 | 71 | 62 | 72 | 60 |
 | Joe Bailey | Lock | 2004-07-06 | 21 | England | 82 | 72 | 56 | 54 | 56 | 72 | 72 | 46 | 87 | 66 | 62 | 65 |
 | Oscar Beckerleg | Lock | 2005-05-11 | 21 | England | 82 | 72 | 55 | 56 | 55 | 73 | 72 | 53 | 86 | 62 | 64 | 65 |
 | Ehren Painter | Prop | 1998-03-21 | 28 | England | 72 | 75 | 49 | 53 | 55 | 72 | 74 | 50 | 85 | 61 | 65 | 67 |
 | Richard Capstick | Flanker | 2000-02-13 | 26 | England | 82 | 72 | 65 | 69 | 62 | 72 | 79 | 56 | 68 | 65 | 72 | 63 |
 | Jack Yeandle | Hooker | 1989-12-22 | 36 | England | 72 | 72 | 53 | 60 | 72 | 72 | 72 | 49 | 80 | 65 | 69 | 64 |
-| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 72 | 73 | 51 | 53 | 51 | 72 | 72 | 44 | 85 | 67 | 64 | 65 |
+| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 72 | 85 | 51 | 53 | 51 | 72 | 72 | 44 | 85 | 67 | 64 | 65 |
 | Julian Heaven | Hooker | 2000-10-01 | 25 | Australia | 69 | 72 | 54 | 60 | 72 | 72 | 72 | 51 | 82 | 60 | 64 | 66 |
 | Khwezi Mona | Prop | 1992-10-08 | 33 | South Africa | 72 | 76 | 48 | 55 | 55 | 75 | 72 | 45 | 83 | 64 | 63 | 60 |
 | Lewis Pearson | Lock | 1999-10-26 | 26 | England | 82 | 76 | 55 | 54 | 60 | 72 | 72 | 53 | 83 | 65 | 62 | 67 |
@@ -582,12 +582,12 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Charlie Chapman | Scrum-half | 1998-12-01 | 27 | England | 86 | 61 | 72 | 72 | 72 | 66 | 65 | 72 | 63 | 64 | 72 | 72 |
 | Ben Coen | Fly-half | 2005-01-11 | 21 | England | 85 | 55 | 67 | 70 | 72 | 60 | 63 | 81 | 62 | 72 | 72 | 72 |
 | Iwan Jenkins | Fly-half | 2003-03-13 | 23 | Wales | 87 | 55 | 63 | 68 | 72 | 62 | 64 | 83 | 63 | 72 | 72 | 73 |
-| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England | 88 | 56 | 72 | 72 | 72 | 64 | 65 | 72 | 58 | 65 | 72 | 72 |
+| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England | 88 | 56 | 72 | 72 | 72 | 64 | 65 | 72 | 58 | 75 | 72 | 72 |
 | Tamati Tua | Centre | 1997-11-26 | 28 | New Zealand | 88 | 72 | 72 | 72 | 72 | 72 | 66 | 60 | 61 | 62 | 72 | 68 |
 | Tommy Wyatt | Wing | 1999-12-14 | 26 | England | 88 | 57 | 76 | 77 | 72 | 63 | 57 | 60 | 62 | 66 | 72 | 72 |
-| Will Rigg | Centre | 2000-03-22 | 26 | England | 85 | 72 | 72 | 72 | 72 | 72 | 63 | 58 | 66 | 67 | 72 | 63 |
-| Zack Wimbush | Centre | 2003-10-24 | 22 | England | 84 | 72 | 72 | 72 | 72 | 72 | 65 | 63 | 66 | 60 | 72 | 68 |
-| Ben Hammersley | Wing | 2003-05-20 | 23 | England | 83 | 61 | 79 | 77 | 72 | 60 | 61 | 59 | 58 | 60 | 72 | 72 |
+| Will Rigg | Centre | 2000-03-22 | 26 | England | 85 | 82 | 72 | 72 | 82 | 72 | 63 | 58 | 66 | 82 | 82 | 80 |
+| Zack Wimbush | Centre | 2003-10-24 | 22 | England | 84 | 72 | 72 | 72 | 72 | 72 | 65 | 63 | 66 | 80 | 72 | 68 |
+| Ben Hammersley | Wing | 2003-05-20 | 23 | England | 83 | 61 | 83 | 82 | 80 | 60 | 61 | 59 | 58 | 80 | 72 | 72 |
 
 ---
 

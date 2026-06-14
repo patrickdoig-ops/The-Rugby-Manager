@@ -12,4 +12,25 @@ export const CLOCK_VALUES = {
   rngDivisor: 10,
   halfTimeMinute: 40,
   fullTimeMinute: 80,
+  // Knockout extra time: two further 10-minute periods after a drawn 80
+  // minutes. The clock-in-red target for each — ET1 runs 80→90, ET2 90→100.
+  extraFirstMinute: 90,
+  extraSecondMinute: 100,
+} as const;
+
+// Knockout extra time + the kicking-competition fallback. Only consumed when a
+// match is built with allowExtraTime (the three knockout orchestrators); league
+// fixtures never reach it.
+export const EXTRA_TIME = {
+  // Golden point (sudden death — the first score in extra time wins, ending it
+  // immediately). Off by default: both 10-minute periods are played in full.
+  goldenPoint: false,
+  // Kicking competition, used only when the score is still level after both
+  // extra-time periods. Each side takes `rounds` alternating place-kicks; a
+  // `makePct`% success roll per kick on the outcome stream. Sudden-death rounds
+  // continue past `rounds` until one side leads after an equal number of kicks.
+  kickComp: {
+    rounds: 5,
+    makePct: 70,
+  },
 } as const;

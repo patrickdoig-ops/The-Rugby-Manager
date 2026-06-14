@@ -172,6 +172,13 @@ export type MatchEvent =
   | { type: 'CLOCK_ADVANCED'; delta: number }
   | { type: 'CLOCK_IN_RED_TRIPPED' }
   | { type: 'HALF_TIME_REACHED' }
+  // Drawn knockout extra time. EXTRA_TIME_STARTED opens the first 10-min period
+  // (80→90), EXTRA_TIME_HALF_REACHED the second (90→100); both clear the red /
+  // kick-to-touch flags like HALF_TIME_REACHED. EXTRA_TIME_WINNER_SET records
+  // the kicking-competition victor when extra time ended still level.
+  | { type: 'EXTRA_TIME_STARTED' }
+  | { type: 'EXTRA_TIME_HALF_REACHED' }
+  | { type: 'EXTRA_TIME_WINNER_SET'; side: PossessionSide }
   | { type: 'MATCH_ENDED' }
   | { type: 'PENALTY_KICK_TO_TOUCH_FLAG_SET'; value: boolean }
 

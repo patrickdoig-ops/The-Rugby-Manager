@@ -15,6 +15,7 @@ import { isMatchdaySlot } from './Slot';
 import { invariantsEnabled } from '../utils/invariantsMode';
 
 const PHASES = new Set<string>(Object.values(MatchPhase));
+const PERIODS = new Set<string>(['first', 'second', 'extra_first', 'extra_second']);
 
 function fail(check: string, detail: string): never {
   throw new Error(`Invariant violated [${check}]: ${detail}`);
@@ -74,6 +75,7 @@ export function assertInvariants(state: MatchState, force = false): void {
 
   // Clock
   if (!(state.clock.gameMinute >= 0)) fail('clock.gameMinute', `${state.clock.gameMinute}`);
+  if (!PERIODS.has(state.clock.period)) fail('clock.period', `${state.clock.period}`);
 
   // Breakdown modifier — a transient per-phase {attack, defend} pair set by
   // BREAKDOWN_MOD_SET. Always finite small numbers from balance constants; a

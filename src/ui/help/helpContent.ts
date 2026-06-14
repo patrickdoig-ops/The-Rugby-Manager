@@ -420,7 +420,10 @@ const HELP_TOPICS = {
       { label: 'Internationals away', desc: 'Your called-up players are on international duty during the cup weeks, so it’s a chance to rotate.' },
       { label: 'Pool fixtures', desc: 'Your group’s matches and results.' },
     ],
-    tips: ['Your choice is remembered, but you can switch it each block on this screen.'],
+    tips: [
+      'Your choice is remembered, but you can switch it each block on this screen.',
+      'Knockout ties level after 80 minutes go to extra time — two 10-minute periods, then a kicking competition if still tied.',
+    ],
   },
   'cup-results': {
     title: 'League Cup Results',
@@ -439,6 +442,7 @@ const HELP_TOPICS = {
     ],
     tips: [
       'Qualify by finishing high in your domestic league the previous season.',
+      'Knockout ties level after 80 minutes go to extra time — two 10-minute periods, then a kicking competition if still tied.',
     ],
   },
   'european-shield': {
@@ -447,6 +451,9 @@ const HELP_TOPICS = {
     features: [
       { label: 'Pools', desc: 'Your group, fixtures and standings.' },
       { label: 'Knockouts', desc: 'The bracket through to the Shield final.' },
+    ],
+    tips: [
+      'Knockout ties level after 80 minutes go to extra time — two 10-minute periods, then a kicking competition if still tied.',
     ],
   },
   'european-round': {

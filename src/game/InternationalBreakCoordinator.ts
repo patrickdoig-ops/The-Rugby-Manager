@@ -266,6 +266,7 @@ export class InternationalBreakCoordinator {
   async recordPlayerCupKnockoutResult(
     kind: 'semifinal_1' | 'semifinal_2' | 'final',
     homeScore: number, awayScore: number, snapshot: MatchSnapshot,
+    kickWinner?: 'home' | 'away',
   ): Promise<void> {
     const ko = this.state.league.premCup?.knockout;
     if (!ko) return;
@@ -277,6 +278,7 @@ export class InternationalBreakCoordinator {
       type: 'PREM_CUP_KNOCKOUT_RECORDED',
       kind, homeScore, awayScore,
       homeTries: snapshot.homeSummary.tries, awayTries: snapshot.awaySummary.tries, playerSide,
+      ...(kickWinner ? { kickWinner } : {}),
     });
     this.applyCupMatchAftermath(snapshot);
     await this.simDueCupKnockouts();
@@ -306,8 +308,8 @@ export class InternationalBreakCoordinator {
       if (!homeJson || !awayJson) return;
       const home = this.buildCupSide(homeJson, restIds, 2);
       const away = this.buildCupSide(awayJson, restIds, 2);
-      const sim = await simulateFixture(home, away, this.state.seed, CUP_SEED_ROUND[m.kind], { neutralVenue: m.kind === 'final' });
-      await this.recordPlayerCupKnockoutResult(m.kind, sim.homeScore, sim.awayScore, sim.snapshot);
+      const sim = await simulateFixture(home, away, this.state.seed, CUP_SEED_ROUND[m.kind], { neutralVenue: m.kind === 'final', allowExtraTime: true });
+      await this.recordPlayerCupKnockoutResult(m.kind, sim.homeScore, sim.awayScore, sim.snapshot, sim.kickWinner);
     }
   }
 
@@ -393,11 +395,12 @@ export class InternationalBreakCoordinator {
       if (!homeJson || !awayJson) continue;
       const home = this.buildCupSide(homeJson, restIds, 2);
       const away = this.buildCupSide(awayJson, restIds, 2);
-      const sim = await simulateFixture(home, away, this.state.seed, CUP_SEED_ROUND[kind], { neutralVenue: kind === 'final' });
+      const sim = await simulateFixture(home, away, this.state.seed, CUP_SEED_ROUND[kind], { neutralVenue: kind === 'final', allowExtraTime: true });
       applySeasonEvent(this.state, {
         type: 'PREM_CUP_KNOCKOUT_RECORDED',
         kind, homeScore: sim.homeScore, awayScore: sim.awayScore,
         homeTries: sim.snapshot.homeSummary.tries, awayTries: sim.snapshot.awaySummary.tries, playerSide: null,
+        ...(sim.kickWinner ? { kickWinner: sim.kickWinner } : {}),
       });
       this.applyCupMatchAftermath(sim.snapshot);
     }

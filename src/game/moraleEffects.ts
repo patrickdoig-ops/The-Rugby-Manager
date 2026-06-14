@@ -14,7 +14,11 @@ import { resolveSquadStatus } from './squadStatus';
 // after a fixture: playing-time (top-OVR players who didn't appear),
 // match result (win/loss nudge for all squad members), and individual
 // standout (rating ≥ threshold). Pure — no state mutations.
-export function computeFixtureMoraleEvents(state: GameState, result: FixtureResult, snapshot: MatchSnapshot): SeasonEvent[] {
+// `kickWinner` (knockout extra time finished level) names the advancing side
+// so the kicking-competition victor is treated as a win and the loser as a
+// loss, even though the scoreline is level. Undefined for league fixtures —
+// a genuine level score there stays a draw.
+export function computeFixtureMoraleEvents(state: GameState, result: FixtureResult, snapshot: MatchSnapshot, kickWinner?: 'home' | 'away'): SeasonEvent[] {
   const events: SeasonEvent[] = [];
   const played = new Set(snapshot.playerSnapshots.map(s => s.rosterId));
   const standoutSet = new Set(
@@ -32,7 +36,9 @@ export function computeFixtureMoraleEvents(state: GameState, result: FixtureResu
       ? result.homeId
       : result.awayScore > result.homeScore
         ? result.awayId
-        : null; // draw
+        : kickWinner // level score decided on kicks (knockout) — not a draw
+          ? (kickWinner === 'home' ? result.homeId : result.awayId)
+          : null; // genuine draw (league)
     const resultDelta = teamId === won
       ? MORALE.winDelta
       : won === null ? MORALE.drawDelta : MORALE.lossDelta;

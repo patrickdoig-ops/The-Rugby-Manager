@@ -12,6 +12,7 @@
 import type { GameState } from '../types/gameState';
 import { SENIOR_CAP, EFFECTIVE_CAP_CREDITS } from '../engine/balance';
 import { invariantsEnabled } from '../utils/invariantsMode';
+import { knockoutWinnerId } from './knockoutWinner';
 import { MORALE } from '../engine/balance/morale';
 
 const SENIOR_CAP_TOTAL = SENIOR_CAP + EFFECTIVE_CAP_CREDITS;
@@ -248,9 +249,11 @@ export function assertSeasonInvariants(state: GameState): void {
       if (!playoffs.final.result || !playoffs.final.homeId || !playoffs.final.awayId) {
         fail('playoffs.championTeamId', `set without a resolved final`);
       }
-      const winner = playoffs.final.result.homeScore >= playoffs.final.result.awayScore
-        ? playoffs.final.homeId
-        : playoffs.final.awayId;
+      const winner = knockoutWinnerId(
+        playoffs.final.homeId, playoffs.final.awayId,
+        playoffs.final.result.homeScore, playoffs.final.result.awayScore,
+        playoffs.final.result.kickWinner,
+      );
       if (playoffs.championTeamId !== winner) {
         fail('playoffs.championTeamId', `champion=${playoffs.championTeamId} winner=${winner}`);
       }
@@ -304,7 +307,11 @@ export function assertSeasonInvariants(state: GameState): void {
         if (!ko.final.result || !ko.final.homeId || !ko.final.awayId) {
           fail('premCup.knockout.championTeamId', `set without a resolved final`);
         }
-        const winner = ko.final.result.homeScore >= ko.final.result.awayScore ? ko.final.homeId : ko.final.awayId;
+        const winner = knockoutWinnerId(
+          ko.final.homeId, ko.final.awayId,
+          ko.final.result.homeScore, ko.final.result.awayScore,
+          ko.final.result.kickWinner,
+        );
         if (ko.championTeamId !== winner) {
           fail('premCup.knockout.championTeamId', `champion=${ko.championTeamId} winner=${winner}`);
         }

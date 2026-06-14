@@ -664,8 +664,9 @@ export class GameCoordinator {
   async recordPlayerCupKnockoutResult(
     kind: 'semifinal_1' | 'semifinal_2' | 'final',
     homeScore: number, awayScore: number, snapshot: MatchSnapshot,
+    kickWinner?: 'home' | 'away',
   ): Promise<void> {
-    await this.intlBreak.recordPlayerCupKnockoutResult(kind, homeScore, awayScore, snapshot);
+    await this.intlBreak.recordPlayerCupKnockoutResult(kind, homeScore, awayScore, snapshot, kickWinner);
     eventBus.emit('game:weekAdvanced', { state: this.state });
   }
 
@@ -1181,6 +1182,7 @@ export class GameCoordinator {
     homeScore: number,
     awayScore: number,
     snapshot: MatchSnapshot,
+    kickWinner?: 'home' | 'away',
   ): Promise<void> {
     const ko = this.state.league[competition]?.knockout;
     if (!ko) return;
@@ -1192,7 +1194,7 @@ export class GameCoordinator {
     const playerTeamId = this.state.player.teamId;
     const playerSide: 'home' | 'away' = match.homeId === playerTeamId ? 'home' : 'away';
     await this.european.recordPlayerEuropeanKnockoutResult(
-      competition, stage, matchIndex, homeScore, awayScore, snapshot,
+      competition, stage, matchIndex, homeScore, awayScore, snapshot, kickWinner,
     );
     // Sim the rest of this knockout round's AI matches (now due) so the
     // bracket cascades; later rounds sim by date as the season advances.
@@ -1595,8 +1597,9 @@ export class GameCoordinator {
     homeScore: number,
     awayScore: number,
     snapshot: MatchSnapshot,
+    kickWinner?: 'home' | 'away',
   ): Promise<void> {
-    return this.playoffs.recordPlayerPlayoffResult(kind, homeScore, awayScore, snapshot);
+    return this.playoffs.recordPlayerPlayoffResult(kind, homeScore, awayScore, snapshot, kickWinner);
   }
 
   async simulatePendingPlayoffMatches(stage: 'sf' | 'final'): Promise<void> {

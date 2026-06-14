@@ -94,6 +94,8 @@ export type CardAnnouncementKey =
 export type AnnouncementKey =
   | 'clock_in_red_first_half' | 'clock_in_red_second_half'
   | 'half_time_whistle'        | 'full_time_summary'
+  | 'extra_time_start'         | 'extra_time_half'
+  | 'kicking_competition'
   | 'substitution'
   | 'fatigue_tiredness'
   | 'set_piece_award'

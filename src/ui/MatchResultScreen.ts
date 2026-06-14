@@ -437,9 +437,15 @@ export function initMatchResultScreen(
 
   const { homeTeam, awayTeam, score } = state;
 
-  const homeWinning = score.home >= score.away;
+  // A knockout decided by the kicking competition is a level score on the board
+  // — the advancing side is named by engine.extraTimeWinner, not the scoreline.
+  const kickWinner = state.engine.extraTimeWinner;
+  const homeWinning = kickWinner ? kickWinner === 'home' : score.home >= score.away;
   const winColor  = homeWinning ? homeTeam.color : awayTeam.color;
   const loseColor = homeWinning ? awayTeam.color : homeTeam.color;
+  const kickCompNote = kickWinner
+    ? `<div class="mr-kickcomp">${(kickWinner === 'home' ? homeTeam : awayTeam).name} win on kicks after extra time</div>`
+    : '';
 
   // Inject team-colour CSS vars so the atmospheric backdrop, score glow,
   // and tinted loser score all pick the right hues.
@@ -467,6 +473,7 @@ export function initMatchResultScreen(
           <div class="mr-versus-name">${awayTeam.name}</div>
         </div>
       </div>
+      ${kickCompNote}
 
       ${renderMotmHero(state)}
       ${renderScorers(state)}

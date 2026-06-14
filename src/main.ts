@@ -1371,6 +1371,8 @@ document.addEventListener('DOMContentLoaded', () => {
       humanSide: playerSide,
       neutralVenue: match.kind === 'final',
       isPlayoffSemi: match.kind !== 'final',
+      // Knockout — a draw at full time goes to extra time + kicking competition.
+      allowExtraTime: true,
       humanCaptainRosterId,
       humanPreTalk,
       humanSquadMorale,
@@ -1397,7 +1399,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const snapshot = snapshotMatch(state, state.homeTeam.id, state.awayTeam.id);
       engine.destroy();
       if (gameEngine) {
-        await gameEngine.recordPlayerPlayoffResult(match.kind, state.score.home, state.score.away, snapshot);
+        await gameEngine.recordPlayerPlayoffResult(match.kind, state.score.home, state.score.away, snapshot, state.engine.extraTimeWinner);
         gameEngine.advancePlayoffWeekScouting();
         autosave(gameEngine.toSavePayload());
       }
@@ -1861,6 +1863,8 @@ document.addEventListener('DOMContentLoaded', () => {
       playerTactics,
       humanSide: playerSide,
       neutralVenue: isFinal,
+      // Cup knockouts (SF/final) go to extra time on a draw; pool games don't.
+      allowExtraTime: ref.kind === 'knockout',
       humanCaptainRosterId,
       humanPreTalk,
       humanSquadMorale,
@@ -1888,7 +1892,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ref.kind === 'pool') {
           await gameEngine.recordPlayerCupPoolResult(ref.fixture.pool, ref.fixture.leg, ref.fixture.homeId, ref.fixture.awayId, state.score.home, state.score.away, snapshot);
         } else {
-          await gameEngine.recordPlayerCupKnockoutResult(ref.stage, state.score.home, state.score.away, snapshot);
+          await gameEngine.recordPlayerCupKnockoutResult(ref.stage, state.score.home, state.score.away, snapshot, state.engine.extraTimeWinner);
         }
         autosave(gameEngine.toSavePayload());
       }
@@ -2100,6 +2104,8 @@ document.addEventListener('DOMContentLoaded', () => {
       tickDelayMs: loadTickDelayMs(),
       playerTactics,
       humanSide: playerSide,
+      // European knockouts go to extra time on a draw; pool games don't.
+      allowExtraTime: euroFix.kind === 'knockout',
       humanCaptainRosterId,
       humanPreTalk,
       humanSquadMorale,
@@ -2143,6 +2149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.score.home,
             state.score.away,
             snapshot,
+            state.engine.extraTimeWinner,
           );
         }
         autosave(gameEngine.toSavePayload());

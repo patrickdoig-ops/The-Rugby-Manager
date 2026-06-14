@@ -55,6 +55,7 @@ export function buildDisplaySnapshot(state: MatchState): DisplaySnapshot {
     gameMinute:    state.clock.gameMinute,
     halfTimeDone:  state.clock.halfTimeDone,
     clockInTheRed: state.clock.clockInTheRed,
+    period:        state.clock.period,
     phase:         state.phase,
     possession:    state.possession,
     score:         { home: state.score.home, away: state.score.away },

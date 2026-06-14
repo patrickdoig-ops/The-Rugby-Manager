@@ -236,6 +236,10 @@ export interface PlayoffMatch {
     // 'home' / 'away' when the player's team is in the match; null for
     // pure AI ties.
     playerSide: 'home' | 'away' | null;
+    // Set only when extra time finished level and the kicking competition
+    // decided it — the side that advances. The score stays a draw; the winner
+    // cascade reads this. Absent when the score itself decided the match.
+    kickWinner?: 'home' | 'away';
   };
 }
 
@@ -288,6 +292,9 @@ export interface EuropeanKnockoutMatch {
     homeTries: number;
     awayTries: number;
     playerSide: 'home' | 'away' | null;
+    // Kicking-competition winner when extra time finished level — see
+    // PlayoffMatch.result.kickWinner.
+    kickWinner?: 'home' | 'away';
   };
 }
 
@@ -349,7 +356,9 @@ export interface CupKnockoutMatch {
   homeId: string | null;   // null until the pool stage / SFs resolve
   awayId: string | null;
   date: string;
-  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number; playerSide?: 'home' | 'away' | null };
+  // `kickWinner`: kicking-competition winner when extra time finished level —
+  // see PlayoffMatch.result.kickWinner.
+  result?: { homeScore: number; awayScore: number; homeTries: number; awayTries: number; playerSide?: 'home' | 'away' | null; kickWinner?: 'home' | 'away' };
 }
 
 export interface CupKnockout {
@@ -1168,6 +1177,9 @@ export type SeasonEvent =
       homeTries: number;
       awayTries: number;
       playerSide: 'home' | 'away' | null;
+      // Kicking-competition winner when extra time finished level (the score is
+      // a draw). The cascade awards the tie from this when present.
+      kickWinner?: 'home' | 'away';
     }
   | {
       // Squad Builder resumption: writes state.career.preSeasonStep so
@@ -1371,6 +1383,9 @@ export type SeasonEvent =
       awayTries: number;
       // The manager's club's side, or null for a pure headless sim.
       playerSide?: 'home' | 'away' | null;
+      // Kicking-competition winner when extra time finished level (the score is
+      // a draw). The cascade awards the tie from this when present.
+      kickWinner?: 'home' | 'away';
     }
   | {
       // Marks a cup round (leg / KO stage) as shown to the player in the
@@ -1652,6 +1667,9 @@ export type SeasonEvent =
       homeTries: number;
       awayTries: number;
       playerSide: 'home' | 'away' | null;
+      // Kicking-competition winner when extra time finished level (the score is
+      // a draw). The cascade awards the tie from this when present.
+      kickWinner?: 'home' | 'away';
     }
   | {
       // Sets the board's European objective for the season. Fired once per season

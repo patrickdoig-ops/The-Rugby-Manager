@@ -35,6 +35,9 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: Copy telemetry explorer into dist
+        run: cp -r telemetry dist/telemetry
+
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist

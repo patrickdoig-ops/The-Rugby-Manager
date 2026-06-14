@@ -21,6 +21,10 @@ import { snapshotMatch, type MatchSnapshot } from './seasonStatsCollector';
 export interface SimulatedFixtureResult {
   homeScore: number;
   awayScore: number;
+  // Set only for a knockout (allowExtraTime) fixture that finished level after
+  // extra time and was decided by the kicking competition — the side that
+  // advances. Undefined when the score itself decided the match.
+  kickWinner?: 'home' | 'away';
   // Per-match snapshot taken before MatchCoordinator.destroy(). Carries the
   // per-player breakdown plus team-summary aggregates for both sides.
   // GameCoordinator feeds it to collectSeasonEvents to drive the season-
@@ -35,7 +39,7 @@ export function simulateFixture(
   away: RawTeamInput,
   rootSeed: number,
   round: number,
-  opts: { neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean; refStrictness?: number; refCardThreshold?: number } = {},
+  opts: { neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean; refStrictness?: number; refCardThreshold?: number; allowExtraTime?: boolean } = {},
 ): Promise<SimulatedFixtureResult> {
   const seed = deriveFixtureSeed(rootSeed, round, home.id, away.id);
   return new Promise((resolve, reject) => {
@@ -52,6 +56,7 @@ export function simulateFixture(
       ...(opts.isDerby ? { isDerby: true } : {}),
       ...(opts.refStrictness !== undefined ? { refStrictness: opts.refStrictness } : {}),
       ...(opts.refCardThreshold !== undefined ? { refCardThreshold: opts.refCardThreshold } : {}),
+      ...(opts.allowExtraTime ? { allowExtraTime: true } : {}),
     });
     let settled = false;
     const offFinished = eventBus.on('engine:finished', ({ state }) => {
@@ -60,9 +65,10 @@ export function simulateFixture(
       offFinished();
       offError();
       const { home: homeScore, away: awayScore } = state.score;
+      const kickWinner = state.engine.extraTimeWinner;
       const snapshot = snapshotMatch(state, home.id, away.id);
       engine.destroy();
-      resolve({ homeScore, awayScore, snapshot });
+      resolve({ homeScore, awayScore, snapshot, ...(kickWinner ? { kickWinner } : {}) });
     });
     // A silent-fixture crash rethrows into a detached setTimeout, so the
     // caller's await could never settle. Reject on engine:error instead, so

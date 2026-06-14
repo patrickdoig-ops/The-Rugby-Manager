@@ -470,6 +470,40 @@ const HELP_TOPICS = {
     ],
   },
 
+  // ─── Match-day ────────────────────────────────────────────────
+  'pre-match': {
+    title: 'Match Preview',
+    purpose: 'Review your line-up, scout the opposition, and finalise your tactics before kick-off.',
+    features: [
+      { label: 'Line-up (step 1)', desc: 'Your starting XV and bench. Expand any row to see condition, form and season stats. Tap a player name to open their profile. Tap C to set or clear the captain.' },
+      { label: 'Referee', desc: 'The assigned official and their tendencies — strict or lenient on penalties and cards.' },
+      { label: 'Scout Report (step 2)', desc: 'Opposition recent form, head-to-head record, predicted approach and players to watch.' },
+      { label: 'Tactics (step 3)', desc: 'Set or adjust your game plan before the match. Your selection is committed when you tap Start Match.' },
+      { label: 'Edit Squad', desc: 'Jumps to Squad Management so you can make last-minute changes — use the back arrow to return here.' },
+    ],
+    tips: [
+      'Check the referee tendencies — a card-happy official rewards disciplined play.',
+      'The scout report shows season trends, not just today\'s likely approach — factor in their set-piece percentages.',
+    ],
+  },
+  'match-result': {
+    title: 'Full-Time Result',
+    purpose: 'The match summary — final score, Man of the Match, scorers, and full player ratings.',
+    features: [
+      { label: 'Score & teams', desc: 'Final score with winning team highlighted.' },
+      { label: 'Man of the Match', desc: 'Shown when a player rated 7.5 or above stands out — with a summary of their key stats.' },
+      { label: 'Scorers', desc: 'Tries, conversions and penalties for both sides.' },
+      { label: 'Player ratings', desc: 'Animated reveal of every player\'s match rating, colour-coded by performance tier.' },
+      { label: 'Key Stats', desc: 'Possession, territory, tries and tackle % by default. Expand to see carries, kicks, set-piece and discipline.' },
+      { label: 'Up Next', desc: 'Preview of your next fixture — tap to jump to the league table.' },
+      { label: 'Continue', desc: 'Advances to post-match training and the next game week. Becomes active after a brief result review.' },
+    ],
+    tips: [
+      'Player ratings update each player\'s season average — a string of low-rated performances affects form.',
+      'Use the "Show all stats" toggle to compare carry metres and lineout success in depth.',
+    ],
+  },
+
   // ─── System ─────────────────────────────────────────────────  // ─── System ───────────────────────────────────────────────────
   'inbox': {
     title: 'Inbox',

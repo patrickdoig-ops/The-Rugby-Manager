@@ -352,7 +352,7 @@ function renderRatingsBlock(team: Team, isHome: boolean): string {
         ${isMotm
           ? `<span class="mr-player-motm" title="Top rated"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.637 1.55.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.755-.415-2.211.749-2.305l5.404-.434 2.082-5.005z"/></svg></span>`
           : '<span class="mr-player-motm"></span>'}
-        <span class="mr-player-rating ${cls}">${p.rating.toFixed(1)}</span>
+        <span class="mr-player-rating ${cls}" data-rating="${p.rating.toFixed(1)}">0.0</span>
       </div>
     `;
   }).join('');
@@ -398,6 +398,32 @@ function renderUpNext(next: NextFixturePreview | null): string {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--rm-text-muted);flex-shrink:0"><path d="m9 6 6 6-6 6"/></svg>
     </button>
   `;
+}
+
+// Animate player ratings from 0 → final value over ~800ms using rAF.
+// Each .mr-player-rating[data-rating] element counts up from 0.0 to its target.
+function animateRatings(container: HTMLElement): void {
+  const els = Array.from(container.querySelectorAll<HTMLElement>('.mr-player-rating[data-rating]'));
+  if (els.length === 0) return;
+  const targets = els.map(el => parseFloat(el.dataset.rating ?? '0'));
+  const duration = 800;
+  const start = performance.now();
+  function tick(now: number): void {
+    const t = Math.min((now - start) / duration, 1);
+    // ease-out quad
+    const ease = 1 - (1 - t) * (1 - t);
+    for (let i = 0; i < els.length; i++) {
+      els[i].textContent = (targets[i] * ease).toFixed(1);
+    }
+    if (t < 1) requestAnimationFrame(tick);
+    else {
+      // Snap to final values exactly.
+      for (let i = 0; i < els.length; i++) {
+        els[i].textContent = targets[i].toFixed(1);
+      }
+    }
+  }
+  requestAnimationFrame(tick);
 }
 
 export function initMatchResultScreen(
@@ -473,7 +499,12 @@ export function initMatchResultScreen(
     setTimeout(() => launchConfetti(humanTeam.color, intensity), 300);
   }
 
+  // Animate player ratings from 0 → final and briefly delay the continue
+  // button (3 s interstitial) so the result has a moment to land.
+  animateRatings(el);
   const btn = el.querySelector<HTMLButtonElement>('#mr-continue')!;
+  btn.disabled = true;
+  setTimeout(() => { btn.disabled = false; }, 3000);
   btn.addEventListener('click', () => {
     if (btn.disabled) return;
     btn.disabled = true;

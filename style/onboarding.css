@@ -1,0 +1,135 @@
+/* ════════════════════════════════════════
+   ONBOARDING — Phase 1 guided "first match" tour
+   Coach mark = a spotlight ring (.rm-onb-spot) around a target element + an
+   anchored tooltip card (.rm-onb-card). Driven by src/ui/onboarding/.
+   The overlay is pointer-events:none so the player can click the real UI
+   behind it; only the card captures input.
+   ════════════════════════════════════════ */
+
+.rm-onb {
+  position: fixed;
+  inset: 0;
+  z-index: 340;            /* above screens; below help sheet (360) + modals */
+  pointer-events: none;
+}
+
+/* Spotlight: the giant box-shadow dims the whole viewport except the ring's
+   hole over the target. No separate backdrop layer needed. */
+.rm-onb-spot {
+  position: fixed;
+  display: none;
+  border-radius: 12px;
+  border: 2px solid var(--rm-cta);
+  box-shadow: 0 0 0 9999px rgba(2, 6, 4, 0.62), 0 0 18px rgba(0, 0, 0, 0.35);
+  transition: all 0.18s var(--rm-ease-out);
+}
+
+/* Centred steps (no target) still want a gentle dim. pointer-events:none keeps
+   clicks passing through to the real UI underneath. */
+.rm-onb-card[data-pos="center"] {
+  background-clip: padding-box;
+}
+.rm-onb:has(.rm-onb-card[data-pos="center"]) {
+  background: rgba(2, 6, 4, 0.5);
+}
+
+.rm-onb-card {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 18px 18px 14px;
+  background: var(--rm-surface-2);
+  border: 1px solid var(--rm-border);
+  border-radius: 16px;
+  box-shadow: var(--rm-card-shadow);
+  pointer-events: auto;
+  animation: rmOnbIn 0.22s var(--rm-ease-out);
+}
+
+.rm-onb-card[data-pos="bottom"] { bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); }
+.rm-onb-card[data-pos="top"]    { top: calc(env(safe-area-inset-top, 0px) + 22px); }
+.rm-onb-card[data-pos="center"] { top: 50%; transform: translate(-50%, -50%); }
+
+.rm-onb-eyebrow {
+  display: block;
+  font-family: var(--rm-font-mono);
+  font-size: var(--rm-fs-11);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-pitch);
+}
+
+.rm-onb-title {
+  margin: 6px 0 0;
+  font-family: var(--rm-font-display);
+  font-size: var(--rm-fs-22);
+  line-height: 1.1;
+  color: var(--rm-chalk);
+}
+
+.rm-onb-body {
+  margin: 8px 0 0;
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  line-height: 1.45;
+  color: var(--rm-text-muted);
+}
+
+.rm-onb-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.rm-onb-btns {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.rm-onb-skip {
+  background: none;
+  border: none;
+  padding: 6px 2px;
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-13);
+  color: var(--rm-text-dim);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.rm-onb-skip:hover { color: var(--rm-text-muted); }
+
+.rm-onb-btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--rm-border);
+  background: var(--rm-surface-3);
+  color: var(--rm-text);
+  font-family: var(--rm-font-body);
+  font-size: var(--rm-fs-14);
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.12s;
+}
+.rm-onb-btn:hover { filter: brightness(1.08); }
+
+.rm-onb-btn--primary {
+  border-color: transparent;
+  background: var(--rm-cta);
+  color: var(--rm-on-accent);
+}
+
+@keyframes rmOnbIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-onb-spot { transition: none; }
+  .rm-onb-card { animation: none; }
+}

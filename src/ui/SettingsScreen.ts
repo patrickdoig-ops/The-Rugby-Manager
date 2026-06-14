@@ -11,6 +11,7 @@ import {
   isFollowingSystem, systemFollowAvailable, getEffectiveTextScale,
 } from './textScale';
 import { helpButtonHtml } from './help/helpButton';
+import { restartOnboarding } from './onboarding/OnboardingDirector';
 
 function backIcon(): string {
   return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -147,6 +148,15 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
         </div>
       </section>
 
+      <section class="settings-section">
+        <h2 class="settings-section-title">Help</h2>
+
+        <div class="settings-row">
+          <label class="settings-row-label">Replay guided tour</label>
+          <button id="settings-replay-tour" class="settings-secondary-btn">Start</button>
+        </div>
+      </section>
+
       <section class="settings-section settings-section--meta">
         <h2 class="settings-section-title">About</h2>
 
@@ -220,6 +230,11 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
 
   el.querySelector<HTMLButtonElement>('#settings-saves')!.addEventListener('click', () => {
     onSaves();
+  });
+
+  el.querySelector<HTMLButtonElement>('#settings-replay-tour')!.addEventListener('click', () => {
+    setTextScaleChangeHandler(null);   // detach — this render is going away
+    restartOnboarding();               // resets the tour and jumps to team select
   });
 
   const textScaleGroup = el.querySelector<HTMLElement>('#settings-textscale')!;

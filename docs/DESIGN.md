@@ -1161,6 +1161,18 @@ When a formation moves between beats, `PitchPlayers` adds `dot-transitioning` to
 
 ---
 
+### 15.8 Onboarding (first-run guided tour)
+
+A first-run, **Phase 1 "first match"** guided tour. Pure UI overlay — **no new `ScreenId`, no new Hub tile** — so it works inside the existing navigation shell. Three modules in `src/ui/onboarding/`:
+
+- **`onboardingSteps.ts`** — the script as data: an ordered `OnboardingStep[]` (`{ id, screen, title, body, target?, advance, kind?, cta? }`). `advance: 'action'` steps carry no button — the player advances by tapping the **real, spotlighted UI** (learn-by-doing); `advance: 'next'` steps show a primary button. `kind` flags the opening `'intro'` card (Start tour / Not now) and the closing `'final'` card.
+- **`CoachMark.ts`** — the renderer (`.rm-onb-*`, `style/onboarding.css`): a spotlight ring (`.rm-onb-spot`, a box-shadow halo that dims everything except the target) plus an anchored tooltip card. The overlay is `pointer-events:none` **except the card**, so the player can always click the real UI behind it and can never be soft-locked. Card buttons sit in a fixed position — the advance target never darts around the screen.
+- **`OnboardingDirector.ts`** — reactive orchestrator. Subscribes to `screenRouter.onScreenShow` and renders the first not-yet-passed step whose `screen` matches the one that appeared, after a ~300ms settle (show-observers fire *before* the screen is un-hidden + slid in). Navigation stays in `main.ts`: the director only triggers the first jump (Home → team select) via the `onStartTour` callback passed to `initOnboarding()`; every later step is reached by the player tapping the spotlighted UI.
+
+**State is global (localStorage), not save-scoped** — `rugbyOnboardingDone` (`'1'` once skipped/finished) + `rugbyOnboardingStep` (resume pointer). Onboarding is a property of the device/player; the two new-game entry points (Quick Start vs Career) produce separate saves, so a save-scoped flag would re-trigger the tour on every new game. **No `SAVE_VERSION` bump.** Replay via **Settings → Help → Replay guided tour** (`restartOnboarding()` clears the flag and jumps into team select). Wired once in `main.ts` (`initOnboarding`) before the first Home render so it catches the boot screen-show. The flow it walks: Home intro → team-selector → team-info → mode-picker (Quick Start) → hub (Tactics) → tactics → hub (Squad) → squad-management → hub (Continue) → pre-match → match-result (finish). The live match screen is intentionally not covered.
+
+---
+
 ## 16. Maintaining this document
 
 - Update this document in the **same PR** as any change that introduces a new pattern.

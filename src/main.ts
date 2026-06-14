@@ -53,9 +53,11 @@ import '../style/loans.css';
 import '../style/scouting.css';
 import '../style/press-conference.css';
 import '../style/help.css';
+import '../style/onboarding.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { initHelpDelegation }      from './ui/help/helpButton';
+import { initOnboarding }          from './ui/onboarding/OnboardingDirector';
 import { preloadAllCues }          from './ui/SoundManager';
 import { initAudioDirector }       from './ui/audio/AudioDirector';
 import { initUiSounds }            from './ui/audio/uiSounds';
@@ -2185,6 +2187,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Wire the native backup mirror so every slot write is copied to the iOS
   // Documents directory (iCloud-backed). No-op on web.
   installBackupMirror();
+
+  // First-run onboarding. Registered before the first Home render so it catches
+  // the boot screen-show; navigation stays here via the onStartTour hook.
+  initOnboarding({ onStartTour: () => goTeamSelector('forward') });
 
   const renderHome = (): void => {
     initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams,

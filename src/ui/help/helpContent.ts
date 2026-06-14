@@ -541,6 +541,7 @@ const HELP_TOPICS = {
       { label: 'Light theme', desc: 'Switch between the default dark theme and a light theme. Your choice is saved across sessions.' },
       { label: 'Colour-blind dot shapes', desc: 'When enabled, home team player dots on the pitch become triangles (away stay as circles) so the two sides are distinguishable by shape, not just colour. Saved across sessions.' },
       { label: 'Text size', desc: 'Scale the interface text for comfort.' },
+      { label: 'Replay guided tour', desc: 'Restart the first-run onboarding — it walks you from picking a club through to your first match.' },
       { label: 'Main menu', desc: 'Return to the home screen from here.' },
     ],
   },

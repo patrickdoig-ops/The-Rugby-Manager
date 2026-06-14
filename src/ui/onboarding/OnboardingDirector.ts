@@ -24,6 +24,7 @@ const SETTLE_MS = 300;
 
 let inited = false;
 let navStartTour: (() => void) | null = null;
+let navGoHub: (() => void) | null = null;
 let currentIndex = 0;
 let currentScreen: ScreenId | null = null;
 let pendingTimer: number | null = null;
@@ -123,9 +124,13 @@ function renderStep(idx: number): void {
   }
 
   // Normal step. 'action' steps carry no advance button — the player taps the
-  // spotlighted UI; only the persistent Skip remains.
+  // spotlighted UI; only the persistent Skip remains. A `returnToHub` step's
+  // button also navigates home, sparing a multi-level back-out.
+  const onNext = step.returnToHub
+    ? () => { advance(); navGoHub?.(); }
+    : advance;
   const buttons = step.advance === 'next'
-    ? [{ label: step.cta ?? 'Next', primary: true, onClick: advance }]
+    ? [{ label: step.cta ?? 'Next', primary: true, onClick: onNext }]
     : [];
   showCoachMark({
     eyebrow,
@@ -155,11 +160,13 @@ function onShow(id: ScreenId): void {
 }
 
 // Wire the director once at startup, before the first Home render so it catches
-// the boot screen-show. `onStartTour` navigates from Home into team selection.
-export function initOnboarding(opts: { onStartTour: () => void }): void {
+// the boot screen-show. `onStartTour` navigates from Home into team selection;
+// `onGoHub` returns to the Hub (used to smooth a multi-level menu back-out).
+export function initOnboarding(opts: { onStartTour: () => void; onGoHub: () => void }): void {
   if (inited) return;
   inited = true;
   navStartTour = opts.onStartTour;
+  navGoHub = opts.onGoHub;
   currentIndex = isDone() ? PHASE1_STEPS.length : Number(localStorage.getItem(KEY_STEP) ?? '0') || 0;
   onScreenShow(onShow);
 }

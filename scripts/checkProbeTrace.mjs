@@ -51,10 +51,23 @@ export function analyzeTrace({ beats = [], frames = [], exclusivity = [] }) {
   //    KICKER and the ball deliberately leaves them, so kicks/set-pieces are excluded. The
   //    maul drives as a bound unit (no follower), and a try grounds the ball in-goal away
   //    from the carrier — both excluded too.
+  //
+  //    The FINAL beat is excluded (issue #103). Every other beat's sampling window is bounded
+  //    by the next `engine:event` (which increments beatIdx), so its recorded last frame lands
+  //    after the follower glide settles. The match-ending beat has no following event — only
+  //    `engine:finished` fires — so the rAF sampler can be torn down mid-glide on a long carry
+  //    leg (e.g. a wide-play line break), recording the carrier ~hundreds of px off the ball
+  //    while it is still riding the final leg. That is a sampling artifact, not a contact miss:
+  //    the follower's authored resting position is `final.x - fwd*CARRIER_BEHIND_BALL` (~12px
+  //    behind the ball) and the DOM resting state — the source of truth for animation — is
+  //    correct by construction. Skipping the unbounded final beat drops the false positive
+  //    without weakening real-miss detection on every other carry.
   const CARRY_PHASES = new Set(['PHASE_PLAY', 'FIRST_PHASE', 'KICK_RETURN', 'BREAKDOWN']);
+  const lastBeatIdx = beats.length ? beats[beats.length - 1].idx : -1;
   const lastFrameOf = new Map();
   for (const f of frames) lastFrameOf.set(f.beat, f);
   for (const beat of beats) {
+    if (beat.idx === lastBeatIdx) continue;
     if (beat.nMoves < 2 || !beat.primaryKey || !CARRY_PHASES.has(beat.phase)) continue;
     if ((beat.keys || []).some(k => k.includes('try'))) continue;
     const f = lastFrameOf.get(beat.idx);

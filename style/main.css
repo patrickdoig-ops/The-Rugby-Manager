@@ -845,15 +845,15 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   height: 5px;
   background: rgba(255,255,255,0.32);
 }
-/* Stubs run inward (toward halfway), continuing the line of the 15m line: down
-   from the top 5m line, up from the bottom — the dashed 5m line is the bar of
-   the T, the stub its stem. These pseudo-elements are children of .line-*-5m,
-   which is inset left:3.5%; right:3.5% (a 93%-wide box), so a % left resolves
-   against that box, NOT the full pitch. To land on the 15m vlines (at 23.43% /
-   76.57% of the FULL pitch) the values are converted into the inset child-box
-   coordinate space: (fullPitch% − 3.5) / 0.93 → 21.43% and 78.57%. */
-.line-top-5m::before, .line-top-5m::after { top: 0; }
-.line-bot-5m::before, .line-bot-5m::after { bottom: 0; }
+/* Stubs point toward the nearest try line (outward from halfway) — the dashed
+   5m line is the bar of the T, the stub its stem reaching toward the goal.
+   These pseudo-elements are children of .line-*-5m, which is inset
+   left:3.5%; right:3.5% (a 93%-wide box), so a % left resolves against that
+   box, NOT the full pitch. To land on the 15m vlines (at 23.43% / 76.57% of
+   the FULL pitch) the values are converted into the inset child-box coordinate
+   space: (fullPitch% − 3.5) / 0.93 → 21.43% and 78.57%. */
+.line-top-5m::before, .line-top-5m::after { bottom: 0; }
+.line-bot-5m::before, .line-bot-5m::after { top: 0; }
 .line-top-5m::before, .line-bot-5m::before { left: 21.43%; }
 .line-top-5m::after,  .line-bot-5m::after  { left: 78.57%; }
 
@@ -867,21 +867,19 @@ body.pitch-view-active #pitch-wrapper { display: none; }
   width: 1px;
   pointer-events: none;
 }
-/* Touchlines — solid, slightly brighter */
+/* Touchlines — solid, extend the full pitch height including in-goal areas */
 .vline-left-touch, .vline-right-touch {
+  top: 1.5%;
+  bottom: 1.5%;
   background: rgba(255,255,255,0.5);
 }
 .vline-left-touch  { left: 3.5%; }
 .vline-right-touch { left: 96.5%; }
-/* The 5m/15m lines in from each touchline are NOT continuous on a real pitch —
-   they read as short ticks that, crossing the solid horizontal lines, form a
-   small cross at each intersection. The vline spans the 8%–92% play band, so a
-   horizontal line at field-top T maps to local% = (T − 8) / 0.84. Opaque ticks
-   (±1.3% local) sit on the 22m (22%), 10m (40%), halfway (50%), bottom-10m
-   (60%) and bottom-22 (78%) crossings; the 5m crossings are left to the 5m
-   line's T-marks above. */
-.vline-left-15m, .vline-right-15m,
-.vline-left-5m, .vline-right-5m {
+/* 15m lines — tick marks only at horizontal line crossings (not continuous).
+   The vline spans the 8%–92% play band; opaque ticks (±1.3% local) sit on the
+   22m (22%), 10m (40%), halfway (50%), bottom-10m (60%) and bottom-22 (78%)
+   crossings. local% = (fieldTop% − 8) / 0.84. */
+.vline-left-15m, .vline-right-15m {
   background: linear-gradient(to bottom,
     transparent 20.7%, rgba(255,255,255,0.3) 20.7% 23.3%,
     transparent 23.3% 38.7%, rgba(255,255,255,0.3) 38.7% 41.3%,
@@ -892,6 +890,14 @@ body.pitch-view-active #pitch-wrapper { display: none; }
 }
 .vline-left-15m  { left: 23.43%; }
 .vline-right-15m { left: 76.57%; }
+/* 5m lines from touchline — continuous dashed lines running the full pitch
+   height (dead-ball to dead-ball), matching real rugby pitch markings. */
+.vline-left-5m, .vline-right-5m {
+  top: 1.5%;
+  bottom: 1.5%;
+  background: repeating-linear-gradient(to bottom,
+    rgba(255,255,255,0.3) 0 5px, transparent 5px 11px);
+}
 .vline-left-5m  { left: 10.14%; }
 .vline-right-5m { left: 89.86%; }
 

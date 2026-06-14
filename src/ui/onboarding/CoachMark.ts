@@ -27,12 +27,17 @@ export interface CoachMarkSpec {
 
 let root: HTMLElement | null = null;
 let repositionFn: (() => void) | null = null;
+let observer: MutationObserver | null = null;
 
 export function hideCoachMark(): void {
   if (repositionFn) {
     window.removeEventListener('resize', repositionFn);
     window.removeEventListener('scroll', repositionFn, true);
     repositionFn = null;
+  }
+  if (observer) {
+    observer.disconnect();
+    observer = null;
   }
   root?.remove();
   root = null;
@@ -105,4 +110,18 @@ export function showCoachMark(spec: CoachMarkSpec): void {
   repositionFn = place;
   window.addEventListener('resize', repositionFn);
   window.addEventListener('scroll', repositionFn, true);
+
+  // Spotlighted screens (e.g. squad management) rewrite their innerHTML on every
+  // selection / swap, replacing the target node. Re-measure on DOM mutations,
+  // rAF-throttled, so the ring stays glued to a target that lives at the same
+  // selector. Skipped for centred cards — they have nothing to track.
+  if (spec.target) {
+    let queued = false;
+    observer = new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; place(); });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 }

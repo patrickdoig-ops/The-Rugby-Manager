@@ -1,17 +1,21 @@
 // Phase 1 onboarding script — the guided "first match" tour. Pure data: the
 // OnboardingDirector reacts to screenRouter screen-shows and renders the step
-// whose `screen` matches. Steps are ordered; the director only ever moves
-// forward through this list (see OnboardingDirector for the matching rule).
+// whose `screen` matches the one that just appeared. Steps are ordered; the
+// director only ever moves forward through this list.
 //
 // `kind`:
 //   'intro' — opening card on Home (Start tour / Not now buttons)
 //   'final' — closing card (single Finish button, ends the tour)
 //   undefined — a normal step
 // `advance`:
-//   'action' — no Next button; the user advances by interacting with the real
-//              UI (e.g. tapping the highlighted tile), which navigates and lets
-//              the next screen-show drive the next step. Learn-by-doing.
+//   'action' — no Next button. The step is passed either by the player tapping
+//              a real control that NAVIGATES to another screen (screen-change
+//              advance), or — when `advanceClick` is set — by clicking a matching
+//              element on the SAME screen (e.g. swapping players in the squad).
 //   'next'   — the card shows a primary button that advances the tour.
+// `advanceClick` — CSS selector. When set, a delegated click on a matching
+//              element advances the tour. Use ONLY for same-screen steps; never
+//              on a control that also navigates (that would double-advance).
 // `target` — CSS selector for the element to spotlight. Omit for a centred card.
 
 import type { ScreenId } from '../ScreenRouter';
@@ -23,6 +27,7 @@ export interface OnboardingStep {
   body: string;
   target?: string;
   advance: 'action' | 'next';
+  advanceClick?: string;
   kind?: 'intro' | 'final';
   cta?: string;
 }
@@ -59,21 +64,16 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     title: 'Quick Start',
     body: 'Quick Start drops you straight into the season with this squad. Tap it to begin.',
   },
+
+  // ── Hub: understand the next match FIRST, then squad, then tactics ──────────
   {
-    id: 'hub-tactics',
+    id: 'hub-next-match',
     screen: 'hub',
-    target: '#hub-tile-tactics',
-    advance: 'action',
-    title: 'This is your Hub',
-    body: 'Your base between matches. First, tap Tactics to set your game plan.',
-  },
-  {
-    id: 'tactics',
-    screen: 'tactics',
+    target: '#hub-next-match',
     advance: 'next',
     cta: 'Got it',
-    title: 'Set your game plan',
-    body: 'Pick a formation and style — the defaults are solid to start. Tap Back when you are happy, then we will pick the squad.',
+    title: 'This is your Hub',
+    body: 'Your base between matches. Start here: this card shows your next fixture — who you face, where, and recent form. Always know your opponent before you pick a side.',
   },
   {
     id: 'hub-squad',
@@ -81,15 +81,87 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     target: '#hub-tile-squad',
     advance: 'action',
     title: 'Pick your squad',
-    body: 'Now tap Squad to set your matchday 23. Your assistant pre-picks a strong side.',
+    body: 'Now choose your matchday 23. Tap Squad to open the selector.',
   },
+
+  // ── Squad management: walk through a real swap + how to read a player ───────
   {
-    id: 'squad',
+    id: 'squad-intro',
     screen: 'squad-management',
     advance: 'next',
-    cta: 'Got it',
+    cta: 'Show me',
     title: 'Your matchday 23',
-    body: 'This is your starting XV and bench. Tweak it if you like, then head Back to the Hub.',
+    body: 'Three tiers: your Starting XV, the Bench, and the Wider Squad. Let me show you how to make a change.',
+  },
+  {
+    id: 'squad-select',
+    screen: 'squad-management',
+    target: '.sq-player--starter',
+    advance: 'action',
+    advanceClick: '.sq-player',
+    title: 'Select a player',
+    body: 'Tap a player to select them — their row lights up. Go ahead, tap one of your starters.',
+  },
+  {
+    id: 'squad-swap',
+    screen: 'squad-management',
+    target: '.sq-player--bench',
+    advance: 'action',
+    advanceClick: '.sq-player',
+    title: 'Swap them over',
+    body: 'Now tap a second player to swap the two over. Scroll down to reach your bench or wider squad, then tap one.',
+  },
+  {
+    id: 'squad-expand',
+    screen: 'squad-management',
+    target: '.sq-expand-btn',
+    advance: 'action',
+    advanceClick: '.sq-expand-btn',
+    title: 'Quick look at a player',
+    body: 'Want a fast read on someone? Tap the ▾ chevron on any row to expand their attributes inline.',
+  },
+  {
+    id: 'squad-profile',
+    screen: 'squad-management',
+    target: '.player-link',
+    advance: 'action',
+    title: 'Full player profile',
+    body: 'For the complete breakdown — every attribute, form, contract and history — tap a player’s name.',
+  },
+  {
+    id: 'profile-detail',
+    screen: 'player-profile',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'The detailed view',
+    body: 'This is the full profile: attributes, condition, morale and career history. Use it to judge who deserves a starting shirt. Tap Back when you are done.',
+  },
+  {
+    id: 'squad-save',
+    screen: 'squad-management',
+    target: '#sq-save',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'Save your side',
+    body: 'When your 23 looks right, tap Save to keep your changes — or Back to leave the side as it was. Then we will set your tactics.',
+  },
+
+  // ── Tactics, then kick off ────────────────────────────────────────────────
+  {
+    id: 'hub-tactics',
+    screen: 'hub',
+    target: '#hub-tile-tactics',
+    advance: 'action',
+    title: 'Now your game plan',
+    body: 'With your squad set, tap Tactics to choose a formation and style of play.',
+  },
+  {
+    id: 'tactics',
+    screen: 'tactics',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'Set your tactics',
+    body: 'Pick a formation and a style — the defaults are solid to start with. Tap Back when you are happy, and we will kick off.',
   },
   {
     id: 'hub-continue',
@@ -97,15 +169,24 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     target: '#hub-play-next',
     advance: 'action',
     title: 'Kick off',
-    body: 'You are ready. Tap Continue to head to your first match.',
+    body: 'You are ready. Tap Continue to head into your first match.',
   },
   {
     id: 'pre-match',
     screen: 'pre-match',
     advance: 'next',
     cta: 'Got it',
-    title: 'Matchday',
-    body: 'Set the mood with a team talk, then start the match and watch it play out.',
+    title: 'Matchday build-up',
+    body: 'Set the mood with a team talk, then start the match.',
+  },
+  {
+    id: 'live-match',
+    screen: 'app',
+    target: '#sim-controls',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'The match unfolds',
+    body: 'The game plays out automatically. Use these controls to play, pause, change speed, or make tactical tweaks and subs. We will see the result at full time.',
   },
   {
     id: 'result',

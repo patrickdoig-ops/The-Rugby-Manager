@@ -57,7 +57,7 @@ import '../style/onboarding.css';
 
 import { buildAppShell }           from './ui/AppShell';
 import { initHelpDelegation }      from './ui/help/helpButton';
-import { initOnboarding }          from './ui/onboarding/OnboardingDirector';
+import { initOnboarding, isOnboardingActive } from './ui/onboarding/OnboardingDirector';
 import { preloadAllCues }          from './ui/SoundManager';
 import { initAudioDirector }       from './ui/audio/AudioDirector';
 import { initUiSounds }            from './ui/audio/uiSounds';
@@ -823,6 +823,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Existing new-game path: seed the save immediately so Continue is enabled
     // even if the user backs out before playing the first match.
     gameEngine = await GameCoordinator.newSeason(team.id, generateSeed(), allTeams, undefined, true);
+    // New-user default while the guided tour is running: keep the manager in
+    // charge of their own League Cup ties so the assistant doesn't silently take
+    // over and leave the board confused mid-tutorial.
+    if (isOnboardingActive()) gameEngine.setCupManageLive(true);
     autosave(gameEngine.toSavePayload());
     initInSeasonScreens();
     goHub();

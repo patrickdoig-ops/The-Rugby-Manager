@@ -27,6 +27,8 @@ let navStartTour: (() => void) | null = null;
 let currentIndex = 0;
 let currentScreen: ScreenId | null = null;
 let pendingTimer: number | null = null;
+// Cleanup for a same-screen click-to-advance listener (e.g. squad swaps).
+let actionCleanup: (() => void) | null = null;
 
 function isDone(): boolean {
   return localStorage.getItem(KEY_DONE) === '1';
@@ -43,6 +45,10 @@ function cancelPending(): void {
     window.clearTimeout(pendingTimer);
     pendingTimer = null;
   }
+  if (actionCleanup) {
+    actionCleanup();
+    actionCleanup = null;
+  }
   hideCoachMark();
 }
 
@@ -55,11 +61,26 @@ function advance(): void {
   cancelPending();
   currentIndex += 1;
   saveStep(currentIndex);
-  // The next step is always on a different screen in the Phase 1 script, so we
-  // simply wait for the player to navigate there; render eagerly if it happens
-  // to share the current screen.
+  // The next step usually lives on a different screen (the player navigates
+  // there and the screen-show drives it); render eagerly when it shares the
+  // current screen, e.g. the in-place squad-management walkthrough.
   const next = PHASE1_STEPS[currentIndex];
   if (next && next.screen === currentScreen) renderStep(currentIndex);
+}
+
+// Same-screen advance: a delegated, capture-phase click on a matching element
+// moves the tour on. Capture phase fires before any handler that calls
+// stopPropagation (e.g. the player-name link), and the actual advance is
+// deferred to the next frame so the triggering click fully resolves first.
+function attachClickAdvance(selector: string): void {
+  const handler = (e: MouseEvent): void => {
+    const t = e.target as HTMLElement | null;
+    if (t && t.closest(selector)) {
+      requestAnimationFrame(() => advance());
+    }
+  };
+  document.addEventListener('click', handler, true);
+  actionCleanup = () => document.removeEventListener('click', handler, true);
 }
 
 function renderStep(idx: number): void {
@@ -114,6 +135,7 @@ function renderStep(idx: number): void {
     buttons,
     onSkip: () => { hideCoachMark(); finish(); },
   });
+  if (step.advanceClick) attachClickAdvance(step.advanceClick);
 }
 
 function onShow(id: ScreenId): void {
@@ -150,4 +172,12 @@ export function restartOnboarding(): void {
   saveStep(currentIndex);
   hideCoachMark();
   navStartTour?.();
+}
+
+// True while a new player is in (or has not dismissed) the guided tour. Used to
+// apply new-user-friendly defaults — e.g. keeping the manager in charge of their
+// own League Cup ties so the assistant doesn't quietly take over and confuse the
+// board mid-tutorial.
+export function isOnboardingActive(): boolean {
+  return inited && !isDone();
 }

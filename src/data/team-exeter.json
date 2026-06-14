@@ -106,7 +106,7 @@
         "tackling": 82,
         "breakdown": 89,
         "kicking": 49,
-        "setPiece": 90,
+        "setPiece": 89,
         "discipline": 81,
         "positioning": 80,
         "composure": 79
@@ -147,7 +147,7 @@
         "stamina": 94,
         "strength": 83,
         "pace": 69,
-        "agility": 67,
+        "agility": 83,
         "handling": 75,
         "tackling": 85,
         "breakdown": 86,
@@ -170,7 +170,7 @@
         "stamina": 92,
         "strength": 85,
         "pace": 64,
-        "agility": 71,
+        "agility": 84,
         "handling": 70,
         "tackling": 87,
         "breakdown": 84,
@@ -193,7 +193,7 @@
         "stamina": 88,
         "strength": 87,
         "pace": 79,
-        "agility": 84,
+        "agility": 82,
         "handling": 78,
         "tackling": 92,
         "breakdown": 93,
@@ -215,14 +215,14 @@
       "baseStats": {
         "stamina": 87,
         "strength": 86,
-        "pace": 78,
-        "agility": 79,
+        "pace": 89,
+        "agility": 84,
         "handling": 74,
         "tackling": 88,
         "breakdown": 89,
         "kicking": 55,
         "setPiece": 82,
-        "discipline": 74,
+        "discipline": 84,
         "positioning": 79,
         "composure": 76
       }
@@ -245,7 +245,7 @@
         "breakdown": 85,
         "kicking": 62,
         "setPiece": 90,
-        "discipline": 78,
+        "discipline": 82,
         "positioning": 83,
         "composure": 76
       }
@@ -262,12 +262,12 @@
         "stamina": 85,
         "strength": 69,
         "pace": 82,
-        "agility": 84,
+        "agility": 89,
         "handling": 84,
         "tackling": 79,
         "breakdown": 79,
-        "kicking": 83,
-        "setPiece": 64,
+        "kicking": 90,
+        "setPiece": 24,
         "discipline": 83,
         "positioning": 86,
         "composure": 84
@@ -285,15 +285,15 @@
         "stamina": 83,
         "strength": 70,
         "pace": 85,
-        "agility": 83,
-        "handling": 83,
-        "tackling": 76,
+        "agility": 85,
+        "handling": 90,
+        "tackling": 69,
         "breakdown": 76,
         "kicking": 94,
-        "setPiece": 64,
-        "discipline": 83,
-        "positioning": 83,
-        "composure": 85
+        "setPiece": 34,
+        "discipline": 90,
+        "positioning": 93,
+        "composure": 90
       }
     },
     {
@@ -313,7 +313,7 @@
         "tackling": 78,
         "breakdown": 78,
         "kicking": 78,
-        "setPiece": 57,
+        "setPiece": 47,
         "discipline": 78,
         "positioning": 92,
         "composure": 78
@@ -334,7 +334,7 @@
       "baseStats": {
         "stamina": 88,
         "strength": 95,
-        "pace": 95,
+        "pace": 89,
         "agility": 78,
         "handling": 93,
         "tackling": 99,
@@ -363,10 +363,10 @@
         "tackling": 95,
         "breakdown": 78,
         "kicking": 95,
-        "setPiece": 62,
-        "discipline": 78,
+        "setPiece": 22,
+        "discipline": 86,
         "positioning": 95,
-        "composure": 95
+        "composure": 99
       }
     },
     {
@@ -409,7 +409,7 @@
         "tackling": 80,
         "breakdown": 75,
         "kicking": 86,
-        "setPiece": 57,
+        "setPiece": 37,
         "discipline": 78,
         "positioning": 89,
         "composure": 80
@@ -473,7 +473,7 @@
       "position": "Prop",
       "baseStats": {
         "stamina": 78,
-        "strength": 81,
+        "strength": 89,
         "pace": 57,
         "agility": 60,
         "handling": 67,
@@ -519,7 +519,7 @@
       "position": "Flanker",
       "baseStats": {
         "stamina": 86,
-        "strength": 82,
+        "strength": 86,
         "pace": 71,
         "agility": 77,
         "handling": 66,
@@ -660,7 +660,7 @@
       "baseStats": {
         "stamina": 85,
         "strength": 74,
-        "pace": 64,
+        "pace": 79,
         "agility": 67,
         "handling": 60,
         "tackling": 76,
@@ -797,7 +797,7 @@
       "position": "Prop",
       "baseStats": {
         "stamina": 72,
-        "strength": 73,
+        "strength": 85,
         "pace": 51,
         "agility": 53,
         "handling": 51,
@@ -1081,7 +1081,7 @@
         "breakdown": 65,
         "kicking": 72,
         "setPiece": 58,
-        "discipline": 65,
+        "discipline": 75,
         "positioning": 72,
         "composure": 72
       }
@@ -1142,17 +1142,17 @@
       "position": "Centre",
       "baseStats": {
         "stamina": 85,
-        "strength": 72,
+        "strength": 82,
         "pace": 72,
         "agility": 72,
-        "handling": 72,
+        "handling": 82,
         "tackling": 72,
         "breakdown": 63,
         "kicking": 58,
         "setPiece": 66,
-        "discipline": 67,
-        "positioning": 72,
-        "composure": 63
+        "discipline": 82,
+        "positioning": 82,
+        "composure": 80
       }
     },
     {
@@ -1173,7 +1173,7 @@
         "breakdown": 65,
         "kicking": 63,
         "setPiece": 66,
-        "discipline": 60,
+        "discipline": 80,
         "positioning": 72,
         "composure": 68
       }
@@ -1189,14 +1189,14 @@
       "baseStats": {
         "stamina": 83,
         "strength": 61,
-        "pace": 79,
-        "agility": 77,
-        "handling": 72,
+        "pace": 83,
+        "agility": 82,
+        "handling": 80,
         "tackling": 60,
         "breakdown": 61,
         "kicking": 59,
         "setPiece": 58,
-        "discipline": 60,
+        "discipline": 80,
         "positioning": 72,
         "composure": 72
       }

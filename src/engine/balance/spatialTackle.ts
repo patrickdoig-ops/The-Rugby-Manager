@@ -42,7 +42,7 @@ export const EVASION = {
   // FirstPhase carry (phase play passes 0, unchanged); converts the over-broken
   // first-phase clean breaks into dominant tackles / contact, bringing spatial
   // first-phase line breaks back to the legacy ~13.3/match rate.
-  firstPhaseDefenderBonus: 14,
+  firstPhaseDefenderBonus: 18,
 } as const;
 
 // ── Phase 2 — Collision weights ───────────────────────────────────────────

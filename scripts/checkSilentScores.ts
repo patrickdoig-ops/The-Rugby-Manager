@@ -133,7 +133,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // to absorb the extra set-defence breakdowns. By design; every § 13 band holds on the
 // 5-seed sweep (pts 26.16, tries 4.04, pen 12.38, tackAtt 62.01, tackMade 59.78,
 // TO 2.06, home-win 53.11).
-const GOLDEN = '4239dcd21131624c701fb3e368f2be6c07676a32d99718d1d4595aed9369a4c4';
+//
+// Re-baselined on merge with main (player-stat updates in team-data.md / the team
+// JSONs + the knockout-extra-time/kicking work): the silent outcomes shift with the
+// new authored stats — NOT a spatial-engine change. With the new stats the first-phase
+// set-defence contact bonus was nudged 14→18 so the tackles-made band clears the
+// fast-mode (3-seed) floor with margin. Every § 13 band holds on the 5-seed sweep
+// (pts 25.57, tries 3.94, pen 12.44, tackAtt 63.17, tackMade 61.10, TO 2.16,
+// home-win 52.89).
+const GOLDEN = 'cc55c7789a42a31424b9e0269ed4bb3da11384273290e3061fb4c283797a3d67';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

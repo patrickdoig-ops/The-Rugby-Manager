@@ -94,7 +94,7 @@ async function drainCupBreak(coord: GameCoordinator): Promise<void> {
       const round = coord.getCurrentCupRound();
       if (round) coord.markCupRoundShown(round.roundKey);
     } else if (step === 'resolve_returns') {
-      if (window) coord.resolveInternationalWindow(window);
+      if (window) await coord.resolveInternationalWindow(window);
       else break;
     }
   }

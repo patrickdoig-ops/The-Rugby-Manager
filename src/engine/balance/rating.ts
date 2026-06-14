@@ -33,7 +33,7 @@ export const RATING_WEIGHTS = {
     redCards:           -15.0,   // a red is a match-ruining offence
   },
   position: {
-    hooker:    { lineoutWinRateBaseline: 0.75, lineoutBonusMultiplier: 25 },
+    hooker:    { lineoutWinRateBaseline: 0.75, lineoutBonusMultiplier: 25, tryDiscount: 3.5 },
     locks:     { lineoutCatch: 2.0, lineoutSteal: 4.5 },
     frontRow:  { scrumPenaltyWon: 2.5, scrumPenaltyConceded: -2.5 },
     backRow:   { extraTurnoverWon: 3.5, carry: 0.5 },

@@ -695,7 +695,11 @@ export class GameCoordinator {
   // Also publishes 1–2 media stories about the manager's called-up players and,
   // at the autumn break, offers the season-once national-team release-request
   // decision if there is a capped player in the squad.
-  resolveInternationalWindow(window: InternationalWindow): InternationalBreakSummary | undefined {
+  async resolveInternationalWindow(window: InternationalWindow): Promise<InternationalBreakSummary | undefined> {
+    // Advance the calendar to the resuming league date via tickElapsedWeeks so
+    // the final break segment ticks morale decay, scouting accuracy, and the
+    // week counter — previously a bare advanceCupCalendar bypassed all of these.
+    await this.tickElapsedWeeks(this.intlBreak.upcomingLeagueDate());
     const summary = this.intlBreak.resolveInternationalWindow(window);
     if (!summary) return undefined;
 

@@ -259,8 +259,10 @@
   flex-shrink: 0;
 }
 
-/* Active-row date line — kick-off date + countdown chip. Spans both
-   columns of the .fl-row grid so it slots under the matchup cleanly. */
+/* Per-row meta line. In FixtureListScreen it appears only on the active row
+   (kick-off date + countdown chip); in SeasonFixturesScreen it appears on
+   every row (competition/stage label + date + chip). Spans both columns of
+   the .fl-row grid so it slots under the matchup cleanly. */
 .fl-date-row {
   grid-column: 1 / -1;
   display: flex;

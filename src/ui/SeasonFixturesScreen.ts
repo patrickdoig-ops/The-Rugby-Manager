@@ -34,8 +34,8 @@ function shortFixtureDate(iso: string | undefined): string {
 
 function daysBetween(fromIso: string, toIso: string | undefined): number | null {
   if (!toIso) return null;
-  const from = new Date(fromIso).getTime();
-  const to   = new Date(toIso).getTime();
+  const from = Date.parse(fromIso);
+  const to   = Date.parse(toIso);
   if (isNaN(from) || isNaN(to)) return null;
   return Math.round((to - from) / 86_400_000);
 }

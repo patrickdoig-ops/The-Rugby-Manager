@@ -143,7 +143,7 @@ export class InternationalBreakCoordinator {
 
   // The earliest date of the upcoming league round — the horizon that scopes
   // which cup leg is currently reachable.
-  private upcomingLeagueDate(): string {
+  upcomingLeagueDate(): string {
     const fixtures: Fixture[] = this.state.league.fixtures;
     const round = leagueRound(this.state);
     let earliest: string | null = null;
@@ -232,14 +232,6 @@ export class InternationalBreakCoordinator {
 
   markCupRoundShown(roundKey: string): void {
     applySeasonEvent(this.state, { type: 'PREM_CUP_ROUND_SHOWN', roundKey });
-  }
-
-  // Display-only calendar advance to a cup matchday's date. Safe to call with
-  // an earlier or later date — leg scoping is independent of calendar.date.
-  advanceCupCalendar(toDate: string): void {
-    if (toDate && toDate !== this.state.calendar.date) {
-      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
-    }
   }
 
   // Record a live cup pool match the player just played. Applies condition +
@@ -469,11 +461,10 @@ export class InternationalBreakCoordinator {
   }
 
   // Resolve the international window at the end of the break's cup weeks:
-  // restore the display calendar to the upcoming league round (so returns are
-  // dated there, as in the legacy block), re-derive the call-ups (RNG-free
-  // selection → reload-safe), then process returns (rngTransfer).
+  // re-derive the call-ups (RNG-free selection → reload-safe), then process
+  // returns (rngTransfer). Calendar advance is now handled by the caller
+  // (GameCoordinator) via tickElapsedWeeks so elapsed-week passes fire.
   resolveInternationalWindow(window: InternationalWindow): InternationalBreakSummary | undefined {
-    this.advanceCupCalendar(this.upcomingLeagueDate());
     // Derive returns from the actually-flagged players (not a fresh selection,
     // which could drift mid-break) so every called-up player is returned.
     const callUps = callUpsFromDutyFlags(this.state, window);

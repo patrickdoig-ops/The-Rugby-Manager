@@ -191,9 +191,11 @@ export function assertSeasonInvariants(state: GameState): void {
     fail('calendar.week', `${state.calendar.week}`);
   }
   // calendar.date must stay a parseable ISO date (catches a malformed
-  // MATCHDAY_ADVANCED toDate). A strict monotonicity assert is deliberately
-  // omitted: the date is re-homed to the earliest fixture of the next round,
-  // which can sit before a just-played later-in-round fixture.
+  // MATCHDAY_ADVANCED toDate). A strict monotonicity assert is omitted: the
+  // fromSave re-home (GameCoordinator, line ~400) snaps the date to
+  // earliestDateForRound on load, which can be earlier than the persisted cup
+  // matchday date. All in-play paths are now forward-only (tickElapsedWeeks
+  // guards the date before emitting MATCHDAY_ADVANCED).
   if (Number.isNaN(new Date(state.calendar.date).getTime())) {
     fail('calendar.date', `${state.calendar.date}`);
   }

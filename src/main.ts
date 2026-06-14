@@ -1573,13 +1573,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!eng) { onDone(); return; }
     if (eng.getCupBreakStep() === 'resolve_returns') {
       const window = eng.getBreakWindow();
-      const summary = window ? eng.resolveInternationalWindow(window) : undefined;
-      autosave(eng.toSavePayload());
-      if (summary) {
-        showInternationalBreak(summary, onDone);
-        screenRouter.show('international-break');
-        return;
-      }
+      void (window ? eng.resolveInternationalWindow(window) : Promise.resolve(undefined)).then(summary => {
+        autosave(eng.toSavePayload());
+        if (summary) {
+          showInternationalBreak(summary, onDone);
+          screenRouter.show('international-break');
+        } else {
+          onDone();
+        }
+      });
+      return;
     }
     onDone();
   }
@@ -1740,14 +1743,15 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } else if (step === 'resolve_returns') {
       const window = eng.getBreakWindow();
-      const summary = window ? eng.resolveInternationalWindow(window) : undefined;
-      autosave(eng.toSavePayload());
-      if (summary) {
-        showInternationalBreak(summary, onDone);
-        screenRouter.show('international-break');
-      } else {
-        onDone();
-      }
+      void (window ? eng.resolveInternationalWindow(window) : Promise.resolve(undefined)).then(summary => {
+        autosave(eng.toSavePayload());
+        if (summary) {
+          showInternationalBreak(summary, onDone);
+          screenRouter.show('international-break');
+        } else {
+          onDone();
+        }
+      });
     } else {
       onDone();
     }

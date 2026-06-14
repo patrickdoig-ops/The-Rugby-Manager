@@ -363,6 +363,19 @@ const HELP_TOPICS = {
       'Look ahead for fixture pile-ups and rotate your squad and training to cope.',
     ],
   },
+  'season-fixtures': {
+    title: 'Fixture List',
+    purpose: 'Your club’s whole season in one chronological list — every competition together: League, League Cup, European Cup, European Shield and the play-offs.',
+    features: [
+      { label: 'All competitions', desc: 'Fixtures from every competition interleaved by calendar date, each row labelled with its competition and stage.' },
+      { label: 'Results fill in', desc: 'Played matches show the score; upcoming ones show “vs”. The list refreshes as results come in.' },
+      { label: 'Your next match', desc: 'The next upcoming fixture is highlighted and the list auto-scrolls to it.' },
+      { label: 'Grows with the season', desc: 'Cup knockouts, European knockouts and the league play-offs appear automatically once their brackets are drawn.' },
+    ],
+    tips: [
+      'Use it to spot fixture congestion across competitions and plan rotation and training.',
+    ],
+  },
   'team-stats': {
     title: 'Team Stats',
     purpose: 'League-wide team leaderboards — see how your club ranks for attack, defence and discipline.',

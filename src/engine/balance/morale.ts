@@ -41,12 +41,16 @@ export const SQUAD_STATUS_WAGE_MULT: Record<SquadStatusKey, number> = {
 export const MORALE = {
   // Decay
   baseline: 65,         // morale drifts toward this value each week
-  decayRate: 0.05,      // fraction of (baseline − morale) applied per WEEK_ADVANCED
+  decayRate: 0.03,      // fraction of (baseline − morale) applied per WEEK_ADVANCED.
+                        // Gentle enough that a sustained losing streak accumulates
+                        // rather than being clawed back to baseline each week.
 
-  // Match result deltas (applied to all non-injured squad members)
+  // Match result deltas (applied to all non-injured squad members).
+  // Asymmetric: a loss bites harder than a win lifts, so a sustained losing
+  // run drives the team-talk average out of the "Steady" band into "Flat".
   winDelta: 3,
   drawDelta: 0,
-  lossDelta: -3,
+  lossDelta: -6,
 
   // Individual standout performance boost
   standoutRatingThreshold: 8.0,

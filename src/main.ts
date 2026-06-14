@@ -77,6 +77,7 @@ import { initSavesScreen }         from './ui/SavesScreen';
 import { initTeamSelectorScreen }  from './ui/TeamSelectorScreen';
 import { initTeamInfoScreen }      from './ui/TeamInfoScreen';
 import { initFixtureListScreen }   from './ui/FixtureListScreen';
+import { initSeasonFixturesScreen } from './ui/SeasonFixturesScreen';
 import { initMatchdayScreen, showMatchdayPreview } from './ui/MatchdayScreen';
 import type { CalendarBlock } from './game/calendarBlocks';
 import { initTacticsHubScreen, showTacticsScreen } from './ui/TacticsHubScreen';
@@ -383,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
       onInbox:    goInbox,
     });
     initFixtureListScreen(getGameEngine, allTeams, () => goHub('back'));
+    initSeasonFixturesScreen(getGameEngine, allTeamsWithEuropean, () => goCompetitionsMenu('back'));
     // The block fixtures preview ("This Week") — inited with European teams so
     // it can resolve non-Premiership opponent names on European weekends.
     initMatchdayScreen(getGameEngine, allTeamsWithEuropean);
@@ -416,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCompetitionsMenuScreen({
       getGameEngine,
       onBack:           () => goHub('back'),
+      onFixtureList:    goSeasonFixtures,
       onLeague:         goLeagueMenu,
       onCup:            goCupBrowse,
       onEuropeanCup:    goEuropeanCup,
@@ -645,6 +648,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function goCompetitionsMenu(direction: 'forward' | 'back' = 'forward'): void {
     screenRouter.show('competitions-menu', { direction });
+  }
+
+  function goSeasonFixtures(direction: 'forward' | 'back' = 'forward'): void {
+    screenRouter.show('season-fixtures', { direction });
   }
 
   function goEuropeanCup(direction: 'forward' | 'back' = 'forward'): void {

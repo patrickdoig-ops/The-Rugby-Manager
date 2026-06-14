@@ -453,7 +453,7 @@ Support beyond `MAX_SUPPORT_DIST = 15` gets near-zero probability (proximity ≤
 
 **RNG contract (CLAUDE.md § 7).** `ContactSystem` uses only `rngSpatial`; it never touches the outcome stream. `handlePhasePlay` still calls `resolveOpenPlaySpatial` on the spatial path (drawing the same 5 `rng()` values as before) to keep the outcome stream stable, then overrides `res.outcome` / `res.collisionResult` with the spatial contact result when `sim.contactOccurred`.
 
-**Agent fields added (WP 3).** `Agent` gains `strength: number` (from `player.baseStats.strength`), `handling: number` (from `player.baseStats.handling`), and `recoveryLockout: boolean` (reset `false` every world build; set `true` by Phase 1 evasion win). `spatialScenarioKit.ts`'s `AgentSetup` gains matching optional fields (defaults: `strength=50`, `handling=50`).
+**Agent fields added (WP 3).** `Agent` gains `strength: number` (from `player.baseStats.strength`), `handling: number` (from `player.baseStats.handling`), and `recoveryLockout: boolean` (a per-carry transient — reset `false` every world build **and at the start of each carry in `solveDefence`** so a defender beaten on one carry re-engages the next; set `true` by Phase 1 evasion win). `spatialScenarioKit.ts`'s `AgentSetup` gains matching optional fields (defaults: `strength=50`, `handling=50`).
 
 **Contact-timing fix (WP 3 — post-ship).** Two guards prevent instant/near-instant tackles that break the "carry is a short run" visual contract:
 

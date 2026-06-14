@@ -258,8 +258,6 @@ const scenarios: Scenario[] = [
       // Run tick by tick — record prev positions, step, measure displacement.
       const TICKS = 60; // 6 s — enough for separation to saturate if unclamped
       const EPSILON = 0.02; // float arithmetic tolerance
-      let maxDisp = 0;
-      let offenderSlot = -1;
 
       for (let t = 0; t < TICKS; t++) {
         // Snapshot all positions before the tick.
@@ -270,7 +268,6 @@ const scenarios: Scenario[] = [
           const dx = a.pos.x - prev[i].x;
           const dy = a.pos.y - prev[i].y;
           const disp = Math.sqrt(dx * dx + dy * dy);
-          if (disp > maxDisp) { maxDisp = disp; offenderSlot = a.slot; }
           // topSpeed × speedScale × SPATIAL_DT is the max legal displacement
           const cap = deriveTopSpeed(a.pace, a.fatigueSnapshot) * a.speedScale * SPATIAL_DT;
           if (disp > cap + EPSILON) {
@@ -278,7 +275,6 @@ const scenarios: Scenario[] = [
           }
         }
       }
-      void offenderSlot; // suppress unused-var for the slot that set maxDisp
       return null;
     },
   },
@@ -725,9 +721,11 @@ const scenarios: Scenario[] = [
       // A full 15-man attack runs a 6-phase same-way sequence. Each beat the carrier
       // engages from the ruck and runs forward; the support pod trails him and the
       // off-ball shape re-anchors behind the gain line. Assert the attack stays
-      // ONSIDE — at most a couple of teammates level/ahead at beat end, never the
-      // "whole backline ahead of the ball" regression the user flagged.
-      const MAX_AHEAD = 3;
+      // ONSIDE. The correct engine keeps EVERY teammate behind the carrier here
+      // (measured attackAhead = 0 across all seeds/beats), so the cap is tight at 1
+      // — leaving one runner of slack for a momentarily-level support man while
+      // still tripping on any real "shape drifts ahead of the ball" regression.
+      const MAX_AHEAD = 1;
       // Loose opening attack: forwards near the ruck, backs deeper. seedFormation
       // re-places them into the solved shape on beat 0; later beats continue.
       const fullAttack = (): AgentSetup[] => {

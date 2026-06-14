@@ -16,6 +16,7 @@ export type ScreenId =
   | 'hub'
   | 'tactics'
   | 'fixture-list'
+  | 'season-fixtures'
   | 'league-table'
   | 'league-menu'
   | 'team-stats'
@@ -73,6 +74,7 @@ const SCREENS: Record<ScreenId, { elId: string; shownDisplay: string }> = {
   'hub':           { elId: 'hub',           shownDisplay: '' },
   'tactics':       { elId: 'tactics',       shownDisplay: '' },
   'fixture-list':  { elId: 'fixture-list',  shownDisplay: '' },
+  'season-fixtures': { elId: 'season-fixtures', shownDisplay: '' },
   'league-table':  { elId: 'league-table',  shownDisplay: '' },
   'league-menu':   { elId: 'league-menu',   shownDisplay: '' },
   'team-stats':    { elId: 'team-stats',    shownDisplay: '' },

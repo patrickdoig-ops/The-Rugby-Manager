@@ -28,19 +28,13 @@ export const RUCK_ELIGIBILITY = {
 } as const;
 
 // ── Commit scoring ─────────────────────────────────────────────────────────
-// Each eligible agent's commit score combines four terms (Upgrade.md § 5.6).
-// commit iff score ≥ commitThreshold OR the specialisation+threat override beats
-// the team cap (see below). The score is on a 0–100-ish scale so the weights read
-// against the commitThreshold directly.
+// Each eligible agent's commit score combines specialisation + isolation + noise
+// (Upgrade.md § 5.6). The score RANKS the eligible agents; selectCommitted then
+// takes the top `cap` of them (the team's target body count — the attacking cap is
+// the existing breakdownSupporterCount, the defensive cap is keyed by
+// defendingBreakdown), modulated by the isolation drop and the specialist override
+// below. There is no absolute commit threshold — the cap sets how many commit.
 export const RUCK_COMMIT = {
-  // Team tactical cap → base incentive. Each side has a target number of bodies
-  // (the attacking cap is the existing breakdownSupporterCount; the defensive cap
-  // is keyed by defendingBreakdown). An agent's commit incentive is high while the
-  // side is BELOW its cap and falls to ~0 once the cap is reached — so the cap
-  // sets how many commit, not a hard cutoff (the override can still pull one more).
-  // capBaseIncentive is the incentive for the first body; it decays linearly to 0
-  // across the cap so the Nth body (N = cap) has near-zero base incentive.
-  capBaseIncentive: 55,
 
   // Carrier isolation → raises commit priority. Measured as the REAL distance from
   // the carrier to his nearest support in the World. An isolated carrier (support
@@ -72,9 +66,6 @@ export const RUCK_COMMIT = {
   // committed set is not a hard step. Spatial RNG stream only — confined to the
   // substrate (the heuristic in RuckCommitment.ts is the sole consumer).
   noiseBand: 8,
-
-  // An agent commits when its commit score clears this threshold.
-  commitThreshold: 40,
 
   // ── Override (specialisation + threat beats the cap) ─────────────────────
   // Even past the team cap (base incentive ~0), a high-breakdown specialist next

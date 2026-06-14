@@ -87,7 +87,6 @@ function scoreSide(
   side: PossessionSide,
   mark: { x: number; y: number },
   carrierSlot: number,
-  cap: number,
   isolation01: number,
 ): Scored[] {
   const base = side === 'home' ? 0 : AGENTS_PER_SIDE;
@@ -110,7 +109,6 @@ function scoreSide(
                 + rngSpatial(-RUCK_COMMIT.noiseBand, RUCK_COMMIT.noiseBand);
     scored.push({ agent, score, spec: specDelta });
   }
-  void cap;
   scored.sort((a, b) => b.score - a.score);
   return scored;
 }
@@ -125,8 +123,8 @@ export function commitRuck(world: World, input: RuckCommitmentInput): RuckCommit
   const defendCap = clampInt(RUCK_DEFEND_CAP[input.defendPlan], RUCK_COMMIT.minDefendCommit, RUCK_COMMIT.maxDefendCommit);
 
   // Score both sides (home then away iteration order preserved inside scoreSide).
-  const attackScored = scoreSide(world, input.attackSide, input.mark, input.carrierSlot, attackCap, iso01);
-  const defendScored = scoreSide(world, input.defendSide, input.mark, input.carrierSlot, defendCap, iso01);
+  const attackScored = scoreSide(world, input.attackSide, input.mark, input.carrierSlot, iso01);
+  const defendScored = scoreSide(world, input.defendSide, input.mark, input.carrierSlot, iso01);
 
   const committedAttackers = selectCommitted(attackScored, attackCap, RUCK_COMMIT.minAttackCommit, RUCK_COMMIT.maxAttackCommit, iso01);
   const committedDefenders = selectCommitted(defendScored, defendCap, RUCK_COMMIT.minDefendCommit, RUCK_COMMIT.maxDefendCommit, iso01);
@@ -137,14 +135,6 @@ export function commitRuck(world: World, input: RuckCommitmentInput): RuckCommit
   steerCommitment(world, input, committedAttackers, committedDefenders);
 
   const jackal = committedDefenders.length > 0 ? committedDefenders[0] : null;
-
-  if (process.env['RUCK_DEBUG']) {
-    const g = globalThis as unknown as { _ra?: number; _rd?: number; _rn?: number; _ri?: number };
-    g._ra = (g._ra ?? 0) + committedAttackers.length;
-    g._rd = (g._rd ?? 0) + committedDefenders.length;
-    g._ri = (g._ri ?? 0) + isolationDist;
-    g._rn = (g._rn ?? 0) + 1;
-  }
 
   return { committedAttackers, committedDefenders, jackal, carrierIsolation: isolationDist };
 }

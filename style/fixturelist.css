@@ -1,4 +1,5 @@
-#fixture-list {
+#fixture-list,
+#season-fixtures {
   position: fixed;
   inset: 0;
   z-index: 225;
@@ -48,6 +49,7 @@
 
 #fl-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 0 16px 16px;
   padding-bottom: var(--safe-bottom);
@@ -341,7 +343,8 @@
   }
 }
 
-#fixture-list .app-header {
+#fixture-list .app-header,
+#season-fixtures .app-header {
   background: linear-gradient(180deg,
     color-mix(in srgb, var(--team-color, var(--rm-pitch)) 75%, black) 0%,
     color-mix(in srgb, var(--team-color, var(--rm-pitch)) 38%, black) 100%

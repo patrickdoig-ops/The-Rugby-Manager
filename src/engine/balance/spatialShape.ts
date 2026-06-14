@@ -156,6 +156,10 @@ export const FORWARD_POD = {
   podDepth: 4.0,         // pod centre this far behind the gain line
   inPodSpread: 2.6,      // within-pod lateral step
   inPodStagger: 1.4,     // within-pod along-axis depth step
+  // The first off-ball forward holds the BLINDSIDE edge (the leading "1" of a
+  // 1-3-3-1) this far onto the SHORT side of the mark (coord-units), so the attack
+  // keeps a short-side option instead of fanning entirely open-side (shape-realism).
+  blindsideEdgeOffset: 13.0,
   // Attacking STYLE drives how far the pods spread across the field: keep_it_tight
   // keeps them close to the ruck (forward-dominant, narrow), wide_wide flings them
   // toward the edges (spread the ball), balanced between. `firstPodOffset` is the
@@ -175,9 +179,9 @@ export const ATTACK_SPREAD = {
   // `depth` how far behind the mark the backline sets; `depthStep` extra depth
   // per back out (the classic angled backline).
   backFirstOffset: 9.0,
-  backLateralStep: 7.0,
+  backLateralStep: 9.0,
   backDepth: 7.0,
-  backDepthStep: 1.5,
+  backDepthStep: 3.0,
 } as const;
 
 // Parking spot for an empty agent slot (a side reduced below 15 by a card): a

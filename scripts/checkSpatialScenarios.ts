@@ -864,6 +864,25 @@ const scenarios: Scenario[] = [
     },
   },
   {
+    name: 'shape-realism: attacking forwards span BOTH sides of the ruck — a blindside edge "1" holds the short side',
+    run: () => {
+      // Central ruck, carrier a forward (so the off-ball forwards include the edge +
+      // the pods). The off-ball forwards must NOT all be on the open side: the first
+      // one holds the BLINDSIDE (short side), while the pods fan open-side — a
+      // full-width 1-3-3-1 footprint, not a one-sided stack.
+      const w = buildScenarioWorld({ home: Array.from({ length: 15 }, () => ({ x: 40, y: 50, target: null })), away: [], ball: { x: 40, y: 50 } });
+      const p = { attackSide: 'home' as const, defendSide: 'away' as const, attackDir: 1 as const, mark: { x: 40, y: 50 }, defensiveLine: 'hybrid' as const, backfield: 2 as const, defendDiscipline: 'balanced' as const, carrierSlot: 8, attackingStyle: 'balanced' as const };
+      solveCarryCorridor(w, p); solveAttackSpread(w, p);
+      // openSign = +1 at a central/below-mid ruck, so open = +y, blindside = −y.
+      const fwdYs = w.agents.slice(0, 8).filter(a => a.role !== 'corridor' && a.intent.target).map(a => a.intent.target!.y);
+      const blindside = fwdYs.filter(y => y <= 50 - 8);  // clearly on the short side
+      const openside  = fwdYs.filter(y => y >= 50 + 4);  // the open-side pods
+      if (blindside.length < 1) return `no blindside edge forward (off-ball forward ys: ${fwdYs.map(y => y.toFixed(0)).join(',')})`;
+      if (openside.length < 1) return `no open-side pod forwards (off-ball forward ys: ${fwdYs.map(y => y.toFixed(0)).join(',')})`;
+      return null;
+    },
+  },
+  {
     name: 'WP5: pass mechanics — a back receives OUT WIDE, a forward engages from the ruck',
     run: () => {
       // solveCarryCorridor positions the carrier at his receiving point: a back well

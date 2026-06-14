@@ -314,9 +314,19 @@ function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
       continue;
     }
     if (isForwardSlot(a.slot)) {
+      // The FIRST off-ball forward holds the BLINDSIDE edge — the leading "1" of a
+      // 1-3-3-1 (shape-realism). He posts on the SHORT side (negative lat, i.e.
+      // -openSign) at the gain line, an option to bring the ball back the other way,
+      // so the attack is no longer entirely fanned to the open side. The remaining
+      // forwards pod open-side as before.
+      if (fwdRank === 0) {
+        fwdRank++;
+        setAttackTarget(a, clampX(gainX - p.attackDir * FORWARD_POD.podDepth), clampY(p.mark.y - openSign * FORWARD_POD.blindsideEdgeOffset));
+        continue;
+      }
       // Forwards → pods. Pod centres fan toward the open side, spaced per attacking
       // style; within a pod the members bunch tightly with a lateral + depth stagger.
-      const rank = fwdRank++;
+      const rank = fwdRank++ - 1;  // pod rank excludes the blindside edge (rank 0)
       const podIndex = Math.floor(rank / FORWARD_POD.podSize);
       const inPod = rank % FORWARD_POD.podSize;
       const podY = p.mark.y + openSign * (podSpread.firstPodOffset + podIndex * podSpread.podSpacing);

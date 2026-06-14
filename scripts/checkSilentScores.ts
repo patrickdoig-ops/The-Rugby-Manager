@@ -149,7 +149,14 @@ const ROOT_SEED = 0xDEADBEEF;
 // toward baseline; outcomes shift accordingly (no breakdown re-tuning needed). Every
 // § 13 band holds on the 5-seed sweep (pts 24.51, tries 3.81, pen 12.03, tackAtt 65.40,
 // tackMade 63.46, TO 2.08, home-win 55.78).
-const GOLDEN = '6db8c4dc4beca2cbacc61b4d68204bbce843f2495d1aff8764a4fd3704b40acc';
+//
+// Shape-realism (attacking): the first off-ball forward now holds the BLINDSIDE edge
+// (the leading "1" of a 1-3-3-1) instead of every forward fanning open-side, and the
+// procedural backline is steeper + wider (backDepthStep 1.5→3, backLateralStep 7→9).
+// Outcomes shift accordingly (no breakdown re-tuning); home-win comes back toward the
+// middle. Every § 13 band holds on the 5-seed sweep (pts 24.88, tries 3.85, pen 12.27,
+// tackAtt 65.68, tackMade 63.78, TO 2.01, home-win 53.78).
+const GOLDEN = '4c770935a045fb2063706e734f8297838e6bd2ef18cf325dd01118517198e711';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

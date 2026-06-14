@@ -524,33 +524,33 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Scott Sio | Prop | 1991-10-16 | 34 | Australia | 79 | 92 | 65 | 64 | 68 | 88 | 87 | 49 | 93 | 75 | 78 | 78 |
-| Joseph Dweba | Hooker | 1995-10-25 | 30 | South Africa | 82 | 84 | 70 | 69 | 74 | 82 | 89 | 49 | 90 | 81 | 80 | 79 |
+| Joseph Dweba | Hooker | 1995-10-25 | 30 | South Africa | 82 | 84 | 70 | 69 | 74 | 82 | 89 | 49 | 89 | 81 | 80 | 79 |
 | Josh Iosefa-Scott | Prop | 1996-07-16 | 29 | New Zealand | 80 | 90 | 64 | 65 | 66 | 90 | 83 | 48 | 90 | 80 | 80 | 81 |
-| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales | 94 | 83 | 69 | 67 | 75 | 85 | 86 | 50 | 94 | 86 | 91 | 95 |
-| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy | 92 | 85 | 64 | 71 | 70 | 87 | 84 | 52 | 92 | 76 | 76 | 80 |
-| Ethan Roots | Flanker | 1997-11-10 | 28 | England | 88 | 87 | 79 | 84 | 78 | 92 | 93 | 57 | 88 | 80 | 79 | 76 |
-| Christ Tshiunza | Flanker| 2002-01-09 | 24 | Wales | 87 | 86 | 78 | 79 | 74 | 88 | 89 | 55 | 82 | 74 | 79 | 76 |
-| Greg Fisilau | Number 8 | 2003-07-09 | 22 | England | 91 | 86 | 76 | 83 | 78 | 83 | 85 | 62 | 90 | 78 | 83 | 76 |
+| Dafydd Jenkins | Lock | 2002-12-05 | 23 | Wales | 94 | 83 | 69 | 83 | 75 | 85 | 86 | 50 | 94 | 86 | 91 | 95 |
+| Andrea Zambonin | Lock | 2000-09-03 | 25 | Italy | 92 | 85 | 64 | 84 | 70 | 87 | 84 | 52 | 92 | 76 | 76 | 80 |
+| Ethan Roots | Flanker | 1997-11-10 | 28 | England | 88 | 87 | 79 | 82 | 78 | 92 | 93 | 57 | 88 | 80 | 79 | 76 |
+| Christ Tshiunza | Flanker| 2002-01-09 | 24 | Wales | 87 | 86 | 89 | 84 | 74 | 88 | 89 | 55 | 82 | 84| 79 | 76 |
+| Greg Fisilau | Number 8 | 2003-07-09 | 22 | England | 91 | 86 | 76 | 83 | 78 | 83 | 85 | 62 | 90 | 82 | 83 | 76 |
 
 **Starting XV — Backs**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy | 85 | 69 | 82 | 84 | 84 | 79 | 79 | 83 | 64 | 83 | 86 | 84 |
-| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 83 | 70 | 85 | 83 | 83 | 76 | 76 | 94 | 64 | 83 | 83 | 85 |
-| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 90 | 95 | 95 | 99 | 99 | 78 | 78 | 78 | 57 | 78 | 92 | 78 |
-| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 88 | 95 | 95 | 78 | 93 | 99 | 78 | 78 | 58 | 78 | 95 | 78 |
-| Henry Slade | Centre | 1993-03-19 | 33 | England | 88 | 78 | 85 | 78 | 95 | 95 | 78 | 95 | 62 | 78 | 95 | 95 |
+| Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy | 85 | 69 | 82 | 89 | 84 | 79 | 79 | 90 | 24 | 83 | 86 | 84 |
+| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 83 | 70 | 85 | 85 | 90 | 69 | 76 | 94 | 34 | 90 | 93 | 90 |
+| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 90 | 95 | 95 | 99 | 99 | 78 | 78 | 78 | 47 | 78 | 92 | 78 |
+| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 88 | 95 | 89 | 78 | 93 | 99 | 78 | 78 | 58 | 78 | 95 | 78 |
+| Henry Slade | Centre | 1993-03-19 | 33 | England | 88 | 78 | 85 | 78 | 95 | 95 | 78 | 95 | 22 | 86 | 95 | 99 |
 | Paul Brown-Bampoe | Wing | 2002-05-15 | 24 | England | 90 | 76 | 92 | 92 | 86 | 75 | 73 | 80 | 63 | 77 | 83 | 75 |
-| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 88 | 78 | 88 | 88 | 87 | 80 | 75 | 86 | 57 | 78 | 89 | 80 |
+| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 88 | 78 | 88 | 88 | 87 | 80 | 75 | 86 | 37 | 78 | 89 | 80 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Max Norey | Hooker | 1999-08-05 | 26 | England | 71 | 79 | 63 | 66 | 78 | 81 | 83 | 54 | 89 | 69 | 69 | 69 |
 | Will Goodrick-Clarke | Prop | 1996-12-29 | 29 | England | 78 | 83 | 53 | 57 | 66 | 81 | 79 | 50 | 93 | 70 | 68 | 68 |
-| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa | 78 | 81 | 57 | 60 | 67 | 78 | 79 | 51 | 95 | 69 | 71 | 69 |
+| Ethan Burger | Prop | 2000-05-23 | 25 | South Africa | 78 | 89 | 57 | 60 | 67 | 78 | 79 | 51 | 95 | 69 | 71 | 69 |
 | Alfie Bell | Lock | 2003-04-12 | 23 | England | 85 | 78 | 63 | 61 | 69 | 81 | 81 | 54 | 92 | 74 | 69 | 69 |
-| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji | 86 | 82 | 71 | 77 | 66 | 84 | 87 | 57 | 81 | 69 | 78 | 73 |
+| Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji | 86 | 86 | 71 | 77 | 66 | 84 | 87 | 57 | 81 | 69 | 78 | 73 |
 | Tom Cairns | Scrum-half | 2002-06-19 | 23 | England | 82 | 65 | 78 | 78 | 78 | 69 | 77 | 78 | 61 | 75 | 78 | 79 |
 | Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England | 83 | 64 | 72 | 71 | 79 | 68 | 74 | 87 | 63 | 78 | 78 | 78 |
 | Dan John | Wing | 2001-10-04 | 24 | Wales | 80 | 67 | 83 | 82 | 78 | 73 | 67 | 70 | 57 | 75 | 78 | 78 |
@@ -560,13 +560,13 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa | 72 | 72 | 44 | 56 | 53 | 73 | 74 | 49 | 87 | 65 | 60 | 63 |
 | Bachuki Tchumbadze | Prop | 2001-11-30 | 24 | Georgia | 72 | 78 | 49 | 54 | 53 | 72 | 72 | 46 | 80 | 65 | 64 | 62 |
-| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 85 | 74 | 64 | 67 | 60 | 76 | 78 | 58 | 71 | 62 | 72 | 60 |
+| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 85 | 74 | 79 | 67 | 60 | 76 | 78 | 58 | 71 | 62 | 72 | 60 |
 | Joe Bailey | Lock | 2004-07-06 | 21 | England | 82 | 72 | 56 | 54 | 56 | 72 | 72 | 46 | 87 | 66 | 62 | 65 |
 | Oscar Beckerleg | Lock | 2005-05-11 | 21 | England | 82 | 72 | 55 | 56 | 55 | 73 | 72 | 53 | 86 | 62 | 64 | 65 |
 | Ehren Painter | Prop | 1998-03-21 | 28 | England | 72 | 75 | 49 | 53 | 55 | 72 | 74 | 50 | 85 | 61 | 65 | 67 |
 | Richard Capstick | Flanker | 2000-02-13 | 26 | England | 82 | 72 | 65 | 69 | 62 | 72 | 79 | 56 | 68 | 65 | 72 | 63 |
 | Jack Yeandle | Hooker | 1989-12-22 | 36 | England | 72 | 72 | 53 | 60 | 72 | 72 | 72 | 49 | 80 | 65 | 69 | 64 |
-| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 72 | 73 | 51 | 53 | 51 | 72 | 72 | 44 | 85 | 67 | 64 | 65 |
+| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 72 | 85 | 51 | 53 | 51 | 72 | 72 | 44 | 85 | 67 | 64 | 65 |
 | Julian Heaven | Hooker | 2000-10-01 | 25 | Australia | 69 | 72 | 54 | 60 | 72 | 72 | 72 | 51 | 82 | 60 | 64 | 66 |
 | Khwezi Mona | Prop | 1992-10-08 | 33 | South Africa | 72 | 76 | 48 | 55 | 55 | 75 | 72 | 45 | 83 | 64 | 63 | 60 |
 | Lewis Pearson | Lock | 1999-10-26 | 26 | England | 82 | 76 | 55 | 54 | 60 | 72 | 72 | 53 | 83 | 65 | 62 | 67 |
@@ -582,12 +582,12 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Charlie Chapman | Scrum-half | 1998-12-01 | 27 | England | 86 | 61 | 72 | 72 | 72 | 66 | 65 | 72 | 63 | 64 | 72 | 72 |
 | Ben Coen | Fly-half | 2005-01-11 | 21 | England | 85 | 55 | 67 | 70 | 72 | 60 | 63 | 81 | 62 | 72 | 72 | 72 |
 | Iwan Jenkins | Fly-half | 2003-03-13 | 23 | Wales | 87 | 55 | 63 | 68 | 72 | 62 | 64 | 83 | 63 | 72 | 72 | 73 |
-| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England | 88 | 56 | 72 | 72 | 72 | 64 | 65 | 72 | 58 | 65 | 72 | 72 |
+| Will Becconsall | Scrum-half | 2002-12-20 | 23 | England | 88 | 56 | 72 | 72 | 72 | 64 | 65 | 72 | 58 | 75 | 72 | 72 |
 | Tamati Tua | Centre | 1997-11-26 | 28 | New Zealand | 88 | 72 | 72 | 72 | 72 | 72 | 66 | 60 | 61 | 62 | 72 | 68 |
 | Tommy Wyatt | Wing | 1999-12-14 | 26 | England | 88 | 57 | 76 | 77 | 72 | 63 | 57 | 60 | 62 | 66 | 72 | 72 |
-| Will Rigg | Centre | 2000-03-22 | 26 | England | 85 | 72 | 72 | 72 | 72 | 72 | 63 | 58 | 66 | 67 | 72 | 63 |
-| Zack Wimbush | Centre | 2003-10-24 | 22 | England | 84 | 72 | 72 | 72 | 72 | 72 | 65 | 63 | 66 | 60 | 72 | 68 |
-| Ben Hammersley | Wing | 2003-05-20 | 23 | England | 83 | 61 | 79 | 77 | 72 | 60 | 61 | 59 | 58 | 60 | 72 | 72 |
+| Will Rigg | Centre | 2000-03-22 | 26 | England | 85 | 82 | 72 | 72 | 82 | 72 | 63 | 58 | 66 | 82 | 82 | 80 |
+| Zack Wimbush | Centre | 2003-10-24 | 22 | England | 84 | 72 | 72 | 72 | 72 | 72 | 65 | 63 | 66 | 80 | 72 | 68 |
+| Ben Hammersley | Wing | 2003-05-20 | 23 | England | 83 | 61 | 83 | 82 | 80 | 60 | 61 | 59 | 58 | 80 | 72 | 72 |
 
 ---
 

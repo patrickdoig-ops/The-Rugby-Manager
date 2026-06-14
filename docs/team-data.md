@@ -450,10 +450,10 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Ben Spencer | Scrum-half | 1992-07-31 | 33 | England | 88 | 78 | 79 | 78 | 95 | 78 | 78 | 95 | 62 | 95 | 95 | 95 |
 | Finn Russell | Fly-half | 1992-09-23 | 33 | Scotland | 82 | 78 | 78 | 97 | 99 | 78 | 78 | 99 | 63 | 90 | 98 | 94 |
-| Henry Arundell | Wing | 2002-11-08 | 23 | England | 84 | 76 | 99 | 93 | 93 | 78 | 78 | 87 | 57 | 85 | 88 | 89 |
-| Max Ojomoh | Centre | 2000-09-14 | 25 | England | 82 | 82 | 85 | 84 | 90 | 86 | 83 | 81 | 61 | 84 | 88 | 86 |
-| Ollie Lawrence | Centre | 1999-09-18 | 26 | England | 84 | 87 | 88 | 87 | 84 | 90 | 85 | 82 | 64 | 84 | 86 | 91 |
-| Joe Cokanasiga | Wing | 1997-11-15 | 28 | England | 84 | 76 | 94 | 97 | 88 | 81 | 74 | 87 | 58 | 84 | 84 | 87 |
+| Henry Arundell | Wing | 2002-11-08 | 23 | England | 84 | 76 | 99 | 93 | 85 | 78 | 58 | 77 | 27 | 70 | 78 | 80 |
+| Max Ojomoh | Centre | 2000-09-14 | 25 | England | 82 | 82 | 85 | 84 | 90 | 86 | 73 | 81 | 41 | 84 | 88 | 86 |
+| Ollie Lawrence | Centre | 1999-09-18 | 26 | England | 84 | 87 | 88 | 80 | 80 | 80 | 85 | 72 | 64 | 84 | 86 | 91 |
+| Joe Cokanasiga | Wing | 1997-11-15 | 28 | England | 84 | 76 | 89 | 92 | 81 | 81 | 74 | 67 | 58 | 77 | 80 | 80 |
 | Santi Carreras | Full-back | 1998-03-30 | 28 | Argentina | 88 | 78 | 80 | 89 | 95 | 78 | 78 | 95 | 63 | 90 | 98 | 90 |
 
 **Bench**

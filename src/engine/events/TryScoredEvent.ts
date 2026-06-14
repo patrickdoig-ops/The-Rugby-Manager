@@ -4,6 +4,7 @@ import type { PhaseOutcomeKey } from '../../types/narration';
 import type { TryAftermathContext } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
 import { SCORE_VALUES, TRY_AFTERMATH_CONTEXT, LEAGUE_POINTS } from '../balance';
+import { lateralChannel } from '../Lateral';
 
 // The try line is keyed off the lead it produces. The handler is read-only —
 // TRY_SCORED is applied by PhaseRouter after this returns — so `state.score`
@@ -24,7 +25,7 @@ export function handleTryScored({ state, attackTeam, randomPlayer }: PhaseContex
   const scorer = state.pendingTryScorer ?? randomPlayer(attackTeam);
 
   const events: MatchEvent[] = [
-    { type: 'TRY_SCORED', scorer, side: state.possession },
+    { type: 'TRY_SCORED', scorer, side: state.possession, channel: lateralChannel(state.ball.y) },
     { type: 'PENDING_TRY_SCORER_SET', scorer: undefined },
   ];
 

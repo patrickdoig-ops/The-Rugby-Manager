@@ -139,7 +139,6 @@ export function initHomeScreen(
 
     <div id="home-chrome">
       <div id="home-status">
-        <span class="home-live-dot"></span>
         <button id="settings-btn" aria-label="Settings">${gearIcon()}</button>
       </div>
       <div id="home-chrome-actions">
@@ -156,7 +155,7 @@ export function initHomeScreen(
         <span class="title-bottom">Manager</span>
       </h1>
       <div class="home-broadcast-strip">
-        <span class="broadcast-item broadcast-item--hi">${statusLabel} Season</span>
+        <span class="broadcast-item">${statusLabel} Season</span>
       </div>
     </div>
 

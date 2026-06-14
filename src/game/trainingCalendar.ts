@@ -176,3 +176,47 @@ export function nextPlayableDate(state: GameState, playerId: string, fromIso: st
   dates.sort();
   return dates[0];
 }
+
+// The date of the player's most-recently-played cup OR European matchday — the
+// latest dated, resolved fixture across both competitions (pool + knockout).
+// The matchday-training FROM anchor: a cup/European fixture often kicks off on a
+// Friday, but `calendar.date` tracks the upcoming LEAGUE round's earliest
+// fixture (frequently a later date), so anchoring the gap on `calendar.date`
+// understates the real rest span after a just-played non-league matchday. Anchor
+// on the actual match just played instead. Null when nothing has been played
+// (caller falls back to `calendar.date`).
+export function lastPlayedMatchdayDate(state: GameState, playerId: string): string | null {
+  let latest: string | null = null;
+  const consider = (date: string | null | undefined): void => {
+    if (date && (latest === null || date > latest)) latest = date;
+  };
+
+  const cup = state.league.premCup;
+  if (cup) {
+    for (const f of cup.fixtures) {
+      if (f.result && (f.homeId === playerId || f.awayId === playerId)) consider(f.date);
+    }
+    const ko = cup.knockout;
+    if (ko) {
+      for (const m of [ko.semifinals[0], ko.semifinals[1], ko.final]) {
+        if (m.result && (m.homeId === playerId || m.awayId === playerId)) consider(m.date);
+      }
+    }
+  }
+
+  for (const comp of ['europeanCup', 'europeanShield'] as const) {
+    const eu = state.league[comp];
+    if (!eu) continue;
+    for (const f of eu.fixtures) {
+      if (f.result && (f.homeId === playerId || f.awayId === playerId)) consider(f.date);
+    }
+    const ko = eu.knockout;
+    if (ko) {
+      for (const m of [...ko.r16, ...ko.quarterfinals, ...ko.semifinals, ko.final]) {
+        if (m.result && (m.homeId === playerId || m.awayId === playerId)) consider(m.date);
+      }
+    }
+  }
+
+  return latest;
+}

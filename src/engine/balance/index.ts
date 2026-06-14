@@ -55,3 +55,4 @@ export * from './spatialTackle';
 export * from './spatialRuck';
 export * from './spatialDecision';
 export * from './attackShapes';
+export * from './referees';

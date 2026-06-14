@@ -40,6 +40,19 @@ function metresToY(m: number): number {
   return (m * 100) / PITCH_WIDTH_M;
 }
 
+// Lateral channel of a position, classified by distance from the centreline
+// (y=50) on the 70m-wide pitch. Pure geometry (exempt from the balance-constant
+// rule like the rest of FieldPosition / Lateral): `tight` is the central ~11m
+// (where the forwards play around the ruck), `wide` is the outer ~14m near each
+// touchline (the wings), `mid` is the midfield channel between. Used to label
+// TRY_SCORED with where across the pitch it was scored (telemetry breakdown).
+export function lateralChannel(y: number): 'tight' | 'mid' | 'wide' {
+  const fromCentre = Math.abs(y - 50);
+  if (fromCentre <= 8) return 'tight';
+  if (fromCentre >= 22) return 'wide';
+  return 'mid';
+}
+
 // Direction toward the open side — the touchline with more space, i.e. away
 // from the nearer one. Deterministic (no RNG): the midline defaults to +1 so
 // the POSSESSION_SWAPPED reducer can call the same rule inline.

@@ -111,6 +111,7 @@ import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './
 import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
 import { initLoanScreen, showLoans } from './ui/LoanScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
+import { initClubHistoryScreen, showClubHistory } from './ui/ClubHistoryScreen';
 import { initAssistantManagerScreen, showAssistantManager } from './ui/AssistantManagerScreen';
 import { initBoardConfidenceScreen, showBoardConfidence } from './ui/BoardConfidenceScreen';
 import { initStaffScreen, showStaff } from './ui/StaffScreen';
@@ -154,6 +155,7 @@ import { resolveCaptainRosterId }  from './game/captain';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
 import { SEASON_VALUES, HOME_ADVANTAGE, MORALE } from './engine/balance';
+import { getRefereeById } from './data/referees';
 import { computeAttendance }        from './game/attendance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -195,6 +197,15 @@ function configureNativeShell(): void {
     'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover',
   );
 }
+
+// Apply persisted a11y preferences (theme + colour-blind mode) before any
+// render so there is no flash of the wrong theme on load.
+(function applyA11yPrefs(): void {
+  const theme = localStorage.getItem('rugbyTheme');
+  if (theme) document.documentElement.setAttribute('data-theme', theme);
+  const a11y = localStorage.getItem('rugbyA11y');
+  if (a11y) document.documentElement.setAttribute('data-a11y', a11y);
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
@@ -451,6 +462,12 @@ document.addEventListener('DOMContentLoaded', () => {
       onStaff: () => goStaff(),
       onFinances: () => goFinances(),
       onAwards: goAchievements,
+      onClubHistory: () => goClubHistory(),
+    });
+    initClubHistoryScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goClubMenu('back'),
     });
     initAssistantManagerScreen({
       getGameEngine,
@@ -716,6 +733,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goFinances(direction: 'forward' | 'back' = 'forward'): void {
     showFinancesScreen();
     screenRouter.show('club-finances', { direction });
+  }
+
+  function goClubHistory(direction: 'forward' | 'back' = 'forward'): void {
+    showClubHistory();
+    screenRouter.show('club-history', { direction });
   }
 
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {
@@ -1640,7 +1662,8 @@ document.addEventListener('DOMContentLoaded', () => {
       : HOME_ADVANTAGE.crowdFillNeutral;
     const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
     const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, liveState.player.captainRosterId);
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId, humanPreTalk, humanSquadMorale });
+    const fixtureRef = liveFixture?.refereeId ? getRefereeById(liveFixture.refereeId) : undefined;
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId, humanPreTalk, humanSquadMorale, refStrictness: fixtureRef?.strictness, refCardThreshold: fixtureRef?.cardThreshold });
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {

@@ -11,7 +11,11 @@ import type { BackfieldDefence } from './team';
 
 export type MatchEvent =
   // ── Scoring ──────────────────────────────────────────────────────────────
-  | { type: 'TRY_SCORED'; scorer: Player; side: PossessionSide }
+  // `channel` records where across the pitch the try was scored, derived from
+  // the ball's lateral y at the try (lateralChannel in Lateral.ts): tight =
+  // central, mid = midfield, wide = near a touchline. Optional + frozen — a
+  // telemetry-only label; existing logs without it are unaffected.
+  | { type: 'TRY_SCORED'; scorer: Player; side: PossessionSide; channel?: 'tight' | 'mid' | 'wide' }
   | { type: 'CONVERSION_KICKED'; kicker: Player; side: PossessionSide; success: boolean }
   | { type: 'PENALTY_GOAL_KICKED'; kicker: Player; side: PossessionSide; success: boolean }
 

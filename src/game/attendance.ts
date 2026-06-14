@@ -6,11 +6,14 @@ import { recentForm } from './teamStats';
 // All inputs are read-only; no RNG — the figure is deterministic given the
 // pre-match state, so it can be recomputed for display purposes (PreMatchScreen)
 // and stored for replay (FixtureResult.attendance).
+// `fanSentiment` is the optional 0–100 per-season fan-sentiment meter;
+// absent or undefined → treated as 50 (neutral, ×1.0 multiplier).
 export function computeAttendance(
   fixture: Fixture,
   homeCapacity: number,
   standings: TeamStanding[],
   results: FixtureResult[],
+  fanSentiment?: number,
 ): number {
   const capacity = fixture.venueCapacity ?? homeCapacity;
   if (!capacity) return 0;
@@ -54,5 +57,9 @@ export function computeAttendance(
     base + derbyDelta + significanceDelta + formDelta + roundDelta,
   ));
 
-  return Math.round(capacity * fillRate);
+  // Fan-sentiment multiplier: 0.9 + sentiment/500, so 50 → ×1.0, 100 → ×1.1, 0 → ×0.9.
+  const sentiment = fanSentiment ?? 50;
+  const sentimentMultiplier = 0.9 + sentiment / 500;
+
+  return Math.round(capacity * fillRate * sentimentMultiplier);
 }

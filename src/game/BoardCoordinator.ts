@@ -42,7 +42,8 @@ export class BoardCoordinator {
 
   // Move board confidence on the human result (the just-recorded fixture),
   // then evaluate the mid-season fail-state. The result is already pushed to
-  // standings/results, so recentForm includes it.
+  // standings/results, so recentForm includes it. Also updates fan sentiment
+  // and applies a board-confidence pressure when sentiment is very low.
   applyBoardResult(result: FixtureResult, expectedToWin: boolean): void {
     if (!this.state.player.board) return;
     if (result.playerSide === null) return;
@@ -57,6 +58,33 @@ export class BoardCoordinator {
       delta: resultDelta(outcome, expectedToWin, losingStreak),
       reason: `result:${outcome}`,
     });
+
+    // Fan sentiment — base delta by outcome, doubled for derby fixtures.
+    const isDerby = !!this.state.league.fixtures.find(
+      f => f.round === result.round && f.homeId === result.homeId && f.awayId === result.awayId && f.isDerby
+    );
+    const baseDelta = outcome === 'W' ? 2 : outcome === 'L' ? -2 : 1;
+    let sentimentDelta = isDerby ? baseDelta * 2 : baseDelta;
+    // Style-of-play bonus: +0.5 on a win with attacking/expansive tactics
+    // (wide_wide style or possession game plan — same definition as the media manager).
+    if (outcome === 'W' && this.state.player.tactics) {
+      const t = this.state.player.tactics;
+      if (t.attackingStyle === 'wide_wide' || t.attackingGamePlan === 'possession') {
+        sentimentDelta += 0.5;
+      }
+    }
+    applySeasonEvent(this.state, { type: 'FAN_SENTIMENT_UPDATED', delta: sentimentDelta });
+
+    // Board-confidence pressure when fans are very disenchanted.
+    const sentiment = this.state.player.fanSentiment ?? 50;
+    if (sentiment < 30) {
+      applySeasonEvent(this.state, {
+        type: 'BOARD_CONFIDENCE_ADJUSTED',
+        delta: -1,
+        reason: 'fan_sentiment_low',
+      });
+    }
+
     this.evaluateJobSecurity();
   }
 

@@ -180,8 +180,15 @@
   gap: 14px;
 }
 
+/* ── Card slide-in animation ── */
+@keyframes pmCardIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Line-up steps ── */
 .pm-lineup-card {
+  animation: pmCardIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   border-radius: 14px;
@@ -402,6 +409,7 @@
 }
 
 .pm-scout-card {
+  animation: pmCardIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
   background: var(--rm-surface);
   border: 1px solid var(--rm-border-soft);
   border-radius: 14px;

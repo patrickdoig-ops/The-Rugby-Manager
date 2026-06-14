@@ -199,7 +199,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
     // is a random screening forward. Modified by attackingStyle (wide_wide =
     // more screens, keep_it_tight = fewer). If it fires, the play stops here
     // and the defending side gets the penalty.
-    const obstructionPct = OBSTRUCTION_BASE_PCT + effStyleScalar(state, attackTeam, TACTIC_MODIFIERS.obstructionStyleMod);
+    const obstructionPct = (OBSTRUCTION_BASE_PCT + effStyleScalar(state, attackTeam, TACTIC_MODIFIERS.obstructionStyleMod)) * state.engine.refStrictness;
     if (rng(1, 100) <= obstructionPct) {
       const offender = attackFwds.length > 0
         ? attackFwds[rng(0, attackFwds.length - 1)]
@@ -552,7 +552,7 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // High-tackle check: applies on top of the carry result so the carrier still
   // earns the metres (advantage law). Skipped on line breaks — no completed
   // tackle to be high.
-  if (res.outcome !== 'line_break' && tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
+  if (res.outcome !== 'line_break' && tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod), state.engine.refStrictness) === 'high_tackle') {
     events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
     outcomeSteps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: ballCarrier });
     nextPhase = MatchPhase.Penalty;
@@ -695,7 +695,7 @@ function resolvePickAndGo(
     :                                 'pick_and_go_play_on';
     steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: outcomeKey, primary: carrier, secondary: defender });
 
-    if (tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod)) === 'high_tackle') {
+    if (tackleInfringement(defender, effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplineHighTackleMod), state.engine.refStrictness) === 'high_tackle') {
       events.push({ type: 'PENALTY_AWARDED', offence: 'high_tackle', offender: defender, offendingSide: defSide });
       steps.push({ kind: 'phase_outcome', phase: MatchPhase.PhasePlay, key: 'high_tackle_penalty', primary: defender, secondary: carrier });
       nextPhase = MatchPhase.Penalty;

@@ -38,6 +38,7 @@ import { generateFixtures } from './fixtures';
 import { rngTransferRaw, rngTransfer } from '../utils/rng';
 import { generatePersona } from './personaGenerator';
 import { redrawCupPools, buildCupSeed } from './cupScheduler';
+import { assignReferees } from '../data/referees';
 import { buildYear2EuropeanSeed } from './europeanScheduler';
 import { generateStaffPool } from './staffPoolGenerator';
 import { sortStandings } from './leagueTable';
@@ -247,10 +248,10 @@ export function computeRollover(state: GameState, allTeamIds: string[]): SeasonE
   const topScorerRosterId = leaders.topTries[0]?.rosterId ?? null;
   const mvpRosterId       = leaders.topRating[0]?.rosterId ?? null;
   const newSeasonLabel = `${newSeasonStartYear}/${(newSeasonStartYear + 1).toString().slice(2)} Season`;
-  const newFixtures = dateRounds(
+  const newFixtures = assignReferees(dateRounds(
     generateFixtures(state.player.teamId, allTeamIds, { seasonsCompleted: state.career.seasonsCompleted }),
     newSeasonStartYear,
-  );
+  ));
   // Capture English European qualifiers BEFORE SEASON_ROLLED_OVER zeros standings.
   const sortedForEuro = sortStandings([...state.league.standings]);
   const englishCupTeams   = sortedForEuro.slice(0, 8).map(s => s.teamId);

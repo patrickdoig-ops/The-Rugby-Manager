@@ -55,7 +55,8 @@ import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, buildCupSeed } from './cupScheduler';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
 import { recentForm } from './teamStats';
-import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
+import { generateMatchStory, generateInternationalStories, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
+import { playerOverall } from '../engine/RatingEngine';
 import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/europeanStories';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
@@ -84,6 +85,7 @@ import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, ha
 import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE, AI_EARLY_RENEWAL_CADENCE_ROUNDS, ARCHIVE_CAP } from '../engine/balance';
 import type { SquadStatusKey } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
+import { assignReferees, getRefereeById } from '../data/referees';
 import type { RawTeamInput } from '../types/teamData';
 import { nextBlock, type CalendarBlock } from './calendarBlocks';
 
@@ -130,6 +132,9 @@ export interface SavedCareer {
   nextStaffId?: number;
   // Feature 2.3 — rosterIds of the season's loan-available players.
   loanPool?: number[];
+  // Players inducted into the managed club's Hall of Fame. Additive-optional —
+  // absent on legacy saves (treated as empty, no HoF entries).
+  hallOfFame?: import('../types/gameState').HallOfFameEntry[];
 }
 
 export interface SavedSeason {
@@ -174,6 +179,10 @@ export interface SavedSeason {
   // European competitions system.
   europeanCup?: import('../types/gameState').EuropeanCompState | null;
   europeanShield?: import('../types/gameState').EuropeanCompState | null;
+  // Fan sentiment meter (0–100). Additive-optional — absent on legacy saves
+  // (treated as 50 by all consumers). Persisted when non-default so the
+  // season-long value survives save/load.
+  fanSentiment?: number;
 }
 
 function emptyState(): GameState {
@@ -232,12 +241,19 @@ export class GameCoordinator {
   ): Promise<GameCoordinator> {
     const coord = new GameCoordinator(allTeams);
     setCareerSeed(seed);
+    // Assign a referee to each fixture via the career RNG stream before
+    // SEASON_INITIALIZED writes them into state. Fixtures are read-only
+    // authored data; build a new schedule rather than mutating the import.
+    const scheduleWithRefs: typeof schedule = {
+      ...schedule,
+      fixtures: assignReferees(schedule.fixtures),
+    };
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId,
       seed: seed >>> 0,
       teamIds: allTeams.map(t => t.id),
-      schedule,
+      schedule: scheduleWithRefs,
     });
     const seasonStartYear = parseSeasonStartYear(coord.state.calendar.seasonLabel);
     const seeded = seedRoster(allTeams, seasonStartYear);
@@ -456,6 +472,14 @@ export class GameCoordinator {
         ),
       });
     }
+    if (save.fanSentiment !== undefined) {
+      // Restore fan sentiment directly: fire a delta from the default (50) to
+      // the saved value so the clamping path in the reducer is honoured.
+      applySeasonEvent(coord.state, {
+        type: 'FAN_SENTIMENT_UPDATED',
+        delta: save.fanSentiment - 50,
+      });
+    }
     eventBus.emit('game:initialized', { state: coord.state });
     return coord;
   }
@@ -668,8 +692,38 @@ export class GameCoordinator {
   }
 
   // Process international returns at the end of the break's cup weeks.
+  // Also publishes 1–2 media stories about the manager's called-up players and,
+  // at the autumn break, offers the season-once national-team release-request
+  // decision if there is a capped player in the squad.
   resolveInternationalWindow(window: InternationalWindow): InternationalBreakSummary | undefined {
-    return this.intlBreak.resolveInternationalWindow(window);
+    const summary = this.intlBreak.resolveInternationalWindow(window);
+    if (!summary) return undefined;
+
+    // Publish 1–2 international break media stories.
+    const teamId = this.state.player.teamId;
+    const myTeam = this.teamsById.get(teamId);
+    const mine = summary.callUps.filter(c => c.clubId === teamId);
+    if (mine.length > 0 && myTeam) {
+      const stories = generateInternationalStories({
+        seed: hashSeed(this.state.seed, 'intl', window, String(this.state.calendar.week)),
+        window,
+        clubName: myTeam.name,
+        clubShort: myTeam.shortName ?? myTeam.name,
+        players: mine.map(c => ({
+          firstName: c.firstName,
+          lastName: c.lastName,
+          nation: c.nation,
+          appearances: c.appearances,
+          injured: c.injured,
+          statGains: Object.keys(c.statDeltas).length,
+        })),
+      });
+      for (const story of stories) {
+        applySeasonEvent(this.state, { type: 'MEDIA_STORY_PUBLISHED', story });
+      }
+    }
+
+    return summary;
   }
 
   getBreakWindow(): InternationalWindow | null {
@@ -1220,7 +1274,7 @@ export class GameCoordinator {
       homeStats: snapshot.homeSummary,
       awayStats: snapshot.awaySummary,
       attendance: homeJson?.stadiumCapacity
-        ? computeAttendance(fixture, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
+        ? computeAttendance(fixture, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results, this.state.player.fanSentiment)
         : undefined,
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
@@ -1662,7 +1716,8 @@ export class GameCoordinator {
       const homeFillRate = attendance !== undefined && homeJson.stadiumCapacity
         ? attendance / homeJson.stadiumCapacity
         : undefined;
-      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby });
+      const ref = f.refereeId ? getRefereeById(f.refereeId) : undefined;
+      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby, refStrictness: ref?.strictness, refCardThreshold: ref?.cardThreshold });
       const aiResult: FixtureResult = {
         round: f.round,
         homeId: f.homeId,
@@ -1735,6 +1790,9 @@ export class GameCoordinator {
         ...(this.state.career.loanPool !== undefined
           ? { loanPool: this.state.career.loanPool }
           : {}),
+        ...(this.state.career.hallOfFame !== undefined
+          ? { hallOfFame: this.state.career.hallOfFame }
+          : {}),
       },
       teamSeasonStats: this.state.league.teamSeasonStats,
       // Persist the live playoff bracket only when it exists — keeps the
@@ -1760,6 +1818,9 @@ export class GameCoordinator {
         : {}),
       ...(this.state.player.scouting && Object.keys(this.state.player.scouting).length > 0
         ? { scouting: this.state.player.scouting }
+        : {}),
+      ...(this.state.player.fanSentiment !== undefined
+        ? { fanSentiment: this.state.player.fanSentiment }
         : {}),
       // Persist European competition states (not replayable from `results`).
       ...(this.state.league.europeanCup

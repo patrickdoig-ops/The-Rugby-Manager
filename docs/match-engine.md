@@ -51,6 +51,8 @@ All writes to `MatchState`, `player.matchStats`, `player.fatiguePct`, `player.cu
 
 `applyMatchEvent` uses a `default: const _: never = event;` exhaustiveness check, so adding a new `MatchEvent` variant without a handling branch is a compile error.
 
+`TRY_SCORED` carries an optional `channel?: 'tight' | 'mid' | 'wide'` — a frozen telemetry-only label of where across the pitch the try was scored, derived at emit time from the ball's lateral `y` via `lateralChannel(y)` (`src/engine/Lateral.ts`): `tight` = central (≤8 from the y=50 midline), `wide` = near a touchline (≥22), `mid` = between. `applyMatchEvent` ignores it (no state write); `scripts/telemetry.ts` buckets tries by channel for the "Try channel" report. Optional + frozen, so existing logs are unaffected.
+
 **Runtime invariants.** After every event is applied, `assertInvariants(state)` (`src/engine/invariants.ts`) verifies the live numeric/structural ranges that the type system can't express: `score.home/away ≥ 0` and integer, `possession ∈ {'home','away'}`, `phase ∈ MatchPhase`, `ball.x/y ∈ [0,100]`, `clock.gameMinute ≥ 0`, and for every player on either roster (starters, bench, substituted-off) `fatiguePct ∈ [0,100]`, `rating ∈ [1,10]` (matching `computeRating`'s clamp), every `currentStats.X ∈ [1,100]`. A violation throws with the offending field, so the failure surfaces at the mutation that caused it rather than at some downstream render or save-load step. Cost is O(matchday squad) per mutation; runs in all environments — it's a tripwire for engine bugs, not defensive runtime handling.
 
 **Sibling seam (season scope).** A parallel mutation boundary, `applySeasonEvent` in `src/game/applySeasonEvent.ts`, owns season state (calendar, fixtures, results, standings) and follows the same single-reducer / exhaustive-`never` contract. The match engine and the game engine only meet at `src/game/simulateFixture.ts`, which spawns silent `MatchCoordinator` instances to play out the non-player fixtures of a round. Full breakdown in **`docs/game-engine.md`**.
@@ -230,8 +232,10 @@ Position bonuses (stacked additively on top of universal):
 | 11, 14, 15 (wings/fullback) | `lineBreaks × 0.5` (stacked) |
 
 ```
-rating = clamp(6.0 + score / 10.0, 1.0, 10.0)
+rating = clamp(6.0 + score / 5.4, 1.0, 10.0)
 ```
+
+The `divisor` (5.4) scales the performance contributions on top of the 6.0 baseline — a lower divisor widens the spread so a standout season tops out in the 8s rather than barely clearing 7. **Season calibration** (450 silent fixtures, season avg = `ratingSum / appearances`, ≥9 apps): top ≈ 8.0–8.3 (the best handful reach 8s), p95 ≈ 7.8, p90 ≈ 7.3, median ≈ 6.5, floor ≈ 5.1. A quiet game still rests near the 6.0 baseline. (Was `divisor 10.0` — top capped at ~7.4 with no player reaching 8.)
 
 **`PlayerMatchStats`** is declared in `src/types/player.ts` and initialised to all zeros in `zeroMatchStats()` which is called by `initPlayer()` for every player (starters and bench). Fields:
 
@@ -1826,6 +1830,19 @@ TEAM_22            = { warnAt: 3, cardAt: 4 }
 SHORT_HANDED       = { missingBackDefendPenalty: -8 }
 SIN_BIN_LENIENCY   = { scaleOne: 0.45, scaleTwoPlus: 0.0 }
 ```
+
+**Referee profiles (`src/data/referees.ts` + `src/engine/balance/referees.ts`).** Each league fixture is assigned one of 12 authored referees at season-init / rollover time via `assignReferees()` (career RNG stream, `rngTransferRaw`). The assignment persists on `Fixture.refereeId` and survives save/load. Two personality dials drive the effect:
+
+- **`strictness`** `[0.85, 1.15]` — multiplied against every direct-probability penalty roll (high tackle, breakdown penalties: `dangerous_cleanout`, `not_rolling_away`, `offside_at_ruck`, and obstruction). Scrum and breakdown-contest penalties are outcome-driven (margin thresholds, not probability rolls) and are unaffected. A strict referee (1.15) raises the high-tackle base rate from 8 % to 9.2 %; a lenient one (0.85) lowers it to 6.8 %.
+- **`cardThreshold`** `[0.85, 1.15]` — multiplied against every card-escalation probability: the team-22 auto-card effective scale, the TMO `outcomeYellowPct` weight, and the maul-collapse direct-yellow pct. A card-happy referee (1.15) amplifies the yellow probability; a lenient referee (0.85) damps it. `red_20` probability in TMO outcomes is NOT scaled (a dangerous high tackle can still earn a red regardless).
+
+```ts
+// src/engine/balance/referees.ts
+REFEREE_STRICTNESS_RANGE     = 0.15   // authored referees sit within ±15 % of 1.0
+REFEREE_CARD_THRESHOLD_RANGE = 0.15
+```
+
+The Pre-Match screen (LINE-UP step) shows the referee name and a tendency label derived from the two dials: "Strict" (strictness > 1.05), "Lenient" (< 0.95), "Card-happy" (cardThreshold > 1.05), "Lenient cards" (< 0.95), or "Neutral" if both are in the neutral band. Cup, European, and playoff matches use neutral multipliers (1.0 × 1.0) — referee assignment is league-only.
 
 **Per-offence base trigger rates** — pct per phase-event for the new offences:
 ```ts

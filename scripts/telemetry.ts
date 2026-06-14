@@ -29,6 +29,7 @@ import type { TeamTactics, AttackingGamePlan, AttackingBreakdown, BackfieldDefen
 import type { MatchState } from '../src/types/match.js';
 import type { Player } from '../src/types/player.js';
 import { MatchPhase } from '../src/types/engine.js';
+import { lateralChannel } from '../src/engine/Lateral.js';
 
 import bathRaw        from '../src/data/team-bath.json'        with { type: 'json' };
 import bristolRaw     from '../src/data/team-bristol.json'     with { type: 'json' };
@@ -203,6 +204,8 @@ interface SeasonAgg {
   phaseCount: Map<MatchPhase, number>;
   // Phase immediately before each TRY_SCORED event
   tryOrigin: Map<MatchPhase, number>;
+  // Lateral channel of each try (derived from the try beat's ballY)
+  tryChannel: { tight: number; mid: number; wide: number };
   totalTries: number;
   // Existing tactic slices
   planAgg: Map<AttackingGamePlan, PlanAgg>;
@@ -254,6 +257,7 @@ function emptySeasonAgg(): SeasonAgg {
     tmoOutcomes: { noCard: 0, yellow: 0, red20: 0 },
     phaseCount: new Map<MatchPhase, number>(),
     tryOrigin: new Map<MatchPhase, number>(),
+    tryChannel: { tight: 0, mid: 0, wide: 0 },
     totalTries: 0,
     planAgg, bdAgg, bfAgg, dlAgg, offAgg,
   };
@@ -491,6 +495,9 @@ function aggregateMatch(
         }
       }
       agg.tryOrigin.set(origin, (agg.tryOrigin.get(origin) ?? 0) + 1);
+      // Lateral channel: derived from the canonical carry-to-try beat's frozen
+      // ballY (same source lateralChannel labels the TRY_SCORED event from).
+      agg.tryChannel[lateralChannel(e.ballY)]++;
     }
   }
 
@@ -1081,6 +1088,25 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   for (const [phase, n] of [...combinedOrigin.entries()].sort((a, b) => b[1] - a[1])) {
     lines.push(`| ${phase} | ${n} | ${pct(n, totalTries)} |`);
   }
+  lines.push('');
+
+  // ── Try channel ─────────────────────────────────────────────────────────
+  lines.push('## Try channel (lateral position across the pitch where the try was scored)');
+  lines.push('');
+  lines.push('Derived from the try beat\'s ballY: tight = central (≤8 from midline), wide = near a touchline (≥22), mid = between. Real-rugby reference ≈ tight 30% / mid 40% / wide 30%.');
+  lines.push('');
+  const channelTotals = { tight: 0, mid: 0, wide: 0 };
+  for (const a of aggs) {
+    channelTotals.tight += a.tryChannel.tight;
+    channelTotals.mid   += a.tryChannel.mid;
+    channelTotals.wide  += a.tryChannel.wide;
+  }
+  const channelSum = channelTotals.tight + channelTotals.mid + channelTotals.wide;
+  lines.push('| channel | tries | share |');
+  lines.push('|---|---:|---:|');
+  lines.push(`| tight | ${channelTotals.tight} | ${pct(channelTotals.tight, channelSum)} |`);
+  lines.push(`| mid | ${channelTotals.mid} | ${pct(channelTotals.mid, channelSum)} |`);
+  lines.push(`| wide | ${channelTotals.wide} | ${pct(channelTotals.wide, channelSum)} |`);
   lines.push('');
 
   // ── Player leaderboards ─────────────────────────────────────────────────

@@ -135,6 +135,7 @@ const HELP_TOPICS = {
       { label: 'Staff', desc: 'Hire and release your assistant manager, fitness lead and scouts.' },
       { label: 'Finances', desc: 'Player wage budget, staff budget and the slider to move spare headroom between them.' },
       { label: 'Awards', desc: 'Season honours, trophies and career milestones.' },
+      { label: 'Club History', desc: 'Season-by-season results, all-time records and the Hall of Fame.' },
     ],
   },
   'assistant-manager': {
@@ -292,10 +293,12 @@ const HELP_TOPICS = {
     features: [
       { label: 'Confidence meter', desc: 'Your current standing with the board, from secure to at-risk.' },
       { label: 'Factors', desc: 'What is helping or hurting — results, league position and meeting season objectives.' },
+      { label: 'Fan sentiment', desc: 'How supporters feel right now (0–100: Poor / Steady / Good / Excellent). Wins add to it, losses reduce it, derbies double the swing. Very low sentiment (below 30) adds pressure on the board.' },
     ],
     tips: [
       'A run of poor results drains confidence — a warning means your job is under threat.',
       'Meeting the board’s season objective is the surest way to stay in post.',
+      'Keep fan sentiment high — it boosts matchday attendance and eases board pressure.',
     ],
   },
   'staff': {
@@ -320,6 +323,19 @@ const HELP_TOPICS = {
     ],
     tips: [
       'The slider is one-way and resets each season — only shift what you are sure you will not need.',
+    ],
+  },
+
+  'club-history': {
+    title: 'Club History',
+    purpose: 'A record of the club under your management — season results, all-time records and the Hall of Fame.',
+    features: [
+      { label: 'Season History', desc: 'Every completed season listed in reverse order — finishing position, league points and any trophies won.' },
+      { label: 'Club Records', desc: 'All-time top-3 for appearances, career tries and most league points in a single season.' },
+      { label: 'Hall of Fame', desc: 'Players who retired from your club having made at least 50 appearances or scored at least 20 tries.' },
+    ],
+    tips: [
+      'Inductees are added automatically when a long-serving player retires — keep hold of your best players to build a legacy.',
     ],
   },
 
@@ -460,20 +476,61 @@ const HELP_TOPICS = {
     features: [
       { label: 'Returning players', desc: 'Who is back, and their fitness after international duty.' },
       { label: 'News', desc: 'Any injuries or form changes picked up while away.' },
+      { label: 'Inbox stories', desc: 'After the break, your inbox receives 1—2 media stories about your returning internationals — standout performances, injuries on duty, or a general squad update.' },
+    ],
+    tips: [
+      'Check the inbox after each break — it flags any players who came back injured or with a rest obligation.',
     ],
   },
 
-  // ─── System ───────────────────────────────────────────────────
+  // ─── Match-day ────────────────────────────────────────────────
+  'pre-match': {
+    title: 'Match Preview',
+    purpose: 'Review your line-up, scout the opposition, and finalise your tactics before kick-off.',
+    features: [
+      { label: 'Line-up (step 1)', desc: 'Your starting XV and bench. Expand any row to see condition, form and season stats. Tap a player name to open their profile. Tap C to set or clear the captain.' },
+      { label: 'Referee', desc: 'The assigned official and their tendencies — strict or lenient on penalties and cards.' },
+      { label: 'Scout Report (step 2)', desc: 'Opposition recent form, head-to-head record, predicted approach and players to watch.' },
+      { label: 'Tactics (step 3)', desc: 'Set or adjust your game plan before the match. Your selection is committed when you tap Start Match.' },
+      { label: 'Edit Squad', desc: 'Jumps to Squad Management so you can make last-minute changes — use the back arrow to return here.' },
+    ],
+    tips: [
+      'Check the referee tendencies — a card-happy official rewards disciplined play.',
+      'The scout report shows season trends, not just today\'s likely approach — factor in their set-piece percentages.',
+    ],
+  },
+  'match-result': {
+    title: 'Full-Time Result',
+    purpose: 'The match summary — final score, Man of the Match, scorers, and full player ratings.',
+    features: [
+      { label: 'Score & teams', desc: 'Final score with winning team highlighted.' },
+      { label: 'Man of the Match', desc: 'Shown when a player rated 7.5 or above stands out — with a summary of their key stats.' },
+      { label: 'Scorers', desc: 'Tries, conversions and penalties for both sides.' },
+      { label: 'Player ratings', desc: 'Animated reveal of every player\'s match rating, colour-coded by performance tier.' },
+      { label: 'Key Stats', desc: 'Possession, territory, tries and tackle % by default. Expand to see carries, kicks, set-piece and discipline.' },
+      { label: 'Up Next', desc: 'Preview of your next fixture — tap to jump to the league table.' },
+      { label: 'Continue', desc: 'Advances to post-match training and the next game week. Becomes active after a brief result review.' },
+    ],
+    tips: [
+      'Player ratings update each player\'s season average — a string of low-rated performances affects form.',
+      'Use the "Show all stats" toggle to compare carry metres and lineout success in depth.',
+    ],
+  },
+
+  // ─── System ─────────────────────────────────────────────────  // ─── System ───────────────────────────────────────────────────
   'inbox': {
     title: 'Inbox',
     purpose: 'Your assistant’s briefings — the decisions and news that need your attention between matches.',
     features: [
       { label: 'Messages', desc: 'Injuries, expiring contracts, poach threats, board notes and media stories.' },
+      { label: 'Action buttons', desc: 'Some items carry decision buttons — speak to a player, promise game time, grant or reject a transfer request, or respond to a national-team release request (Release: morale +3; Refuse: morale —2 and a small board note).' },
+      { label: 'International release request', desc: 'Once per season (autumn break) the national coaching staff may request an out-of-window release for your highest-capped player. Your choice affects morale and, if refused, board confidence.' },
       { label: 'Quick links', desc: 'Many items jump straight to the screen where you can act.' },
       { label: 'Read & dismiss', desc: 'Clear items once handled to keep the unread count meaningful.' },
     ],
     tips: [
       'Check the inbox before every match — it surfaces what matters most right now.',
+      'Releasing a capped player for international duty earns morale — refuse only if you need them for a big fixture.',
     ],
   },
   'settings': {
@@ -481,6 +538,8 @@ const HELP_TOPICS = {
     purpose: 'Tune how the game looks, sounds and feels to your preference.',
     features: [
       { label: 'Sound & haptics', desc: 'Toggle audio and vibration feedback.' },
+      { label: 'Light theme', desc: 'Switch between the default dark theme and a light theme. Your choice is saved across sessions.' },
+      { label: 'Colour-blind dot shapes', desc: 'When enabled, home team player dots on the pitch become triangles (away stay as circles) so the two sides are distinguishable by shape, not just colour. Saved across sessions.' },
       { label: 'Text size', desc: 'Scale the interface text for comfort.' },
       { label: 'Main menu', desc: 'Return to the home screen from here.' },
     ],

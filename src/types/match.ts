@@ -238,6 +238,14 @@ export interface MatchState {
     // before the season snapshot is harvested. Live play + the determinism /
     // telemetry harnesses keep full per-event coverage. Defaults to false.
     skipInvariants: boolean;
+    // Referee personality dials, derived from the assigned Referee at match-build
+    // time. Both default to 1.0 (neutral — no effect on any roll).
+    // refStrictness    — multiplied against every penalty base-rate roll
+    //                    (high tackle, breakdown, scrum, open-play offside).
+    // refCardThreshold — multiplied against every card-escalation probability
+    //                    (TMO yellow weight, team-22 auto-card, maul-collapse yellow).
+    refStrictness: number;
+    refCardThreshold: number;
   };
   phase: MatchPhase;
   possession: PossessionSide;

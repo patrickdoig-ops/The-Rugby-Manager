@@ -228,6 +228,31 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // Flag so the rollover aging loop and weekly morale decay skip them.
       const retiree = state.career.roster[event.rosterId];
       if (retiree) retiree.retired = true;
+      // Hall of Fame: induct players retiring from the managed club who
+      // meet the threshold — ≥50 appearances OR ≥20 career tries across
+      // all archived seasons while at the managed club.
+      if (event.clubId === state.player.teamId && retiree) {
+        let totalApps = 0;
+        let totalTries = 0;
+        for (const season of state.career.archive) {
+          const ps = season.playerSeasonHistory?.[event.rosterId];
+          if (ps && ps.clubId === state.player.teamId) {
+            totalApps += ps.apps;
+            totalTries += ps.tries;
+          }
+        }
+        if (totalApps >= 50 || totalTries >= 20) {
+          if (!state.career.hallOfFame) state.career.hallOfFame = [];
+          state.career.hallOfFame.push({
+            rosterId: event.rosterId,
+            name: `${retiree.firstName} ${retiree.lastName}`,
+            position: retiree.position,
+            appearances: totalApps,
+            tries: totalTries,
+            seasonAdded: state.career.seasonsCompleted,
+          });
+        }
+      }
       return;
     }
     case 'PLAYER_INJURED': {
@@ -486,6 +511,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       if (event.europeanShield !== undefined) {
         state.league.europeanShield = event.europeanShield ? cloneEuropean(event.europeanShield) : null;
       }
+      if (event.hallOfFame !== undefined) {
+        state.career.hallOfFame = event.hallOfFame.map(e => ({ ...e }));
+      }
       return;
     }
     case 'SEASON_ROLLED_OVER': {
@@ -581,6 +609,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       for (const club of state.career.clubs) {
         if (club.staffBudgetBoost) club.staffBudgetBoost = 0;
       }
+      // Fan sentiment is per-season — reset to neutral at rollover.
+      state.player.fanSentiment = 50;
       return;
     }
     case 'PLAYOFF_BRACKET_SEEDED': {
@@ -1169,6 +1199,11 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         if (!comp.shownRounds) comp.shownRounds = [];
         if (!comp.shownRounds.includes(event.roundKey)) comp.shownRounds.push(event.roundKey);
       }
+      return;
+    }
+    case 'FAN_SENTIMENT_UPDATED': {
+      const current = state.player.fanSentiment ?? 50;
+      state.player.fanSentiment = Math.max(0, Math.min(100, current + event.delta));
       return;
     }
     case 'EUROPEAN_KNOCKOUT_RECORDED': {

@@ -35,7 +35,7 @@ export function simulateFixture(
   away: RawTeamInput,
   rootSeed: number,
   round: number,
-  opts: { neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean } = {},
+  opts: { neutralVenue?: boolean; homeFillRate?: number; isDerby?: boolean; refStrictness?: number; refCardThreshold?: number } = {},
 ): Promise<SimulatedFixtureResult> {
   const seed = deriveFixtureSeed(rootSeed, round, home.id, away.id);
   return new Promise((resolve, reject) => {
@@ -50,6 +50,8 @@ export function simulateFixture(
       ...(opts.neutralVenue ? { neutralVenue: true } : {}),
       ...(opts.homeFillRate !== undefined ? { homeFillRate: opts.homeFillRate } : {}),
       ...(opts.isDerby ? { isDerby: true } : {}),
+      ...(opts.refStrictness !== undefined ? { refStrictness: opts.refStrictness } : {}),
+      ...(opts.refCardThreshold !== undefined ? { refCardThreshold: opts.refCardThreshold } : {}),
     });
     let settled = false;
     const offFinished = eventBus.on('engine:finished', ({ state }) => {

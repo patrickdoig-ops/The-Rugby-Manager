@@ -294,18 +294,18 @@ Rules enforced in review: no allocation in the micro-tick loop, no `Object.entri
 
 ## 13. Calibration: the legacy engine is the measuring stick
 
-Current telemetry is years of balance work — it is the **target distribution**. Frozen baselines (from `telemetry/latest.md`) become acceptance bands; after each WP lands, `npm run telemetry` must stay within band:
+Current telemetry is years of balance work — it is the **target distribution**. Frozen baselines (from `telemetry/latest.md`) become acceptance bands; after each WP lands, `npm run telemetry` must stay within band. **Re-baselined 2026-06 for the owner's scoring rebalance** (maul tries nerfed, open-play tries lifted via the cover-beat run-on): tries / points / tackles-made / turnovers / home-win re-centred on the new measured means (band widths unchanged; the originals are in parentheses):
 
 | Metric | Baseline (frozen) | Band |
 |---|---|---|
-| Tries / match | 4.0 | ±0.5 |
-| Combined points | 26.2 | ±3 |
+| Tries / match | 5.5 (was 4.0) | ±0.5 |
+| Combined points | 35.9 (was 26.2) | ±3 |
 | Penalties conceded / match | 11.4 | ±1.5 |
-| Tackles attempted / made | 67.6 / 65.7 | ±6 |
+| Tackles attempted / made | 67.6 / 56.4 (made was 65.7) | ±6 |
 | Carries / match | 39.8 | ±5 |
-| Turnovers won | 2.5 | ±0.5 |
+| Turnovers won | 1.8 (was 2.5) | ±0.5 |
 | Knock-ons | 3.0 | ±0.6 |
-| Home win share | 51.6% | ±5pp |
+| Home win share | 56.5% (was 51.6%) | ±5pp |
 
 Plus new spatial-only metrics with bands from real Premiership data: line breaks/match (~10), defenders beaten (~25), offloads (~10), metres carried (~450/team). When spatial and legacy disagree, the question is "which matches real rugby?" — answered with the harness, never by feel alone.
 

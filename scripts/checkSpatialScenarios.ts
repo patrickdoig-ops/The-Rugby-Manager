@@ -35,8 +35,8 @@ import type { AgentSetup, ContactAgentSetup } from './spatialScenarioKit.js';
 import { commitRuck } from '../src/engine/spatial/RuckCommitment.js';
 import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
 import { deriveTopSpeed, SPATIAL_DT } from '../src/engine/balance/spatialSteering.js';
-import { CARRY_CORRIDOR_TICKS } from '../src/engine/balance/spatialShape.js';
-import { solveDefence, solveCarryCorridor, solveAttackSpread } from '../src/engine/spatial/ShapeSolver.js';
+import { CARRY_CORRIDOR_TICKS, COVER_DEFENCE } from '../src/engine/balance/spatialShape.js';
+import { solveDefence, solveCarryCorridor, solveAttackSpread, reanchorDefence } from '../src/engine/spatial/ShapeSolver.js';
 import { isForwardSlot } from '../src/engine/Slot.js';
 import type { ShapeParams } from '../src/engine/spatial/ShapeSolver.js';
 
@@ -841,6 +841,37 @@ const scenarios: Scenario[] = [
       if (!(bfYs[0] > 25)) {
         return `backfield still ruck-bunched near the touchline: nearest at y=${bfYs[0].toFixed(0)}`;
       }
+      return null;
+    },
+  },
+  {
+    name: 'shape-realism: cover defence — the nearest deep defender steps UP to meet a carrier who has broken the line',
+    run: () => {
+      const markX = 50, markY = 50;
+      const world = buildScenarioWorld({
+        home: [{ x: markX, y: markY, target: null }],
+        away: Array.from({ length: 15 }, (_, i) => ({ x: 53, y: 8 + i * 6, tackling: 60, positioning: 70, stamina: 80, pace: 70, target: null })),
+        ball: { x: markX, y: markY },
+      });
+      const p = { attackSide: 'home' as const, defendSide: 'away' as const, attackDir: 1 as const, mark: { x: markX, y: markY }, defensiveLine: 'hybrid' as const, backfield: 2 as const, defendDiscipline: 'balanced' as const, attackingStyle: 'balanced' as const, carrierSlot: 1 };
+      const roles = solveDefence(world, p);
+      const bf = roles.filter(r => r.isBackfield);
+      if (bf.length !== 2) return `expected 2 backfielders, got ${bf.length}`;
+      const beforeX = bf.map(r => r.agent.intent.target!.x);
+      // The carrier breaks PAST the line, into the lower backfielder's channel (y=40).
+      const carrier = world.agents[0];
+      carrier.pos.x = markX + 12;  // well past the standOff line
+      carrier.pos.y = 40;
+      reanchorDefence(roles, carrier, p);
+      // Exactly one backfielder (the nearest) must step UP to the cover point
+      // (goal-side of the carrier, in his channel); the other holds deep.
+      const coverX = carrier.pos.x + p.attackDir * COVER_DEFENCE.leadAhead;
+      const stepped = bf.filter(r => Math.abs(r.agent.intent.target!.x - coverX) < 1 && Math.abs(r.agent.intent.target!.y - carrier.pos.y) < 1);
+      if (stepped.length !== 1) return `expected exactly 1 backfielder to cover the break, got ${stepped.length}`;
+      // The other must NOT have moved up (still at its deep hold).
+      const held = bf.filter(r => !stepped.includes(r));
+      const heldMovedUp = held.some((r, i) => Math.abs(r.agent.intent.target!.x - beforeX[bf.indexOf(r)]) > 1);
+      if (heldMovedUp) return `the far-side backfielder abandoned its deep hold (only the nearest should cover)`;
       return null;
     },
   },

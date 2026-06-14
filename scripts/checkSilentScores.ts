@@ -164,7 +164,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // home-win headroom to absorb the small turnover lift). Every § 13 band holds on the
 // 5-seed sweep with comfortable margins (pts 25.51, tries 3.93, pen 11.98, tackAtt 64.51,
 // tackMade 62.62, TO 2.19, home-win 50.22).
-const GOLDEN = 'bd2c88ad4a517b29dbba8b922e9bc8696dd564de35e54cce05ff72fd94bd8c4e';
+//
+// Shape-realism (cover defence): once the carrier breaks PAST the line, the nearest
+// deep backfielder now steps UP to make the cover tackle (COVER_DEFENCE) instead of
+// holding deep and conceding the gain; the other holds for kick/far-side cover.
+// Whether the break is shut down is emergent (a fast carrier still beats the cover).
+// Low scoring impact, modest defensive lift; every § 13 band holds on the 5-seed sweep
+// (pts 25.49, tries 3.94, pen 11.95, tackAtt 64.34, tackMade 62.46, TO 2.18,
+// home-win 53.11).
+const GOLDEN = '5b4e6889f0b7633ca4e4d36bcf7cccc2050d85060546c4ce8c61e30ed03a9fa6';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

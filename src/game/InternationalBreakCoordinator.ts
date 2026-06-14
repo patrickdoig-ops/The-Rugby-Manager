@@ -234,14 +234,6 @@ export class InternationalBreakCoordinator {
     applySeasonEvent(this.state, { type: 'PREM_CUP_ROUND_SHOWN', roundKey });
   }
 
-  // Display-only calendar advance to a cup matchday's date. Safe to call with
-  // an earlier or later date — leg scoping is independent of calendar.date.
-  advanceCupCalendar(toDate: string): void {
-    if (toDate && toDate !== this.state.calendar.date) {
-      applySeasonEvent(this.state, { type: 'MATCHDAY_ADVANCED', toDate });
-    }
-  }
-
   // Record a live cup pool match the player just played. Applies condition +
   // injury (NOT season stats — cup stays out of league leaderboards), then
   // sims the rest of that matchday headless and seeds/sims the knockout when

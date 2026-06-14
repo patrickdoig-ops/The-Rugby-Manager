@@ -178,6 +178,10 @@ export interface SavedSeason {
   // European competitions system.
   europeanCup?: import('../types/gameState').EuropeanCompState | null;
   europeanShield?: import('../types/gameState').EuropeanCompState | null;
+  // Fan sentiment meter (0–100). Additive-optional — absent on legacy saves
+  // (treated as 50 by all consumers). Persisted when non-default so the
+  // season-long value survives save/load.
+  fanSentiment?: number;
 }
 
 function emptyState(): GameState {
@@ -465,6 +469,14 @@ export class GameCoordinator {
         scouting: Object.fromEntries(
           Object.entries(save.scouting).map(([k, v]) => [Number(k), { ...v }]),
         ),
+      });
+    }
+    if (save.fanSentiment !== undefined) {
+      // Restore fan sentiment directly: fire a delta from the default (50) to
+      // the saved value so the clamping path in the reducer is honoured.
+      applySeasonEvent(coord.state, {
+        type: 'FAN_SENTIMENT_UPDATED',
+        delta: save.fanSentiment - 50,
       });
     }
     eventBus.emit('game:initialized', { state: coord.state });
@@ -1231,7 +1243,7 @@ export class GameCoordinator {
       homeStats: snapshot.homeSummary,
       awayStats: snapshot.awaySummary,
       attendance: homeJson?.stadiumCapacity
-        ? computeAttendance(fixture, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results)
+        ? computeAttendance(fixture, homeJson.stadiumCapacity, this.state.league.standings, this.state.league.results, this.state.player.fanSentiment)
         : undefined,
     };
     applySeasonEvent(this.state, { type: 'FIXTURE_RESULT_RECORDED', result });
@@ -1775,6 +1787,9 @@ export class GameCoordinator {
         : {}),
       ...(this.state.player.scouting && Object.keys(this.state.player.scouting).length > 0
         ? { scouting: this.state.player.scouting }
+        : {}),
+      ...(this.state.player.fanSentiment !== undefined
+        ? { fanSentiment: this.state.player.fanSentiment }
         : {}),
       // Persist European competition states (not replayable from `results`).
       ...(this.state.league.europeanCup

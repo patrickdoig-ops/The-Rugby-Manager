@@ -609,6 +609,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       for (const club of state.career.clubs) {
         if (club.staffBudgetBoost) club.staffBudgetBoost = 0;
       }
+      // Fan sentiment is per-season — reset to neutral at rollover.
+      state.player.fanSentiment = 50;
       return;
     }
     case 'PLAYOFF_BRACKET_SEEDED': {
@@ -1197,6 +1199,11 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         if (!comp.shownRounds) comp.shownRounds = [];
         if (!comp.shownRounds.includes(event.roundKey)) comp.shownRounds.push(event.roundKey);
       }
+      return;
+    }
+    case 'FAN_SENTIMENT_UPDATED': {
+      const current = state.player.fanSentiment ?? 50;
+      state.player.fanSentiment = Math.max(0, Math.min(100, current + event.delta));
       return;
     }
     case 'EUROPEAN_KNOCKOUT_RECORDED': {

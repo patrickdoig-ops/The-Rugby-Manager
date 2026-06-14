@@ -38,6 +38,9 @@ export function showBoardConfidence(): void {
           <div class="cm-factor-detail">${f.detail}</div>
         </div>
       </div>`).join('');
+    const sentiment = state.player.fanSentiment ?? 50;
+    const sentimentLabel = sentiment > 75 ? 'Excellent' : sentiment >= 55 ? 'Good' : sentiment >= 35 ? 'Steady' : 'Poor';
+    const sentimentTone = sentiment > 75 ? 'positive' : sentiment >= 35 ? 'neutral' : 'negative';
     return `
       <div class="cm-board">
         <div class="cm-board-hero cm-board-hero--${band.key}">
@@ -49,6 +52,13 @@ export function showBoardConfidence(): void {
         <div class="cm-board-factors">
           <div class="cm-section-label">What's driving it</div>
           ${factorsHtml}
+          <div class="cm-factor cm-factor--${sentimentTone}">
+            <span class="cm-factor-dot" aria-hidden="true"></span>
+            <div class="cm-factor-body">
+              <div class="cm-factor-label">Fan sentiment</div>
+              <div class="cm-factor-detail">${Math.round(sentiment)} / 100 — ${sentimentLabel}. ${sentiment < 30 ? 'Discontent in the stands is beginning to affect the board\'s patience.' : sentiment > 75 ? 'The fans are right behind you — a real boost on matchday.' : 'Fans are broadly satisfied with the direction of the club.'}</div>
+            </div>
+          </div>
         </div>
         <p class="cm-board-note">The owner's confidence rises when you win — especially against stronger sides — and falls after defeats, hardest when you were favourites. Losing runs hurt most. Meet your season objective and you'll keep the board onside; fall well short and your position comes under threat.</p>
       </div>`;

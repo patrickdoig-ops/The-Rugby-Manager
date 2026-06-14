@@ -729,6 +729,12 @@ export interface GameState {
     // and have no entry here. Not present on legacy saves — falls back
     // gracefully (no scouting progress, no assigned scouts).
     scouting?: Record<number, ScoutingRecord>;
+    // Fan sentiment meter, 0–100. Absent on legacy saves — falls back to 50
+    // (neutral). Moved by match results (±2 per win/loss, ±1 draw; doubled
+    // for derbies; +0.5 on a win with attacking tactics). Drives a small
+    // attendance multiplier and a board-confidence pressure below 30.
+    // Set via FAN_SENTIMENT_UPDATED.
+    fanSentiment?: number;
   };
   seed: number;
   career: CareerState;
@@ -1662,6 +1668,15 @@ export type SeasonEvent =
       type: 'EUROPEAN_ROUND_SHOWN';
       competition: 'europeanCup' | 'europeanShield';
       roundKey: string; // 'pool:1'-'pool:4' | 'r16' | 'qf' | 'sf' | 'final'
+    }
+  | {
+      // Moves the fan-sentiment meter by `delta`, clamping the result to
+      // [0, 100]. Fired after each player match result: +2 win, -2 loss,
+      // +1 draw; ×2 for derby fixtures; +0.5 for a win with attacking tactics.
+      // Consumed by BoardConfidenceScreen (display) and computeAttendance
+      // (attendance multiplier: 0.9 + sentiment/500, so 50 → ×1.0).
+      type: 'FAN_SENTIMENT_UPDATED';
+      delta: number;
     };
 
 // Reference to a completeable European round — returned by

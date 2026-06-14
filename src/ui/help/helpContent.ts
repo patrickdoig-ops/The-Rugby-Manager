@@ -293,10 +293,12 @@ const HELP_TOPICS = {
     features: [
       { label: 'Confidence meter', desc: 'Your current standing with the board, from secure to at-risk.' },
       { label: 'Factors', desc: 'What is helping or hurting — results, league position and meeting season objectives.' },
+      { label: 'Fan sentiment', desc: 'How supporters feel right now (0–100: Poor / Steady / Good / Excellent). Wins add to it, losses reduce it, derbies double the swing. Very low sentiment (below 30) adds pressure on the board.' },
     ],
     tips: [
       'A run of poor results drains confidence — a warning means your job is under threat.',
       'Meeting the board’s season objective is the surest way to stay in post.',
+      'Keep fan sentiment high — it boosts matchday attendance and eases board pressure.',
     ],
   },
   'staff': {

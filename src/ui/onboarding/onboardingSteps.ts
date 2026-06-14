@@ -372,11 +372,10 @@ export const PHASE1_STEPS: OnboardingStep[] = [
   {
     id: 'transfers',
     screen: 'transfer-market',
-    target: '.tm-row',
     advance: 'next',
     cta: 'Got it',
-    title: 'Sign a free agent',
-    body: 'Available players show here with their rating and wage. Make an offer within your budget to sign one — a smart addition can cover a weak spot. Tap Continue to head back when you are done.',
+    title: 'How transfers work',
+    body: 'This is the free-agent market — where you sign available players within your wage budget. Because you chose Quick Start, you inherited a complete squad with the wage budget already committed, so there is nothing to sign right now. This is where you will do business in future seasons as contracts free up — or from day one if you begin a new game in Squad Builder mode. Tap Continue to head back when you are done.',
   },
   {
     id: 'ct-loans',

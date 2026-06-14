@@ -452,6 +452,8 @@ function aggregateMatch(
         s.key === 'line_break_try' || s.key === 'dominant_carry_try' || s.key === 'maul_try'
       )
     )) continue;
+    // Substitution is a game event, not a phase — exclude from phase frequency.
+    if (e.phase === MatchPhase.Substitution) continue;
     agg.phaseCount.set(e.phase, (agg.phaseCount.get(e.phase) ?? 0) + 1);
 
     for (const step of e.narration.steps) {

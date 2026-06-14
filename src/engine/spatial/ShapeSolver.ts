@@ -24,8 +24,9 @@ import {
   DEFENCE_REANCHOR,
   LINE_SLOT_COUNT,
   LINE_OPEN_REDIRECT_CAP,
+  DEFENCE_SPACING,
   BACKFIELD_DEPTH,
-  BACKFIELD_SPREAD,
+  BACKFIELD_PITCH_SPLIT,
   OFFSIDE,
   OFFSIDE_TEAM_SCALE,
   CARRY_CORRIDOR,
@@ -139,12 +140,13 @@ export function solveDefence(world: World, p: ShapeParams): LineRole[] {
   const lineDefenders = defenders.filter(d => !backfield.has(d));
   const roles: LineRole[] = [];
 
-  // Lay out front-line slots centred on the mark's y, spaced by the tactic's
-  // slotSpacing — with blindside slots that would clamp against a near touchline
-  // redistributed to the OPEN side instead of packing (lineSlotYs). Assign nearest
-  // defender to each slot greedily IN ORDER (centre-out from the ruck): this fills
-  // the carrier's channel + inside FIRST with the closest defenders, fanning out —
-  // the right defensive priority (cover the threat, then the width).
+  // Lay out front-line slots centred on the mark's y under the tactic's slotSpacing
+  // SCALE — a density gradient (tight at the ruck, wider toward the edge, lineSlotYs)
+  // with blindside slots that would clamp against a near touchline redistributed to
+  // the OPEN side instead of packing. Assign nearest defender to each slot greedily
+  // IN ORDER (centre-out from the ruck): this fills the carrier's channel + inside
+  // FIRST with the closest defenders, fanning out — the right defensive priority
+  // (cover the threat, then the width).
   const slotCount = Math.min(LINE_SLOT_COUNT, lineDefenders.length);
   const slotYs = lineSlotYs(p.mark.y, slotCount, cfg.slotSpacing);
 
@@ -168,14 +170,19 @@ export function solveDefence(world: World, p: ShapeParams): LineRole[] {
     roles.push({ agent, slotY: agent.pos.y, isBackfield: false });
   }
 
-  // Backfield: post deep, spread laterally around the mark.
+  // Backfield: post deep, split PITCH-CENTRED (around the y=50 midline) so the back
+  // three cover the WHOLE width regardless of the ruck's lateral position — a wide
+  // ruck no longer strands both deep defenders on the near touchline (shape-realism).
+  // A single backfielder sits on the midline. Depth stays mark-relative (backX).
   const bfAgents = [...backfield];
   for (let i = 0; i < bfAgents.length; i++) {
-    const offset = bfAgents.length === 1 ? 0 : (i === 0 ? -BACKFIELD_SPREAD / 2 : BACKFIELD_SPREAD / 2);
+    const y = bfAgents.length === 1
+      ? 50
+      : (i === 0 ? 50 - BACKFIELD_PITCH_SPLIT : 50 + BACKFIELD_PITCH_SPLIT);
     const agent = bfAgents[i];
     agent.role = 'idle';
-    agent.intent.target = { x: backX, y: clampY(p.mark.y + offset) };
-    roles.push({ agent, slotY: p.mark.y + offset, isBackfield: true });
+    agent.intent.target = { x: backX, y: clampY(y) };
+    roles.push({ agent, slotY: clampY(y), isBackfield: true });
   }
 
   return roles;
@@ -327,18 +334,29 @@ function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
   }
 }
 
-// Lateral slot ys, centred on `centreY`, alternating out: 0, +s, -s, +2s, -2s …
-function lineSlotYs(centreY: number, count: number, spacing: number): number[] {
-  // Centre-out alternating slots (ruck guard, then ±spacing out), BUT a slot that
+// Lateral slot ys, centred on `centreY`, alternating out from the ruck. Spacing is a
+// DENSITY GRADIENT (shape-realism): tight next to the ruck (guards + tight forwards),
+// progressively wider toward the edge (backs marking wide). `cumGap[n]` is the
+// distance of the n-th slot out from the centre — the cumulative sum of gaps that
+// grow from innerRatio·scale to outerRatio·scale across `spreadSlots`.
+function lineSlotYs(centreY: number, count: number, scale: number): number[] {
+  // Centre-out alternating slots (ruck guard, then ±cumGap out), BUT a slot that
   // would clamp against a near touchline is redirected to extend the OTHER side
-  // instead of packing against the line. So a wide ruck spreads its defenders
-  // across the open field (the user's "bunched on the touchline" fix) while a
-  // central ruck — where nothing clamps — is byte-identical to the old symmetric
-  // layout (same positions AND order), preserving the tuned fold/2-on-1 behaviour.
-  // Generation order is preserved (centre-out, − side first on ties) so the
-  // greedy in-order assignment in solveDefence keeps its cover-the-threat-first
-  // priority.
+  // instead of packing against the line — so a wide ruck spreads its defenders
+  // across the open field. Generation order is preserved (centre-out, − side first
+  // on ties) so the greedy in-order assignment in solveDefence keeps its
+  // cover-the-threat-first priority.
   const LO = 3, HI = 97;  // clampY bounds
+  // Cumulative per-side slot distances under the gradient. Built generously long
+  // (count + redirect headroom) so the open-side redirect can never index past it.
+  const inner = scale * DEFENCE_SPACING.innerRatio;
+  const outer = scale * DEFENCE_SPACING.outerRatio;
+  const cumGap: number[] = [0];
+  const maxIdx = count + LINE_OPEN_REDIRECT_CAP + 2;
+  for (let k = 1; k < maxIdx; k++) {
+    const t = DEFENCE_SPACING.spreadSlots > 0 ? Math.min(1, (k - 1) / DEFENCE_SPACING.spreadSlots) : 1;
+    cumGap.push(cumGap[k - 1] + inner + (outer - inner) * t);
+  }
   const ys: number[] = [clampY(centreY)];  // ruck guard (i = 0)
   let posRank = 0;  // ranks already placed on the +y side
   let negRank = 0;  // ranks already placed on the −y side
@@ -346,14 +364,14 @@ function lineSlotYs(centreY: number, count: number, spacing: number): number[] {
   for (let i = 1; i < count; i++) {
     const wantNeg = i % 2 === 1;  // original alternation: i=1,3,5… take the −y side first
     if (wantNeg) {
-      const y = centreY - (negRank + 1) * spacing;
+      const y = centreY - cumGap[negRank + 1];
       if (y >= LO) { negRank++; ys.push(y); }
-      else if (redirects < LINE_OPEN_REDIRECT_CAP) { redirects++; posRank++; ys.push(clampY(centreY + posRank * spacing)); }
+      else if (redirects < LINE_OPEN_REDIRECT_CAP) { redirects++; posRank++; ys.push(clampY(centreY + cumGap[posRank])); }
       else { negRank++; ys.push(clampY(y)); }  // cap reached: pack the touchline as before
     } else {
-      const y = centreY + (posRank + 1) * spacing;
+      const y = centreY + cumGap[posRank + 1];
       if (y <= HI) { posRank++; ys.push(y); }
-      else if (redirects < LINE_OPEN_REDIRECT_CAP) { redirects++; negRank++; ys.push(clampY(centreY - negRank * spacing)); }
+      else if (redirects < LINE_OPEN_REDIRECT_CAP) { redirects++; negRank++; ys.push(clampY(centreY - cumGap[negRank])); }
       else { posRank++; ys.push(clampY(y)); }
     }
   }

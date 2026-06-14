@@ -13,11 +13,13 @@ import type { DefensiveLine, AttackingStyle } from '../../types/team';
 
 // ── Defensive line slots (Upgrade.md § 5.2 "Line model") ──────────────────
 // Defenders fill slots on a line anchored at the breakdown/mark. Slots are laid
-// out laterally either side of the mark; spacing is the gap between adjacent
-// slots. Blitz packs tight + sets up flat (fast line speed eats space); drift
-// spreads wide + sets deeper (lateral slide shepherds to touch); hybrid sits
-// between. Spacing is in lateral coord-units; standOff is how far in FRONT of
-// the mark (toward the attacking side, against attackDir) the line sets.
+// out laterally either side of the mark; `slotSpacing` is now the SCALE of the
+// density gradient (DEFENCE_SPACING below) — the average inter-slot gap, tight at
+// the ruck and wider toward the edge — not a uniform gap. Blitz packs tight + sets
+// up flat (fast line speed eats space); drift spreads wide + sets deeper (lateral
+// slide shepherds to touch); hybrid sits between. Spacing is in lateral coord-units;
+// standOff is how far in FRONT of the mark (toward the attacking side, against
+// attackDir) the line sets.
 export const DEFENSIVE_LINE: Record<DefensiveLine, { slotSpacing: number; standOff: number; forwardPress: number; lateralTrack: number }> = {
   // `forwardPress` (0–1) is how hard the line advances UP onto the carrier as he
   // runs the corridor (Bug ③): blitz presses up fast, drift presses little and
@@ -49,6 +51,21 @@ export const DEFENCE_REANCHOR = {
 // 12 covers the realistic defensive front (15 − ~1-2 backfield − ruck bodies).
 export const LINE_SLOT_COUNT = 12;
 
+// Defensive-line DENSITY GRADIENT (shape-realism). A real drilled line is NOT
+// evenly spaced: it is TIGHT next to the ruck (the guards + tight forwards packed
+// to stop the close carry) and progressively WIDER toward the open edge (backs
+// marking wide attackers). Each per-side slot N sits at the cumulative sum of gaps,
+// where the gap grows from `innerRatio · slotSpacing` (the inner slots) to
+// `outerRatio · slotSpacing` (beyond `spreadSlots` out). The ratios are chosen so
+// the AVERAGE gap ≈ the old uniform `slotSpacing`, keeping the line's total extent
+// ~unchanged (minimal calibration shift) while redistributing it into the gradient.
+// `slotSpacing` (DEFENSIVE_LINE) is now the gradient SCALE, not a uniform gap.
+export const DEFENCE_SPACING = {
+  innerRatio: 0.72,
+  outerRatio: 1.35,
+  spreadSlots: 4,
+} as const;
+
 // When the ruck is wide, front-line slots that would clamp against the near
 // touchline are redistributed to the OPEN side instead of packing the touchline,
 // so the line spreads across the field rather than bunching (the "half the pitch
@@ -63,9 +80,16 @@ export const LINE_OPEN_REDIRECT_CAP = 2;
 // keyed by the backfieldDefence tactic. Posted via the pickFullback chain.
 export const BACKFIELD_COUNT = { one_back: 1, two_back: 2, three_back: 2 } as const;
 // How far behind the line (toward the defending try line, along attackDir) the
-// backfield posts, in coord-units. Lateral spread of a 2-deep backfield.
+// backfield posts, in coord-units.
 export const BACKFIELD_DEPTH = 22;
-export const BACKFIELD_SPREAD = 18;
+// Lateral spread of a 2-deep backfield, as |y| EITHER SIDE OF THE PITCH MIDLINE
+// (y=50) — PITCH-CENTRED, not ruck-centred (shape-realism). The back three cover
+// the WHOLE width of the field regardless of where the ruck is, so a wide ruck no
+// longer leaves both deep defenders bunched on the same touchline with the far
+// side open (the reference defensive shape splits 14/15 ~40 m apart across the
+// pitch). A single backfielder (one_back) sits on the midline. The DEPTH stays
+// mark-relative (BACKFIELD_DEPTH). Replaces the old ruck-centred BACKFIELD_SPREAD.
+export const BACKFIELD_PITCH_SPLIT = 16;
 
 // ── Offside plane (Upgrade.md § 5.2 "Offside discipline") ─────────────────
 // The line holds behind the offside plane (the mark) until ball-out. Creep is

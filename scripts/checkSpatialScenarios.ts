@@ -788,6 +788,63 @@ const scenarios: Scenario[] = [
     },
   },
   {
+    name: 'shape-realism: defensive line has a DENSITY GRADIENT — tight at the ruck, wider toward the edge',
+    run: () => {
+      // Central ruck so the line spreads both ways with no touchline clamping. The
+      // slot gaps must GROW from the ruck outward (guards/tight forwards packed,
+      // backs spread) — not be uniform.
+      setMatchSeed(0x5A7A1);
+      const world = buildScenarioWorld({
+        home: [{ x: 50, y: 50, target: null }],
+        away: Array.from({ length: 15 }, (_, i) => ({ x: 53, y: 8 + i * 6, tackling: 60, positioning: 70, stamina: 80, target: null })),
+        ball: { x: 50, y: 50 },
+      });
+      const roles = solveDefence(world, {
+        attackSide: 'home', defendSide: 'away', attackDir: 1, mark: { x: 50, y: 50 },
+        defensiveLine: 'hybrid', backfield: 2, defendDiscipline: 'balanced', attackingStyle: 'balanced', carrierSlot: 1,
+      });
+      // Slot ys on one side of the ruck, sorted outward; the gaps must increase.
+      const slotYs = roles.filter(r => !r.isBackfield).map(r => r.slotY).sort((a, b) => a - b);
+      const aboveMid = slotYs.filter(y => y >= 50);
+      if (aboveMid.length < 3) return `not enough open-side slots to measure a gradient (${aboveMid.length})`;
+      const innerGap = aboveMid[1] - aboveMid[0];
+      const outerGap = aboveMid[aboveMid.length - 1] - aboveMid[aboveMid.length - 2];
+      if (!(outerGap > innerGap + 1.5)) {
+        return `no density gradient: inner slot gap ${innerGap.toFixed(1)} ≈ outer slot gap ${outerGap.toFixed(1)} (expected outer materially wider)`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'shape-realism: backfield is PITCH-CENTRED — the back two split the field even at a near-touchline ruck',
+    run: () => {
+      // Ruck on the left touchline (y=10). The two deep defenders must straddle the
+      // y=50 midline (cover both halves) rather than bunching near the ruck's
+      // touchline — the old ruck-centred backfield left the far side open.
+      setMatchSeed(0x5A7A1);
+      const markY = 10;
+      const world = buildScenarioWorld({
+        home: [{ x: 50, y: markY, target: null }],
+        away: Array.from({ length: 15 }, (_, i) => ({ x: 53, y: 5 + i * 4, tackling: 60, positioning: 70, stamina: 80, target: null })),
+        ball: { x: 50, y: markY },
+      });
+      const roles = solveDefence(world, {
+        attackSide: 'home', defendSide: 'away', attackDir: 1, mark: { x: 50, y: markY },
+        defensiveLine: 'hybrid', backfield: 2, defendDiscipline: 'balanced', attackingStyle: 'balanced', carrierSlot: 1,
+      });
+      const bfYs = roles.filter(r => r.isBackfield).map(r => r.agent.intent.target!.y).sort((a, b) => a - b);
+      if (bfYs.length !== 2) return `expected 2 backfielders, got ${bfYs.length}`;
+      if (!(bfYs[0] < 50 && bfYs[1] > 50)) {
+        return `backfield not pitch-split: both on one side (${bfYs[0].toFixed(0)}, ${bfYs[1].toFixed(0)})`;
+      }
+      // And not bunched on the ruck's near touchline — the lower one is well off y=10.
+      if (!(bfYs[0] > 25)) {
+        return `backfield still ruck-bunched near the touchline: nearest at y=${bfYs[0].toFixed(0)}`;
+      }
+      return null;
+    },
+  },
+  {
     name: 'WP5: attacking style spreads the forward pods — wide_wide flings them wider than keep_it_tight',
     run: () => {
       // Same 15-man attack solved under two styles; the off-ball forward pods must

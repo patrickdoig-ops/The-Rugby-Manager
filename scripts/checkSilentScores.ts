@@ -141,7 +141,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // set-defence contact bonus was nudged 14→18 so tackles-made clears the fast-mode
 // (3-seed) floor with margin. Every § 13 band holds on the 5-seed sweep (pts 25.45,
 // tries 3.93, pen 12.41, tackAtt 62.88, tackMade 60.84, TO 2.10, home-win 54.67).
-const GOLDEN = '8f2719044ecce712be284050f64a4dcedf4874269e42a1879e0bb47f4f62c843';
+//
+// Shape-realism (defensive): the defensive line gained a DENSITY GRADIENT (tight at
+// the ruck, wider toward the edge — DEFENCE_SPACING) and the backfield became
+// PITCH-CENTRED (splits the field around y=50 instead of bunching on the ruck's
+// touchline — BACKFIELD_PITCH_SPLIT). The better-organised line lifts tackles back
+// toward baseline; outcomes shift accordingly (no breakdown re-tuning needed). Every
+// § 13 band holds on the 5-seed sweep (pts 24.51, tries 3.81, pen 12.03, tackAtt 65.40,
+// tackMade 63.46, TO 2.08, home-win 55.78).
+const GOLDEN = '6db8c4dc4beca2cbacc61b4d68204bbce843f2495d1aff8764a4fd3704b40acc';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

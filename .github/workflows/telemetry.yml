@@ -64,5 +64,6 @@ jobs:
             echo "No telemetry changes — skipping commit."
           else
             git commit -m "telemetry: refresh latest.md and latest.json (${GITHUB_SHA::7})"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi

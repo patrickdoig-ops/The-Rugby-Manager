@@ -438,6 +438,7 @@ function aggregateMatch(
 
   // Walk the (uncapped) events log for phase frequency, try origin, penalty
   // offence taxonomy, penalty choices, TMO lifecycle.
+  let prevCountedPhase: MatchPhase | undefined;
   for (let i = 0; i < state.events.length; i++) {
     const e = state.events[i];
     // Multiple events land with phase=TryScored per try: the carry-to-try
@@ -454,7 +455,18 @@ function aggregateMatch(
     )) continue;
     // Substitution is a game event, not a phase — exclude from phase frequency.
     if (e.phase === MatchPhase.Substitution) continue;
-    agg.phaseCount.set(e.phase, (agg.phaseCount.get(e.phase) ?? 0) + 1);
+    // Phase FREQUENCY counts each phase OCCURRENCE, not each beat. One lineout
+    // (or conversion, kick-off, penalty, box-kick) emits several consecutive
+    // same-phase beats — an announce beat plus the resolution beat — so counting
+    // raw beats over-states those phases ~2-3×. Collapse a run of identical
+    // phases into one occurrence. Substitutions and non-canonical try beats
+    // `continue` above, so they never split a run. Two occurrences of the same
+    // phase are never adjacent (other play always intervenes before the ball is
+    // back at, say, another lineout), so a phase change reliably marks a new one.
+    if (e.phase !== prevCountedPhase) {
+      agg.phaseCount.set(e.phase, (agg.phaseCount.get(e.phase) ?? 0) + 1);
+    }
+    prevCountedPhase = e.phase;
 
     for (const step of e.narration.steps) {
       if (step.kind === 'phase_outcome') {
@@ -488,14 +500,14 @@ function aggregateMatch(
 
     if (e.phase === MatchPhase.TryScored) {
       agg.totalTries++;
-      let origin: MatchPhase = MatchPhase.KickOff;
-      for (let j = i - 1; j >= 0; j--) {
-        const p = state.events[j].phase;
-        if (p !== MatchPhase.TryScored && p !== MatchPhase.ConversionKick) {
-          origin = p;
-          break;
-        }
-      }
+      // Try origin = the carry phase the try was actually grounded in (Maul,
+      // PhasePlay, FirstPhase, KickReturn). The carry-to-try beat is stamped
+      // phase=TryScored for the try highlight but carries its real phase in
+      // displayPhase — read that. The old approach walked the log backwards
+      // skipping TryScored/ConversionKick beats, which mis-attributed every
+      // maul try to the preceding LINEOUT (the maul's only beat IS the scoring
+      // beat, stamped TryScored, so the walk-back skipped straight past it).
+      const origin = e.displayPhase ?? e.phase;
       agg.tryOrigin.set(origin, (agg.tryOrigin.get(origin) ?? 0) + 1);
       // Lateral channel: derived from the canonical carry-to-try beat's frozen
       // ballY (same source lateralChannel labels the TRY_SCORED event from).
@@ -1058,7 +1070,7 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   lines.push('');
 
   // ── Phase frequency ─────────────────────────────────────────────────────
-  lines.push('## Phase frequency (events across all fixtures)');
+  lines.push('## Phase frequency (phase occurrences across all fixtures)');
   lines.push('');
   const combinedPhases = new Map<MatchPhase, number>();
   for (const a of aggs) {
@@ -1066,7 +1078,7 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
       combinedPhases.set(phase, (combinedPhases.get(phase) ?? 0) + n);
     }
   }
-  lines.push('| phase | events | per match |');
+  lines.push('| phase | occurrences | per match |');
   lines.push('|---|---:|---:|');
   for (const [phase, n] of [...combinedPhases.entries()].sort((a, b) => b[1] - a[1])) {
     lines.push(`| ${phase} | ${n} | ${fmt(n/totalFixtures, 1)} |`);
@@ -1074,7 +1086,7 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
   lines.push('');
 
   // ── Try origin ──────────────────────────────────────────────────────────
-  lines.push('## Try origin (phase immediately before each TRY_SCORED event)');
+  lines.push('## Try origin (carry phase each try was grounded in)');
   lines.push('');
   const totalTries = aggs.reduce((s, a) => s + a.totalTries, 0);
   lines.push(`Total tries: ${totalTries} (${fmt(totalTries/totalFixtures, 2)} per match).`);
@@ -1085,7 +1097,7 @@ function buildReport(aggs: SeasonAgg[], elapsedMs: number): string {
       combinedOrigin.set(phase, (combinedOrigin.get(phase) ?? 0) + n);
     }
   }
-  lines.push('| preceding phase | tries | share |');
+  lines.push('| scoring phase | tries | share |');
   lines.push('|---|---:|---:|');
   for (const [phase, n] of [...combinedOrigin.entries()].sort((a, b) => b[1] - a[1])) {
     lines.push(`| ${phase} | ${n} | ${pct(n, totalTries)} |`);

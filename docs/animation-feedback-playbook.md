@@ -153,9 +153,15 @@ Checklist, in order:
    on kick-off outcome beats).
 2. Possession-swap outcomes: `placeFormation` flips `dir` when `sideOf(primaryPlayer)`
    differs from the possession side — unless `defenderIsAttacker` (see R2.3).
-3. Lateral mirror: `mirrorY = nearTop !== (anchorY >= 50)`; mirrored frames swap paired
-   slots `11↔14, 1↔3, 6↔7` (owner decision; engine pipeline already swaps via
-   `flipX !== flipY`). If one pipeline swaps and the other doesn't, that's the bug.
+3. Lateral mirror: `mirrorY = nearTop !== (anchorY >= 50)`. A frame reflected on exactly
+   one axis (`swapLateral = (dir === -1) !== mirrorY`) swaps the laterally-paired slots
+   `11↔14, 1↔3, 6↔7` (via `swapPairedSlot`) so each role lands on its correct field side —
+   the same `flipX !== flipY` rule the engine choreography pipeline applies. Expect: the
+   open-side winger's role is on the open side of the field regardless of which touchline the
+   ball is on; the props (1↔3) and flankers (6↔7) follow suit; the front-five non-pair slots
+   (hooker #2, locks #4/#5) and all backs without a lateral pair stay put. Skipped for
+   `defenderIsAttacker` frames (pre-inverted, swap parity unverified — see R2.3). If one
+   pipeline swaps and the other doesn't, that's the bug.
 4. The lineout ball-on-touchline override keys on **`cachedEventPhase`**, never
    `display.phase` (the snapshot is captured after the transition).
 

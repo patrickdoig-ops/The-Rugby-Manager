@@ -9,6 +9,7 @@
 
 import type { GameState, FixtureResult } from '../types/gameState';
 import { playerOverall } from '../engine/RatingEngine';
+import { knockoutWinnerId } from '../game/knockoutWinner';
 
 export type AchievementCategory = 'match' | 'season' | 'career';
 
@@ -65,11 +66,10 @@ function wonSemiFinal(ctx: AchievementCtx): boolean {
   if (!p) return false;
   const id = ctx.playerTeamId;
   return p.semifinals.some(m => {
-    if (!m.result || (m.homeId !== id && m.awayId !== id)) return false;
-    const isHome = m.homeId === id;
-    const myScore  = isHome ? m.result.homeScore : m.result.awayScore;
-    const oppScore = isHome ? m.result.awayScore : m.result.homeScore;
-    return myScore > oppScore;
+    if (!m.result || !m.homeId || !m.awayId || (m.homeId !== id && m.awayId !== id)) return false;
+    // Resolve the advancing side via the shared helper so a kicks-decided semi
+    // (level score) still counts as a win for the side that went through.
+    return knockoutWinnerId(m.homeId, m.awayId, m.result.homeScore, m.result.awayScore, m.result.kickWinner) === id;
   });
 }
 

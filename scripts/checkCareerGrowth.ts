@@ -121,11 +121,11 @@ async function drainEuropean(coord: GameCoordinator, teamsById: Map<string, RawT
       // recording so the elapsed-week passes tick (competition-agnostic).
       const euroDate = fix.kind === 'pool' ? fix.fixture.date : (fix.match.date ?? '');
       if (euroDate) await coord.advanceMatchdayCalendar(euroDate);
-      const sim = await simulateFixture(home, away, state.seed, seedRound, { neutralVenue: isFinal });
+      const sim = await simulateFixture(home, away, state.seed, seedRound, { neutralVenue: isFinal, allowExtraTime: fix.kind === 'knockout' });
       if (fix.kind === 'pool') {
         await coord.recordPlayerEuropeanPoolResult(fix.competition, fix.fixture.poolId, fix.fixture.round, homeId, awayId, sim.homeScore, sim.awayScore, sim.snapshot);
       } else {
-        await coord.recordPlayerEuropeanKnockoutResult(fix.competition, fix.stage, fix.match.matchIndex, sim.homeScore, sim.awayScore, sim.snapshot);
+        await coord.recordPlayerEuropeanKnockoutResult(fix.competition, fix.stage, fix.match.matchIndex, sim.homeScore, sim.awayScore, sim.snapshot, sim.kickWinner);
       }
       coord.runEuropeanMatchdayTraining([HARNESS_TRAINING_PLAN]);
       continue;
@@ -155,8 +155,8 @@ async function playOutPlayoffs(coord: GameCoordinator): Promise<void> {
       const home = buildAutoSelectedTeamFromRoster(state, lookupTeam(m.homeId)!);
       const away = buildAutoSelectedTeamFromRoster(state, lookupTeam(m.awayId)!);
       const pseudoRound = stage === 'sf' ? 19 : 20;
-      const sim = await simulateFixture(home, away, state.seed, pseudoRound, { neutralVenue: m.kind === 'final' });
-      await coord.recordPlayerPlayoffResult(m.kind, sim.homeScore, sim.awayScore, sim.snapshot);
+      const sim = await simulateFixture(home, away, state.seed, pseudoRound, { neutralVenue: m.kind === 'final', allowExtraTime: true });
+      await coord.recordPlayerPlayoffResult(m.kind, sim.homeScore, sim.awayScore, sim.snapshot, sim.kickWinner);
     }
     await coord.simulatePendingPlayoffMatches(stage);
   }

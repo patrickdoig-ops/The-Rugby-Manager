@@ -156,7 +156,7 @@ export class PlayoffCoordinator {
       homeTries: snapshot.homeSummary.tries,
       awayTries: snapshot.awaySummary.tries,
       playerSide,
-    }, snapshot)) {
+    }, snapshot, kickWinner)) {
       applySeasonEvent(this.state, ev);
     }
     eventBus.emit('game:playoffsUpdated', { state: this.state });
@@ -220,7 +220,7 @@ export class PlayoffCoordinator {
         homeTries: sim.snapshot.homeSummary.tries,
         awayTries: sim.snapshot.awaySummary.tries,
         playerSide: null,
-      }, sim.snapshot)) {
+      }, sim.snapshot, sim.kickWinner)) {
         applySeasonEvent(this.state, ev);
       }
       eventBus.emit('game:playoffsUpdated', { state: this.state });

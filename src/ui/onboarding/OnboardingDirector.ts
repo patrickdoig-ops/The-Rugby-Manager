@@ -11,7 +11,8 @@
 // new game. No SAVE_VERSION bump. Replay from Settings clears the flag.
 
 import { onScreenShow, type ScreenId } from '../ScreenRouter';
-import { PHASE1_STEPS } from './onboardingSteps';
+import type { GameState } from '../../types/gameState';
+import { PHASE1_STEPS, type OnboardingResolution } from './onboardingSteps';
 import { showCoachMark, hideCoachMark } from './CoachMark';
 
 const KEY_DONE = 'rugbyOnboardingDone';
@@ -25,6 +26,7 @@ const SETTLE_MS = 300;
 let inited = false;
 let navStartTour: (() => void) | null = null;
 let navGoHub: (() => void) | null = null;
+let getState: (() => GameState | null) | null = null;
 let currentIndex = 0;
 let currentScreen: ScreenId | null = null;
 let pendingTimer: number | null = null;
@@ -123,6 +125,19 @@ function renderStep(idx: number): void {
     return;
   }
 
+  // Dynamic steps: resolve against live state. A step may drop itself entirely
+  // (e.g. no affordable assistant upgrade) or rewrite its copy/target.
+  let res: OnboardingResolution | undefined;
+  if (step.resolve) {
+    const state = getState?.() ?? null;
+    res = state ? step.resolve(state) : { skip: true };
+    if (res.skip) { skipStep(); return; }
+  }
+  const title = res?.title ?? step.title;
+  const body = res?.body ?? step.body;
+  const target = res?.target ?? step.target;
+  const advanceClick = res?.advanceClick ?? step.advanceClick;
+
   // Normal step. 'action' steps carry no advance button — the player taps the
   // spotlighted UI; only the persistent Skip remains. A `returnToHub` step's
   // button also navigates home, sparing a multi-level back-out. A `dismissible`
@@ -138,14 +153,25 @@ function renderStep(idx: number): void {
       : [];
   showCoachMark({
     eyebrow,
-    title: step.title,
-    body: step.body,
-    target: step.target,
+    title,
+    body,
+    target,
     placement: step.placement,
     buttons,
     onSkip: () => { hideCoachMark(); finish(); },
   });
-  if (step.advanceClick) attachClickAdvance(step.advanceClick);
+  if (advanceClick) attachClickAdvance(advanceClick);
+}
+
+// Drop the current step and move to the next, rendering it immediately when it
+// shares the current screen (otherwise wait for navigation). Used when a
+// dynamic step resolves to `skip`.
+function skipStep(): void {
+  cancelPending();
+  currentIndex += 1;
+  saveStep(currentIndex);
+  const next = PHASE1_STEPS[currentIndex];
+  if (next && next.screen === currentScreen) renderStep(currentIndex);
 }
 
 function onShow(id: ScreenId): void {
@@ -167,11 +193,16 @@ function onShow(id: ScreenId): void {
 // Wire the director once at startup, before the first Home render so it catches
 // the boot screen-show. `onStartTour` navigates from Home into team selection;
 // `onGoHub` returns to the Hub (used to smooth a multi-level menu back-out).
-export function initOnboarding(opts: { onStartTour: () => void; onGoHub: () => void }): void {
+export function initOnboarding(opts: {
+  onStartTour: () => void;
+  onGoHub: () => void;
+  getState: () => GameState | null;
+}): void {
   if (inited) return;
   inited = true;
   navStartTour = opts.onStartTour;
   navGoHub = opts.onGoHub;
+  getState = opts.getState;
   currentIndex = isDone() ? PHASE1_STEPS.length : Number(localStorage.getItem(KEY_STEP) ?? '0') || 0;
   onScreenShow(onShow);
 }

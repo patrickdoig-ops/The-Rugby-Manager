@@ -23,6 +23,19 @@
 // `returnToHub` — on a 'next' step, the button also navigates back to the Hub.
 
 import type { ScreenId } from '../ScreenRouter';
+import type { GameState } from '../../types/gameState';
+import { assistantAdvice, fmtStaffWage } from './staffAdvice';
+
+// Returned by a step's `resolve` to tailor it at render time. `skip: true` drops
+// the step entirely (the director advances past it); the other fields override
+// the static copy / target so a step can adapt to live game state.
+export interface OnboardingResolution {
+  skip?: boolean;
+  title?: string;
+  body?: string;
+  target?: string;
+  advanceClick?: string;
+}
 
 export interface OnboardingStep {
   id: string;
@@ -37,6 +50,8 @@ export interface OnboardingStep {
   returnToHub?: boolean;
   placement?: 'center' | 'bottom';
   dismissible?: boolean;
+  // Computed at render time against live state — adapt copy/target, or skip.
+  resolve?: (state: GameState) => OnboardingResolution;
 }
 
 export const PHASE1_STEPS: OnboardingStep[] = [
@@ -272,14 +287,71 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     body: 'A good assistant runs your cup ties better, and strong coaches sharpen training and scouting. Tap Staff to check your backroom.',
   },
   {
+    id: 'staff-budget',
+    screen: 'staff',
+    target: '.staff-budget-pill',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'Your staff salary budget',
+    body: 'This is your staff salary budget — a separate pot from your player wage budget, just for your coaching team.',
+    resolve: (s) => {
+      const a = assistantAdvice(s);
+      const spare = a.remaining > 0
+        ? `You have ${fmtStaffWage(a.remaining)} of it spare to spend.`
+        : 'It is fully committed right now.';
+      return { body: `This is your staff salary budget — a separate pot from your player wage budget, just for your coaching team. ${spare}` };
+    },
+  },
+  {
+    id: 'staff-upgrade-intro',
+    screen: 'staff',
+    advance: 'next',
+    cta: 'Show me',
+    title: 'Upgrade your assistant',
+    body: '',
+    resolve: (s) => {
+      const a = assistantAdvice(s);
+      if (!a.viable || !a.candidate) return { skip: true };
+      if (a.needRelease && a.current) {
+        return { body: `Let's put that spare budget to work. ${a.candidate.name} (rated ${a.candidate.rating}) would be an upgrade on your current assistant, ${a.current.name} (rated ${a.current.rating}). First, release ${a.current.name} to free up the wage.` };
+      }
+      return { body: `Your assistant slot is open and you can afford ${a.candidate.name} (rated ${a.candidate.rating}). Let's bring them in.` };
+    },
+  },
+  {
+    id: 'staff-release',
+    screen: 'staff',
+    advance: 'action',
+    title: 'Release your current assistant',
+    body: '',
+    resolve: (s) => {
+      const a = assistantAdvice(s);
+      if (!a.viable || !a.needRelease || !a.current) return { skip: true };
+      const sel = `.staff-btn--release[data-id="${a.current.id}"]`;
+      return { target: sel, advanceClick: sel, body: `Tap Release on ${a.current.name} to free up their wage — don't worry, they go back into the hiring pool.` };
+    },
+  },
+  {
     id: 'staff-hire',
     screen: 'staff',
-    target: '.staff-btn--hire',
+    advance: 'action',
+    title: 'Hire your new assistant',
+    body: '',
+    resolve: (s) => {
+      const a = assistantAdvice(s);
+      if (!a.viable || !a.candidate) return { skip: true };
+      const sel = `.staff-btn--hire[data-id="${a.candidate.id}"]`;
+      return { target: sel, advanceClick: sel, body: `Now hire ${a.candidate.name} — rated ${a.candidate.rating}, ${fmtStaffWage(a.candidate.annualWage)}/yr, comfortably within budget. Tap Hire.` };
+    },
+  },
+  {
+    id: 'staff-done',
+    screen: 'staff',
     advance: 'next',
     cta: 'Back to Hub',
     returnToHub: true,
-    title: 'Hire your backroom',
-    body: 'Each role has a hire slot and a wage. Bring in the best you can afford — a top assistant manager especially pays off if you delegate the cup. When you are done, this takes you back to the Hub.',
+    title: 'Backroom sorted',
+    body: 'A strong assistant manager improves your suggested line-ups and training — and runs your League Cup ties better when you delegate them. You can hire fitness and scouting staff here too. This takes you back to the Hub.',
   },
   {
     id: 'hub-contracts',

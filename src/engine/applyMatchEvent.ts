@@ -99,10 +99,17 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
         case 'line_break':
           carrier.matchStats.lineBreaks++;
           carrier.matchStats.defendersBeaten++;
-          // Non-try line break: cover defender finishes the tackle.
-          // Initial defender keeps the missed tackle (attempted only).
+          // Non-try line break: the initial defender is BEATEN — they keep the
+          // missed tackle (attempted at the top, no make). The cover defender
+          // is a SECOND tackler who completes the stop, so they record their
+          // OWN attempt + make (mirrors the assist-tackler accounting below).
+          // Counting only the cover's make — as before — hid every covered
+          // break, inflating team tackle completion toward 100%; now a covered
+          // break is correctly 2 attempts / 1 make.
           if (event.coverTackler) {
+            event.coverTackler.matchStats.tacklesAttempted++;
             event.coverTackler.matchStats.tacklesMade++;
+            state.stats.tackles[defSide].attempted++;
             state.stats.tackles[defSide].made++;
           }
           break;

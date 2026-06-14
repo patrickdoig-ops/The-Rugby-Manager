@@ -181,7 +181,14 @@ const ROOT_SEED = 0xDEADBEEF;
 // equal-pack floor (~19% maul_won); (3) trimmed the won-gain bands (5-10/15-25 →
 // 4-8/12-18, longDrivePct 10 → 6) so won mauls make less ground and cross the line less.
 // Golden re-derived after merging the cover-defence change with the maul nerf.
-const GOLDEN = 'ec6a5a8a5e94329cd088add6dcdde776315abf6a68697a40401bc4eb16f51aef';
+//
+// Tackle-stat accounting fix: a non-try line break now records the COVER
+// tackler's own attempt (not just their make), so a covered break is 2
+// attempts / 1 make. Previously the cover's make was counted without an
+// attempt, hiding every covered break and inflating team tackle completion
+// toward ~97%; the corrected figure is ~82%. Stat-only change — scorelines are
+// unaffected, but the per-match summary tackle counts shift, so the hash moves.
+const GOLDEN = 'ba6d7fe8670e3219a7b712b2dc0bc6d36ecd3afb4f5e0736258ebb0c1dfa4172';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

@@ -1098,7 +1098,7 @@ collisionDefend = (defender.tackling + defender.strength) / 2 + rng(1,20)
 
 All outcomes → Breakdown.
 
-**Tackle statistics:** `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` — credited to the **primary** defender (picked via `pickPrimaryDefender` — channel-aware, see below). `tackles.made` is incremented for `dominant_tackle`, `dominant_carry`, and `play_on` (same primary defender). On a `line_break` that **does not** reach the try line, a cover tackler is selected via `pickCoverDefender(defendTeam, state, defSide)` (`src/engine/FieldPosition.ts`) — weighted pick over the on-field back three (fullback 60%, each wing 20%, degrading to any on-field back) — and credited with `tacklesMade++` plus the team-level `tackles[defSide].made++`. The initial defender keeps the missed tackle.
+**Tackle statistics:** `tackles.attempted` is incremented for `dominant_tackle`, `dominant_carry`, `play_on`, and `line_break` — credited to the **primary** defender (picked via `pickPrimaryDefender` — channel-aware, see below). `tackles.made` is incremented for `dominant_tackle`, `dominant_carry`, and `play_on` (same primary defender). On a `line_break` that **does not** reach the try line, a cover tackler is selected via `pickCoverDefender(defendTeam, state, defSide)` (`src/engine/FieldPosition.ts`) — weighted pick over the on-field back three (fullback 60%, each wing 20%, degrading to any on-field back) — and credited with its OWN `tacklesAttempted++` AND `tacklesMade++` (plus the team-level `tackles[defSide].attempted++`/`made++`), exactly like an assist tackler: the cover defender is a second tackler who completes the stop. The initial (beaten) defender keeps the missed tackle (its attempt from the top of the reducer, no make). So a covered line break is **2 attempts / 1 make** at team scope — counting only the cover's make (the historical behaviour) hid every covered break and inflated team tackle completion toward 100% (~97% measured); the corrected figure is ~82%, and missed-tackles-per-match now equal line-breaks-per-match.
 
 **Channel-aware primary defender** (`pickPrimaryDefender(team, state, side, carrier)`). The defender on every `CARRY_RESOLVED`-emitting carry path is drawn from a weighted pool chosen by the carrier's matchday slot — replacing the historical uniform-random pick that biased tackle leaderboards toward backs. Three channels (tables in `src/engine/balance/tackling.ts`):
 - **Hard channel** (carrier slot 1-9 — forward carry or scrum-half pickup): back row × 18/18/15, locks × 14/14, front row × 7/8/7, plus token close-channel centres × 4/3.
@@ -1127,7 +1127,7 @@ When Out the Back (PhasePlay), Crash Ball, or Wide Play (FirstPhase) paths are t
 | all four collision outcomes | ballCarrier | `carries++`, `metresCarried += gainMetres` |
 | all four collision outcomes | primary defender (channel-aware pick) | `tacklesAttempted++` |
 | `line_break` | ballCarrier | `lineBreaks++`, `defendersBeaten++` |
-| `line_break` (non-try only) | coverTackler (FB 60% / wing 20% each) | `tacklesMade++` |
+| `line_break` (non-try only) | coverTackler (FB 60% / wing 20% each) | `tacklesAttempted++`, `tacklesMade++` |
 | `dominant_carry` | ballCarrier | `defendersBeaten++` |
 | `dominant_tackle` | primary defender | `tacklesMade++`, `dominantTackles++` |
 | `dominant_carry` or `play_on` | primary defender | `tacklesMade++` |

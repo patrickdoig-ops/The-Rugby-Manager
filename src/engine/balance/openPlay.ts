@@ -157,3 +157,23 @@ export const OPEN_PLAY_VALUES = {
   defenderTacklingWeight: 0.5,
   defenderStrengthWeight: 0.5,
 } as const;
+
+// Cover-beat run-on. A clean line break (the defensive line is pierced) that
+// falls SHORT of the try line on its carry metres is not dead: the carrier now
+// races the last line of defence — the covering fullback / winger — to the line.
+// Beating the cover runs the break on to a try; being caught is the normal cover
+// tackle (→ Breakdown). The chance of beating the cover is DISTANCE-GRADED: near
+// the line a single covering defender is easily beaten, but the further back the
+// break is the more defenders can converge, so the chance decays to zero by
+// `decayRange` metres out. This is the lever that turns line breaks into tries —
+// most breaks happen 22m+ out where the metres draw alone rarely reaches, so
+// without the run-on conversion sits at ~16%; the run-on lifts it to the
+// real-world ~30-40% while leaving the line-break RATE (and tackle completion)
+// untouched. P(beat cover) = baseBeatPct × max(0, 1 − distToLine / decayRange).
+export const COVER_BEAT = {
+  // Probability (%) of beating the cover at the try line itself (distToLine → 0).
+  baseBeatPct: 88,
+  // Distance from the line (metres) at which the beat chance has decayed to 0.
+  // Breaks farther out than this never run on (too many defenders back).
+  decayRange: 55,
+} as const;

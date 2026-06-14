@@ -18,6 +18,7 @@ import {
   TRY_LINE_DEFENCE,
 } from './balance/carrying';
 import type { Zone } from './balance';
+import { COVER_BEAT } from './balance';
 
 // Home attacks toward x=100 in the first half, toward x=0 in the second.
 // Teams only swap ends at half-time, never on turnovers.
@@ -355,4 +356,15 @@ export function pickCoverDefender(team: Team, state: MatchState, side: Possessio
     return candidates[candidates.length - 1].p;
   }
   return onField.find(p => isBackSlot(p.id)) ?? onField[0] ?? team.players[0];
+}
+
+// Cover-beat run-on roll for a clean line break that fell SHORT of the try line.
+// The carrier races the covering defender to the line; the chance of beating the
+// cover is distance-graded — high at the line, decaying to 0 by COVER_BEAT.decayRange
+// metres out (more defenders converge the further back the break is). Returns true
+// if the carrier beats the cover and runs on to score. Consumes one outcome-stream
+// rng draw. See COVER_BEAT (balance/openPlay.ts). distToLine is in metres.
+export function breaksCover(distToLine: number): boolean {
+  const pct = COVER_BEAT.baseBeatPct * Math.max(0, 1 - distToLine / COVER_BEAT.decayRange);
+  return rng(1, 100) <= pct;
 }

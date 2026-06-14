@@ -188,7 +188,13 @@ const ROOT_SEED = 0xDEADBEEF;
 // attempt, hiding every covered break and inflating team tackle completion
 // toward ~97%; the corrected figure is ~82%. Stat-only change — scorelines are
 // unaffected, but the per-match summary tackle counts shift, so the hash moves.
-const GOLDEN = 'ba6d7fe8670e3219a7b712b2dc0bc6d36ecd3afb4f5e0736258ebb0c1dfa4172';
+//
+// Cover-beat run-on (line-break → try conversion): a clean line break short of
+// the line now rolls breaksCover() — the carrier races the cover to the line,
+// a distance-graded chance (COVER_BEAT). Lifts break→try conversion ~16% → ~34%
+// and tries 3.3 → ~5.5/match. New rng draw per short-of-line break shifts the
+// whole outcome stream by design.
+const GOLDEN = '4ae64a21dbfaa9953eb9667519f89e93d554feba3187af1131e9c474b810b271';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

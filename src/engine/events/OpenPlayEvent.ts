@@ -12,7 +12,7 @@ import type { CarrySimResult } from '../spatial/CarrySim';
 import { BACKFIELD_COUNT } from '../balance';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
-import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus, zoneForSide } from '../FieldPosition';
+import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, breaksCover, pickPrimaryDefender, pickAssistTackler, pickHardCarrier, pickPickAndGoCarrier, tryLineDefenceBonus, zoneForSide } from '../FieldPosition';
 import { sweepStep, emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { clamp } from '../../utils/math';
@@ -453,9 +453,21 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
   // be gated on a non-try line break. Include chainMetres so offload-chain
   // gains don't cause the projected position to undershoot the try line.
-  const projectedBallX = clamp(state.ball.x + direction * (chainMetres + res.gainMetres), 0, 100);
+  let projectedBallX = clamp(state.ball.x + direction * (chainMetres + res.gainMetres), 0, 100);
   const canScore = res.outcome === 'line_break' || res.outcome === 'dominant_carry';
-  const tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
+  let tryScored = canScore && isTryScoredAt(projectedBallX, attackSide, state.clock.halfTimeDone);
+
+  // Cover-beat run-on: a clean break short of the line — the carrier races the
+  // covering defender. Beating the cover (distance-graded — see breaksCover) runs
+  // the break on to the try line; otherwise the cover tackle stands below.
+  if (!tryScored && res.outcome === 'line_break') {
+    const distToLine = direction > 0 ? 100 - projectedBallX : projectedBallX;
+    if (breaksCover(distToLine)) {
+      res.gainMetres += distToLine;
+      projectedBallX = direction > 0 ? 100 : 0;
+      tryScored = true;
+    }
+  }
 
   const coverTackler = res.outcome === 'line_break' && !tryScored
     ? pickCoverDefender(defendTeam, state, defSide)

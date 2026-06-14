@@ -58,3 +58,30 @@ export const PASS_CHAIN = {
   // moving onto the ball, not standing still while it flies through him.
   runOnDepth: 4.0,
 } as const;
+
+// Play-overlay mechanism (Upgrade.md § 7.1; WP6). A selected play binds its named
+// roles to agents and installs their authored run-line waypoints as the Layer-1
+// steering source for the play's lifetime; Layers 2–3 (contact / utility veto) stay
+// live, and every play carries abort conditions evaluated per micro-tick. These
+// constants tune the ABORT geometry only — the run lines themselves are CONTENT in
+// src/data/playbook/ (CLAUDE.md content-vs-tuning rule). All abort checks read agent
+// positions (no rng): a play that the defence has read should die, deterministically,
+// so the familiarity penalty (defender read speed) can shift the rate predictably.
+// Coordinates are the 0–100 pitch; a coord-unit on the long axis ≈ 1 metre.
+export const PLAY_OVERLAY = {
+  // receiver_covered: the next receiver in the pass schedule has a defender within
+  // this radius when the pass is due → the picture is shut, abort to ShapeSolver.
+  receiverCoverRadius: 3.2,
+  // intercept_risk: a defender sits within this distance of the live pass lane
+  // (the segment from the current ball-holder to the next receiver) → the skip
+  // pass is into a covered channel, abort before throwing it.
+  interceptLaneRadius: 2.4,
+  // turnover: the strike runner is carrying the ball into a defender within this
+  // radius before he has completed his line (contact would resolve it anyway, but
+  // the play as a SET MOVE is dead) → revert so he runs it as a normal carry.
+  turnoverRadius: 2.6,
+  // The strike runner counts as ISOLATED (no bound support nearer than this) — only
+  // then does the turnover abort fire, so a well-supported carry is not aborted by
+  // a single tackler the contact system would resolve in the attack's favour.
+  isolationRadius: 9.0,
+} as const;

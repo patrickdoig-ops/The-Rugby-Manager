@@ -39,8 +39,11 @@ import { PASS_CHAIN } from '../balance/spatialDecision';
 import { run } from './SpatialSimulator';
 import { solveDefence, solveCarryCorridor, solveAttackSpread, detectGap, detectOffside, reanchorDefence, reanchorSupport, reanchorAttack } from './ShapeSolver';
 import { detectContact } from './ContactSystem';
+import { createPlayOverlay, driveOverlayTick, evaluatePlayAborts, couplePlayBall, carrierHasBall } from './PlayOverlay';
+import type { PlayOverlayState } from './PlayOverlay';
 import type { ShapeParams } from './ShapeSolver';
 import type { ContactOutcome } from './ContactSystem';
+import type { Play } from '../../data/playbook/types';
 import type { Frame } from './types';
 
 export interface CarrySimInput {
@@ -60,6 +63,13 @@ export interface CarrySimInput {
   // Net legacy carry modifier (attackMod − defendMod) the gap threshold reads so
   // home advantage / team talk / tactics still bias line breaks (Upgrade.md §13).
   modShift: number;
+  // The selected playbook play overlaid on this carry (WP6), or undefined for a
+  // plain carry. When present its named roles' run-line waypoints become the
+  // Layer-1 steering source and its pass schedule replaces the default sweep; the
+  // contact/gap verdict is still measured against the carrier. Undefined keeps the
+  // path byte-identical to the pre-overlay carry — selection (a later WP6 commit)
+  // is what populates this in live play.
+  play?: Play;
   silent: boolean;
 }
 
@@ -184,14 +194,22 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
   const carrier = solveCarryCorridor(world, params);
   solveAttackSpread(world, params);
 
+  // PLAY OVERLAY (WP6): when a play is selected, install its named roles' run-line
+  // waypoints as the Layer-1 steering source for the bound agents and let its pass
+  // schedule own the ball — Layers 2–3 (contact / the abort checks) stay live.
+  // createPlayOverlay returns null when the play can't bind its carrier (a carded
+  // slot); the carry then runs plain. The carrier the verdict measures is unchanged.
+  const overlay: PlayOverlayState | null = input.play ? createPlayOverlay(world, params, input.play) : null;
+
   // PASS PHASE (WP5): prefix the carry with the ball sweeping from the ruck
   // (scrum-half) through the backline to the carrier (positioned at his receiving
   // point by solveCarryCorridor) — so a wide play visibly moves the ball across the
   // backline before the carrier runs. Runs in BOTH live and silent paths: pure
   // deterministic position math (no rng) means the carry begins from byte-identical
   // state regardless — NO snapshot or restore; live == silent via determinism.
-  // Frames are produced only when not silent.
-  const passFrames = runPassPhase(world, params, input.passChain, input.silent);
+  // Frames are produced only when not silent. SKIPPED under an active overlay — the
+  // play's own pass schedule moves the ball through the micro-tick loop instead.
+  const passFrames = overlay ? [] : runPassPhase(world, params, input.passChain, input.silent);
 
   // WP3 contact state — mutable across ticks, written into by the contact hook.
   // Pre-allocated: no allocation in the hot path.
@@ -224,6 +242,12 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
     const carrierDist = Math.hypot(carrier.pos.x - carrierStartX, carrier.pos.y - carrierStartY);
     if (elapsed < LAUNCH_GRACE_TICKS || carrierDist < LAUNCH_GRACE_DIST) return false;
     void t;
+
+    // Overlay contact gate (WP6): while a play is live, the carrier may be running a
+    // decoy/strike line BEFORE he is fed the ball — a defender reaching him then is
+    // not a tackle. Suppress contact until the strike runner actually has the ball.
+    // After an abort the carrier is a normal ball-carrier again, so contact resumes.
+    if (overlay && !overlay.aborted && !carrierHasBall(overlay)) return false;
 
     const result = detectContact(world, carrier, roles);
     if (!result) return false;
@@ -258,12 +282,26 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
   // line presses + folds onto the carrier, the support pod trails him, and the
   // off-ball attack shape holds its depth BEHIND him — so the attack stays onside
   // and the defence stays organised as the carry advances (WP5 continuous shape).
+  // Re-anchors run FIRST (they set every attacker's Layer-1 target); the overlay
+  // then OVERWRITES its bound roles' targets LAST, so it is the single effective
+  // driver per the one-driver-per-agent rule. Once aborted, driveOverlayTick is a
+  // no-op and the re-anchors are the only writer again — the play degrades cleanly.
+  // playTick is the 0-based micro-tick within the play (ticksRun is incremented
+  // just before run() each iteration, so ticksRun-1 is this tick's index).
   const preMoveFn = () => {
     reanchorDefence(roles, carrier, params);
     reanchorSupport(world, carrier, params);
     reanchorAttack(world, carrier, params);
+    if (overlay && !overlay.aborted) {
+      const playTick = ticksRun - 1;
+      driveOverlayTick(overlay, playTick);
+      evaluatePlayAborts(overlay, world, params, playTick);
+    }
   };
-  const postMoveFn = () => coupleBallToCarrier(world, carrier);
+  // While the play is live the ball travels with its current holder (feeder → strike
+  // runner); after an abort, or with no overlay, it is glued to the carrier as usual.
+  const postMoveFn = () =>
+    overlay && !overlay.aborted ? couplePlayBall(overlay, world) : coupleBallToCarrier(world, carrier);
 
   const allFrames: Frame[] = passFrames.slice();  // the pass sweep precedes the carry
   for (let t = 0; t < totalTicks && !stopped; t++) {

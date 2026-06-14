@@ -22,12 +22,15 @@ import {
   minDefenderDistAtSeed,
   runCarryWithLaunchGrace,
   continuitySequence,
+  runOverlayScenario,
   CONTACT_RADIUS,
   SEEDING_CLEAR_MARGIN,
   LAUNCH_GRACE_TICKS,
   LAUNCH_GRACE_DIST,
   dist,
 } from './spatialScenarioKit.js';
+import { playById } from '../src/data/playbook/index.js';
+import { playPointToPitch, openSignFor } from '../src/engine/spatial/playGeometry.js';
 import type { AgentSetup, ContactAgentSetup } from './spatialScenarioKit.js';
 import { commitRuck } from '../src/engine/spatial/RuckCommitment.js';
 import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
@@ -819,6 +822,94 @@ const scenarios: Scenario[] = [
       if (isForwardSlot(13) || !isForwardSlot(8)) return 'slot assumptions wrong (13 should be a back, 8 a forward)';
       if (Math.abs(back.y - 50) < 10) return `back carrier not out wide: received at y=${back.y.toFixed(0)} (mark y=50)`;
       if (Math.abs(fwd.y - 50) > 2 || Math.abs(fwd.x - 40) > 2) return `forward carrier not at the ruck: received at (${fwd.x.toFixed(0)},${fwd.y.toFixed(0)}) (mark 40,50)`;
+      return null;
+    },
+  },
+
+  // ── WP6 play-overlay scenarios ──────────────────────────────────────────
+  // Build a world that seeds the SWITCH play's two roles at their first waypoint
+  // (mirrored by playPointToPitch) with the defence parked far away, so the bound
+  // agents run their authored lines in isolation — the mirror is then a pure
+  // property of the run-line transform + steering, with no separation/abort noise.
+  {
+    name: 'WP6: play overlay mirrors left↔right (open side flips, trajectories mirror about the mark)',
+    run: () => {
+      const play = playById('switch')!;
+      const build = (markY: number, dir: 1 | -1) => {
+        const openSign = openSignFor(markY);
+        const home: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+        for (const role of Object.values(play.roles)) {
+          const wp = role.line[0];
+          const pt = playPointToPitch({ x: 50, y: markY }, dir, openSign, wp.fwd, wp.lat);
+          home[role.slot - 1] = { x: pt.x, y: pt.y, pace: 80, agility: 80 };
+        }
+        const away: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+        return buildScenarioWorld({ home, away, ball: { x: 50, y: markY } });
+      };
+      const A = runOverlayScenario(build(25, 1), play, { mark: { x: 50, y: 25 }, attackDir: 1, carrierSlot: 12 }, play.lifetimeTicks, false);
+      const B = runOverlayScenario(build(75, 1), play, { mark: { x: 50, y: 75 }, attackDir: 1, carrierSlot: 12 }, play.lifetimeTicks, false);
+      for (const name of Object.keys(A.traj)) {
+        const ta = A.traj[name], tb = B.traj[name];
+        for (let i = 0; i < ta.length; i++) {
+          // lat about the mark: (yA−25) must equal −(yB−75); long axis identical.
+          if (Math.abs((ta[i].y - 25) + (tb[i].y - 75)) > 0.05) return `lateral mirror broke for ${name} at tick ${i}: ${ta[i].y.toFixed(2)} vs ${tb[i].y.toFixed(2)}`;
+          if (Math.abs(ta[i].x - tb[i].x) > 0.05) return `long-axis mirror broke for ${name} at tick ${i}: ${ta[i].x.toFixed(2)} vs ${tb[i].x.toFixed(2)}`;
+        }
+      }
+      return null;
+    },
+  },
+  {
+    name: 'WP6: play overlay mirrors first↔second half (attackDir flips, trajectories mirror about the mark)',
+    run: () => {
+      const play = playById('switch')!;
+      const build = (dir: 1 | -1) => {
+        const openSign = openSignFor(25);
+        const home: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+        for (const role of Object.values(play.roles)) {
+          const wp = role.line[0];
+          const pt = playPointToPitch({ x: 50, y: 25 }, dir, openSign, wp.fwd, wp.lat);
+          home[role.slot - 1] = { x: pt.x, y: pt.y, pace: 80, agility: 80 };
+        }
+        const away: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+        return buildScenarioWorld({ home, away, ball: { x: 50, y: 25 } });
+      };
+      const A = runOverlayScenario(build(1), play, { mark: { x: 50, y: 25 }, attackDir: 1, carrierSlot: 12 }, play.lifetimeTicks, false);
+      const C = runOverlayScenario(build(-1), play, { mark: { x: 50, y: 25 }, attackDir: -1, carrierSlot: 12 }, play.lifetimeTicks, false);
+      for (const name of Object.keys(A.traj)) {
+        const ta = A.traj[name], tc = C.traj[name];
+        for (let i = 0; i < ta.length; i++) {
+          // long axis about the mark: (xA−50) must equal −(xC−50); lat identical.
+          if (Math.abs((ta[i].x - 50) + (tc[i].x - 50)) > 0.05) return `long-axis mirror broke for ${name} at tick ${i}: ${ta[i].x.toFixed(2)} vs ${tc[i].x.toFixed(2)}`;
+          if (Math.abs(ta[i].y - tc[i].y) > 0.05) return `lateral mirror broke for ${name} at tick ${i}: ${ta[i].y.toFixed(2)} vs ${tc[i].y.toFixed(2)}`;
+        }
+      }
+      return null;
+    },
+  },
+  {
+    name: 'WP6: play overlay aborts when the strike receiver is covered, reverting with no position discontinuity',
+    run: () => {
+      const play = playById('switch')!;
+      const openSign = openSignFor(25);
+      const home: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+      let strikeStart = { x: 50, y: 25 };
+      for (const role of Object.values(play.roles)) {
+        const wp = role.line[0];
+        const pt = playPointToPitch({ x: 50, y: 25 }, 1, openSign, wp.fwd, wp.lat);
+        home[role.slot - 1] = { x: pt.x, y: pt.y, pace: 80, agility: 80 };
+        if (role.slot === 12) strikeStart = pt;   // the strike runner (carrier) start
+      }
+      // A defender sitting ON the strike runner's receiving point → receiver_covered.
+      const away: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+      away[5] = { x: strikeStart.x, y: strikeStart.y, pace: 70, tackling: 70 };
+      const world = buildScenarioWorld({ home, away, ball: { x: 50, y: 25 } });
+      const r = runOverlayScenario(world, play, { mark: { x: 50, y: 25 }, attackDir: 1, carrierSlot: 12 }, play.lifetimeTicks, false);
+      if (!r.aborted) return 'play did not abort despite a defender on the strike receiver';
+      if (r.abortTick < 0 || r.abortTick > 5) return `abort fired too late: tick ${r.abortTick}`;
+      // No teleport: every bound agent moved continuously (steering-bounded), even
+      // across the abort tick where the carrier's target snaps to a forward run.
+      if (r.maxStep > 3.0) return `position discontinuity at abort: maxStep ${r.maxStep.toFixed(2)} units/tick`;
       return null;
     },
   },

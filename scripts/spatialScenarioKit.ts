@@ -194,6 +194,80 @@ export function runCarryBallPath(
   return { ballPathLen, carrierMoved, carrierSlot: world.ball.carrierSlot };
 }
 
+// ── WP6 play-overlay scenario driver ──────────────────────────────────────
+// Installs a play over an authored carry and runs the micro-ticks, composing the
+// exact PlayOverlay functions the live CarrySim calls, so the suite exercises the
+// real mechanism. Captures each bound role's per-tick trajectory, whether/when the
+// play aborted, and the largest single-tick step of any bound agent (a teleport
+// detector for the abort-continuity check). `driveDefence` re-anchors the defensive
+// line + attack shape each tick as the live carry does; pass false to FREEZE the
+// world's defenders (isolating the run-line math for the mirror test).
+import { createPlayOverlay, driveOverlayTick, evaluatePlayAborts, couplePlayBall } from '../src/engine/spatial/PlayOverlay.js';
+import type { Play } from '../src/data/playbook/types.js';
+
+export interface OverlayScenarioResult {
+  aborted: boolean;
+  abortTick: number;
+  carrierName: string;
+  traj: Record<string, Vec2[]>;   // role name → bound agent position per tick
+  maxStep: number;                // largest single-tick displacement of any bound agent
+}
+
+export function runOverlayScenario(
+  world: World,
+  play: Play,
+  params: Partial<ShapeParams> = {},
+  ticks = CARRY_CORRIDOR_TICKS,
+  driveDefence = true,
+): OverlayScenarioResult {
+  const p: ShapeParams = {
+    attackSide: 'home', defendSide: 'away', attackDir: 1,
+    mark: { x: world.ball.pos.x, y: world.ball.pos.y },
+    defensiveLine: 'hybrid', backfield: 2,
+    defendDiscipline: 'balanced', attackingStyle: 'balanced',
+    carrierSlot: 12,
+    ...params,
+  };
+  let roles: ReturnType<typeof solveDefence> | null = null;
+  let carrier: ReturnType<typeof solveCarryCorridor> | null = null;
+  if (driveDefence) {
+    roles = solveDefence(world, p);
+    carrier = solveCarryCorridor(world, p);
+    solveAttackSpread(world, p);
+  }
+  const ov = createPlayOverlay(world, p, play);
+  if (!ov) throw new Error(`createPlayOverlay returned null for play ${play.id}`);
+
+  const traj: Record<string, Vec2[]> = {};
+  for (const r of ov.roles) traj[r.name] = [];
+  const prev = new Map<Agent, Vec2>();
+  for (const r of ov.roles) prev.set(r.agent, { x: r.agent.pos.x, y: r.agent.pos.y });
+  let maxStep = 0;
+
+  for (let t = 0; t < ticks; t++) {
+    run(
+      world, 1, true,
+      () => {
+        if (driveDefence && roles && carrier) {
+          reanchorDefence(roles, carrier, p);
+          reanchorSupport(world, carrier, p);
+          reanchorAttack(world, carrier, p);
+        }
+        if (!ov.aborted) { driveOverlayTick(ov, t); evaluatePlayAborts(ov, world, p, t); }
+      },
+      () => { if (!ov.aborted) couplePlayBall(ov, world); },
+    );
+    for (const r of ov.roles) {
+      traj[r.name].push({ x: r.agent.pos.x, y: r.agent.pos.y });
+      const pv = prev.get(r.agent)!;
+      maxStep = Math.max(maxStep, Math.hypot(r.agent.pos.x - pv.x, r.agent.pos.y - pv.y));
+      pv.x = r.agent.pos.x; pv.y = r.agent.pos.y;
+    }
+  }
+  const carrierName = ov.roles.find(r => r.isCarrier)?.name ?? '';
+  return { aborted: ov.aborted, abortTick: ov.abortTick, carrierName, traj, maxStep };
+}
+
 // ── WP3 contact scenario driver ───────────────────────────────────────────
 // Resolves a SINGLE contact check directly (no movement loop) — the carrier
 // and defenders are already at their authored positions with authored velocities.

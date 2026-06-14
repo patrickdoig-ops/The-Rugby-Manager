@@ -314,19 +314,24 @@ function layAttackShape(world: World, p: ShapeParams, gainX: number): void {
       continue;
     }
     if (isForwardSlot(a.slot)) {
-      // The FIRST off-ball forward holds the BLINDSIDE edge — the leading "1" of a
-      // 1-3-3-1 (shape-realism). He posts on the SHORT side (negative lat, i.e.
-      // -openSign) at the gain line, an option to bring the ball back the other way,
-      // so the attack is no longer entirely fanned to the open side. The remaining
-      // forwards pod open-side as before.
+      // The forwards span the WHOLE width as edge·pods·edge (a 1-3-3-1 footprint,
+      // shape-realism). The first off-ball forward holds the BLINDSIDE edge (the
+      // leading "1") on the SHORT side; the second holds the OPENSIDE edge (the
+      // trailing "1") out on the far open touchline; the rest pod between them. The
+      // ruck pod (carrier + cleaners, role 'corridor') is the implicit first pod.
       if (fwdRank === 0) {
         fwdRank++;
         setAttackTarget(a, clampX(gainX - p.attackDir * FORWARD_POD.podDepth), clampY(p.mark.y - openSign * FORWARD_POD.blindsideEdgeOffset));
         continue;
       }
-      // Forwards → pods. Pod centres fan toward the open side, spaced per attacking
-      // style; within a pod the members bunch tightly with a lateral + depth stagger.
-      const rank = fwdRank++ - 1;  // pod rank excludes the blindside edge (rank 0)
+      if (fwdRank === 1) {
+        fwdRank++;
+        setAttackTarget(a, clampX(gainX - p.attackDir * FORWARD_POD.podDepth), clampY(p.mark.y + openSign * FORWARD_POD.openEdgeOffset));
+        continue;
+      }
+      // Remaining forwards → pods. Pod centres fan toward the open side, spaced per
+      // attacking style; within a pod the members bunch tightly (lateral + depth).
+      const rank = fwdRank++ - 2;  // pod rank excludes both edges (ranks 0, 1)
       const podIndex = Math.floor(rank / FORWARD_POD.podSize);
       const inPod = rank % FORWARD_POD.podSize;
       const podY = p.mark.y + openSign * (podSpread.firstPodOffset + podIndex * podSpread.podSpacing);

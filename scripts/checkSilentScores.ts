@@ -156,7 +156,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // Outcomes shift accordingly (no breakdown re-tuning); home-win comes back toward the
 // middle. Every § 13 band holds on the 5-seed sweep (pts 24.88, tries 3.85, pen 12.27,
 // tackAtt 65.68, tackMade 63.78, TO 2.01, home-win 53.78).
-const GOLDEN = '4c770935a045fb2063706e734f8297838e6bd2ef18cf325dd01118517198e711';
+//
+// Shape-realism (attacking, full-width): the SECOND off-ball forward now holds the
+// OPENSIDE edge (the trailing "1") so the forwards span the whole width edge·pods·edge
+// (FORWARD_POD.openEdgeOffset). The wider attack pulled the chronically-tight turnovers
+// band to its floor, so turnoverMargin was widened −14 → −14.5 (the wide outlet left
+// home-win headroom to absorb the small turnover lift). Every § 13 band holds on the
+// 5-seed sweep with comfortable margins (pts 25.51, tries 3.93, pen 11.98, tackAtt 64.51,
+// tackMade 62.62, TO 2.19, home-win 50.22).
+const GOLDEN = 'bd2c88ad4a517b29dbba8b922e9bc8696dd564de35e54cce05ff72fd94bd8c4e';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

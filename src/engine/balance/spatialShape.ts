@@ -160,6 +160,12 @@ export const FORWARD_POD = {
   // 1-3-3-1) this far onto the SHORT side of the mark (coord-units), so the attack
   // keeps a short-side option instead of fanning entirely open-side (shape-realism).
   blindsideEdgeOffset: 13.0,
+  // The second off-ball forward holds the OPENSIDE edge (the trailing "1") out on
+  // the FAR open touchline — so the forwards span the WHOLE width (edge·pods·edge),
+  // not just a stack toward the open side. clampY caps it at the touchline. The
+  // ruck pod (carrier + cleaners, role 'corridor') is the implicit first pod; the
+  // remaining off-ball forwards pod between the two edges.
+  openEdgeOffset: 28.0,
   // Attacking STYLE drives how far the pods spread across the field: keep_it_tight
   // keeps them close to the ruck (forward-dominant, narrow), wide_wide flings them
   // toward the edges (spread the ball), balanced between. `firstPodOffset` is the

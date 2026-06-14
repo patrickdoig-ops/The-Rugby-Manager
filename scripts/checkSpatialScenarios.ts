@@ -847,38 +847,42 @@ const scenarios: Scenario[] = [
   {
     name: 'WP5: attacking style spreads the forward pods — wide_wide flings them wider than keep_it_tight',
     run: () => {
-      // Same 15-man attack solved under two styles; the off-ball forward pods must
-      // spread materially wider on wide_wide than keep_it_tight (the tactic reads
-      // in the shape). Measures the lateral span of the off-ball forwards' targets.
-      const fwdSpan = (style: 'keep_it_tight' | 'wide_wide'): number => {
+      // Same 15-man attack solved under two styles; the open-side forward PODS must
+      // sit materially wider on wide_wide than keep_it_tight (the tactic reads in the
+      // shape). Measures the MEAN open-side lateral offset of the off-ball forwards —
+      // robust to the fixed edge "1"s (the openside edge is a constant offset in both
+      // styles, so it does not wash out the pod-spread difference, unlike a raw span).
+      const fwdPodMean = (style: 'keep_it_tight' | 'wide_wide'): number => {
         const w = buildScenarioWorld({ home: Array.from({ length: 15 }, () => ({ x: 40, y: 50, target: null })), away: [], ball: { x: 40, y: 50 } });
         const p = { attackSide: 'home' as const, defendSide: 'away' as const, attackDir: 1 as const, mark: { x: 40, y: 50 }, defensiveLine: 'hybrid' as const, backfield: 2 as const, defendDiscipline: 'balanced' as const, carrierSlot: 8, attackingStyle: style };
         solveCarryCorridor(w, p); solveAttackSpread(w, p);
-        const ys = w.agents.slice(0, 8).filter(a => a.role !== 'corridor' && a.intent.target).map(a => a.intent.target!.y);
-        return ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
+        const offs = w.agents.slice(0, 8).filter(a => a.role !== 'corridor' && a.intent.target && a.intent.target.y > 51).map(a => a.intent.target!.y - 50).sort((a, b) => a - b);
+        if (offs.length <= 1) return 0;
+        offs.pop();  // drop the widest = the openside edge "1", leaving the open-side pods
+        return offs.reduce((s, v) => s + v, 0) / offs.length;
       };
-      const tight = fwdSpan('keep_it_tight');
-      const wide = fwdSpan('wide_wide');
-      if (!(wide > tight + 4)) return `style did not spread pods: wide_wide span ${wide.toFixed(0)} vs keep_it_tight ${tight.toFixed(0)} (want ≥4u wider)`;
+      const tight = fwdPodMean('keep_it_tight');
+      const wide = fwdPodMean('wide_wide');
+      if (!(wide > tight + 3)) return `style did not spread pods: wide_wide pod mean offset ${wide.toFixed(1)} vs keep_it_tight ${tight.toFixed(1)} (want ≥3u wider)`;
       return null;
     },
   },
   {
-    name: 'shape-realism: attacking forwards span BOTH sides of the ruck — a blindside edge "1" holds the short side',
+    name: 'shape-realism: attacking forwards span the FULL width — blindside edge, pods, openside edge',
     run: () => {
-      // Central ruck, carrier a forward (so the off-ball forwards include the edge +
-      // the pods). The off-ball forwards must NOT all be on the open side: the first
-      // one holds the BLINDSIDE (short side), while the pods fan open-side — a
-      // full-width 1-3-3-1 footprint, not a one-sided stack.
+      // Central ruck, carrier a forward (so the off-ball forwards include both edges +
+      // the pods). The forwards must span the whole width edge·pods·edge: one on the
+      // BLINDSIDE (short side), one out wide on the OPENSIDE edge, pods between — a
+      // 1-3-3-1 footprint, not a one-sided stack.
       const w = buildScenarioWorld({ home: Array.from({ length: 15 }, () => ({ x: 40, y: 50, target: null })), away: [], ball: { x: 40, y: 50 } });
       const p = { attackSide: 'home' as const, defendSide: 'away' as const, attackDir: 1 as const, mark: { x: 40, y: 50 }, defensiveLine: 'hybrid' as const, backfield: 2 as const, defendDiscipline: 'balanced' as const, carrierSlot: 8, attackingStyle: 'balanced' as const };
       solveCarryCorridor(w, p); solveAttackSpread(w, p);
       // openSign = +1 at a central/below-mid ruck, so open = +y, blindside = −y.
       const fwdYs = w.agents.slice(0, 8).filter(a => a.role !== 'corridor' && a.intent.target).map(a => a.intent.target!.y);
-      const blindside = fwdYs.filter(y => y <= 50 - 8);  // clearly on the short side
-      const openside  = fwdYs.filter(y => y >= 50 + 4);  // the open-side pods
+      const blindside = fwdYs.filter(y => y <= 50 - 8);   // the blindside edge "1"
+      const openEdge  = fwdYs.filter(y => y >= 50 + 20);  // the openside edge "1", well out wide
       if (blindside.length < 1) return `no blindside edge forward (off-ball forward ys: ${fwdYs.map(y => y.toFixed(0)).join(',')})`;
-      if (openside.length < 1) return `no open-side pod forwards (off-ball forward ys: ${fwdYs.map(y => y.toFixed(0)).join(',')})`;
+      if (openEdge.length < 1) return `no openside edge forward out wide (off-ball forward ys: ${fwdYs.map(y => y.toFixed(0)).join(',')})`;
       return null;
     },
   },

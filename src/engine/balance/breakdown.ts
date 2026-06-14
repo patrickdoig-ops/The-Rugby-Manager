@@ -12,7 +12,7 @@ export const BREAKDOWN_VALUES = {
   bodyWeightFallback: 0.3,
   cleanBallMargin:  10,
   slowBallMargin:   -8,
-  turnoverMargin:   -14,
+  turnoverMargin:   -14.5,
   counterRuckTop:   4,
   // Flat dampener subtracted from the counter-ruck turnover score (dts) in
   // BreakdownResolver. The controlled mirror experiment

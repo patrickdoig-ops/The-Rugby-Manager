@@ -28,11 +28,11 @@ jobs:
   telemetry:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '24'
           cache: npm
 
       - run: npm ci
@@ -57,6 +57,18 @@ jobs:
 
       - name: Commit and push if changed
         run: |
+          # Save freshly-generated files before syncing to latest origin/main.
+          # This avoids a rebase conflict if another run committed between our
+          # checkout and now.
+          cp telemetry/latest.md /tmp/telemetry-latest.md
+          [ -f telemetry/latest.json ] && cp telemetry/latest.json /tmp/telemetry-latest.json || true
+
+          git fetch origin main
+          git reset --hard origin/main
+
+          cp /tmp/telemetry-latest.md telemetry/latest.md
+          [ -f /tmp/telemetry-latest.json ] && cp /tmp/telemetry-latest.json telemetry/latest.json || true
+
           git config user.name  'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add telemetry/latest.md telemetry/latest.json
@@ -64,6 +76,5 @@ jobs:
             echo "No telemetry changes — skipping commit."
           else
             git commit -m "telemetry: refresh latest.md and latest.json (${GITHUB_SHA::7})"
-            git pull --rebase origin main
             git push origin HEAD:main
           fi

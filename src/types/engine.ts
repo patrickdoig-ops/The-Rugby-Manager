@@ -23,6 +23,13 @@ export enum MatchPhase {
 export type PossessionSide = 'home' | 'away';
 export type KickOffStrategy = 'high_ball' | 'short_kick' | 'grubber';
 
+// The four periods a match can run through. 'first' / 'second' are the regular
+// 40-minute halves; 'extra_first' / 'extra_second' are the two 10-minute
+// knockout extra-time periods, only reached when allowExtraTime is set and the
+// score is level at full time. Extra time plays in the second-half attack
+// direction throughout (no change of ends), so halfTimeDone stays true.
+export type MatchPeriod = 'first' | 'second' | 'extra_first' | 'extra_second';
+
 export type BreakdownResult = 'clean_ball' | 'slow_ball' | 'turnover' | 'penalty_defending';
 export type ScrumResult     = 'stable_win' | 'wheel' | 'attacking_dominant_penalty' | 'defending_dominant_penalty';
 export type LineoutResult   = 'clean_catch' | 'steal' | 'crooked_throw';

@@ -136,6 +136,7 @@ export class EuropeanCoordinator {
     homeScore: number,
     awayScore: number,
     snapshot: MatchSnapshot,
+    kickWinner?: 'home' | 'away',
   ): Promise<void> {
     const comp = this.state.league[competition];
     const ko = comp?.knockout;
@@ -153,6 +154,7 @@ export class EuropeanCoordinator {
       homeTries: snapshot.homeSummary.tries,
       awayTries: snapshot.awaySummary.tries,
       playerSide,
+      ...(kickWinner ? { kickWinner } : {}),
     });
     for (const ev of collectSeasonEvents(snapshot, competition)) applySeasonEvent(this.state, ev);
     for (const ev of collectConditionEvents(snapshot)) applySeasonEvent(this.state, ev);
@@ -256,7 +258,7 @@ export class EuropeanCoordinator {
       const homeTeam = this.teamsById.get(match.homeId) ?? buildEuropeanOpponent(match.homeId);
       const awayTeam = this.teamsById.get(match.awayId) ?? buildEuropeanOpponent(match.awayId);
       if (!homeTeam || !awayTeam) continue;
-      const sim = await simulateFixture(homeTeam, awayTeam, this.state.seed, seedRound);
+      const sim = await simulateFixture(homeTeam, awayTeam, this.state.seed, seedRound, { allowExtraTime: true });
       applySeasonEvent(this.state, {
         type: 'EUROPEAN_KNOCKOUT_RECORDED',
         competition, stage,
@@ -266,6 +268,7 @@ export class EuropeanCoordinator {
         homeTries: sim.snapshot.homeSummary.tries,
         awayTries: sim.snapshot.awaySummary.tries,
         playerSide: null,
+        ...(sim.kickWinner ? { kickWinner: sim.kickWinner } : {}),
       });
     }
   }

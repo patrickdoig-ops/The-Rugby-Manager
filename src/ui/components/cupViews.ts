@@ -5,6 +5,7 @@
 import type { CupFixture, CupKnockout, CupKnockoutMatch, CupPool } from '../../types/gameState';
 import type { RawTeamInput } from '../../types/teamData';
 import { sortStandings } from '../../game/leagueTable';
+import { knockoutWinnerId } from '../../game/knockoutWinner';
 
 type TeamsById = Map<string, RawTeamInput>;
 
@@ -88,7 +89,8 @@ export function bracketHtml(ko: CupKnockout, teamsById: TeamsById, highlightTeam
     const home = teamName(m.homeId, teamsById);
     const away = teamName(m.awayId, teamsById);
     const mine = m.homeId === highlightTeamId || m.awayId === highlightTeamId;
-    const winnerHome = m.result ? m.result.homeScore >= m.result.awayScore : false;
+    const winnerHome = !!(m.result && m.homeId && m.awayId
+      && knockoutWinnerId(m.homeId, m.awayId, m.result.homeScore, m.result.awayScore, m.result.kickWinner) === m.homeId);
     const hs = m.result ? `${m.result.homeScore}` : '';
     const as = m.result ? `${m.result.awayScore}` : '';
     return `

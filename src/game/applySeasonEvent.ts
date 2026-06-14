@@ -9,6 +9,7 @@ import type { MoraleReason } from '../types/player';
 import { zeroSeasonStats } from '../types/player';
 import { SEASON_VALUES, SENIOR_CAP, EFFECTIVE_CAP_CREDITS, FORM_MODEL, MORALE, STAFF_BUDGET_FRACTION, ARCHIVE_CAP } from '../engine/balance';
 import { applyResultToStanding } from './leagueTable';
+import { knockoutWinnerId } from './knockoutWinner';
 import { leagueRound, earliestDateForRound } from './leagueRound';
 
 // Sum of senior cap + dispensation credits — the league's absolute
@@ -638,6 +639,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         homeTries: event.homeTries,
         awayTries: event.awayTries,
         playerSide: event.playerSide,
+        ...(event.kickWinner ? { kickWinner: event.kickWinner } : {}),
       };
       // Cascade: when a SF resolves, populate the final's matching slot
       // from the SF winner. SF1 winner takes the final's home slot, SF2
@@ -852,6 +854,7 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         homeTries: event.homeTries,
         awayTries: event.awayTries,
         playerSide: event.playerSide ?? null,
+        ...(event.kickWinner ? { kickWinner: event.kickWinner } : {}),
       };
       // Cascade SF winners into the final's slots (SF1 → home, SF2 → away),
       // guarded against double-population (slot writes only when null).
@@ -1222,9 +1225,13 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
         homeTries: event.homeTries,
         awayTries: event.awayTries,
         playerSide: event.playerSide,
+        ...(event.kickWinner ? { kickWinner: event.kickWinner } : {}),
       };
-      // Cascade winners to the next round. Home-side tiebreak (no draws in knockout rugby).
-      const winnerId = (event.homeScore >= event.awayScore ? target.homeId : target.awayId) ?? null;
+      // Cascade winners to the next round. A level score is decided by the
+      // kicking-competition winner recorded on the event (extra time guarantees one).
+      const winnerId = (target.homeId && target.awayId)
+        ? knockoutWinnerId(target.homeId, target.awayId, event.homeScore, event.awayScore, event.kickWinner)
+        : null;
       if (winnerId !== null) {
         if (event.stage === 'r16') {
           const qfIndex = Math.floor(event.matchIndex / 2);
@@ -1269,15 +1276,13 @@ function pickPlayoffMatch(
   return null;
 }
 
-// Winner's teamId from a resolved playoff match. Ties intentionally fall
-// to the home side: knockout rugby has no draws (extra time + golden
-// point) but the model doesn't simulate that yet, so the home-side
-// fallback gives a stable result without adding a separate "draw"
-// branch. Returns null when the match is unresolved or its team slots
-// are still empty.
+// Winner's teamId from a resolved playoff match. A level score is decided by
+// the kicking-competition winner recorded on the result (extra time guarantees
+// a winner). Returns null when the match is unresolved or its team slots are
+// still empty.
 function playoffWinnerId(match: PlayoffMatch): string | null {
   if (!match.result || !match.homeId || !match.awayId) return null;
-  return match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId;
+  return knockoutWinnerId(match.homeId, match.awayId, match.result.homeScore, match.result.awayScore, match.result.kickWinner);
 }
 
 // Deep-clone a PremCupState for restore (fromSave) — mirrors clonePlayoffs.
@@ -1313,11 +1318,11 @@ function pickCupMatch(
   return null;
 }
 
-// Winner's teamId from a resolved cup knockout match. Home-side tiebreak,
-// same convention as playoffWinnerId (no draws in knockout rugby).
+// Winner's teamId from a resolved cup knockout match. Kicking-competition
+// tiebreak on a level score, same convention as playoffWinnerId.
 function cupWinnerId(match: CupKnockoutMatch): string | null {
   if (!match.result || !match.homeId || !match.awayId) return null;
-  return match.result.homeScore >= match.result.awayScore ? match.homeId : match.awayId;
+  return knockoutWinnerId(match.homeId, match.awayId, match.result.homeScore, match.result.awayScore, match.result.kickWinner);
 }
 
 // Drop retired roster records that nothing references any more. A retired

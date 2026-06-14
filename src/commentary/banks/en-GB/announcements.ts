@@ -24,6 +24,17 @@ const HALF_TIME_WHISTLE: readonly string[] = [
   'Half time! The teams head to the dressing rooms to regroup.',
 ];
 
+const EXTRA_TIME_START: readonly string[] = [
+  'Level after 80 minutes — and in a knockout, that means extra time! Two ten-minute periods to settle it.',
+  "All square at the full-time whistle. We're going to extra time to find a winner.",
+  "Dead level — and there's too much riding on this for a draw. Extra time it is.",
+];
+
+const EXTRA_TIME_HALF: readonly string[] = [
+  "That's the first period of extra time. A quick turnaround and straight into the second.",
+  'End of the first extra-time period — ten more minutes to decide it.',
+];
+
 const FATIGUE_TIREDNESS: readonly string[] = [
   '{primary} is starting to look tired out there — the legs are going.',
   '{primary} is looking leggy. The fatigue is setting in.',
@@ -394,6 +405,14 @@ export function getAnnouncementTemplate(
       return pickRandom(HALF_TIME_WHISTLE);
     case 'full_time_summary':
       return `Full time! ${params.homeName ?? ''} ${params.homeScore ?? 0} – ${params.awayScore ?? 0} ${params.awayName ?? ''}`;
+    case 'extra_time_start':
+      return pickRandom(EXTRA_TIME_START);
+    case 'extra_time_half':
+      return pickRandom(EXTRA_TIME_HALF);
+    case 'kicking_competition':
+      // teamName = the side that won; homeScore / awayScore reused as the
+      // kicking-competition tally (kicks made by home / away).
+      return `Still level after extra time — it goes to a kicking competition! ${params.teamName ?? 'The winners'} take it ${params.homeScore ?? 0}–${params.awayScore ?? 0}.`;
     case 'fatigue_tiredness':
       return pickRandom(FATIGUE_TIREDNESS);
     case 'substitution': {

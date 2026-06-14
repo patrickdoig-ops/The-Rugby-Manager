@@ -4,6 +4,7 @@
 import type { EuropeanCompState, EuropeanFixture, EuropeanKnockout, EuropeanKnockoutMatch, EuropeanPool } from '../../types/gameState';
 import type { RawTeamInput } from '../../types/teamData';
 import { sortStandings } from '../../game/leagueTable';
+import { knockoutWinnerId } from '../../game/knockoutWinner';
 import { helpButtonHtml } from '../help/helpButton';
 import type { HelpTopicId } from '../help/helpContent';
 
@@ -105,8 +106,11 @@ function koMatchCard(m: EuropeanKnockoutMatch, label: string, byId: TeamsById, h
   const home = fullName(m.homeId, byId);
   const away = fullName(m.awayId, byId);
   const mine = m.homeId === highlightId || m.awayId === highlightId;
-  const homeWin = m.result ? m.result.homeScore > m.result.awayScore : false;
-  const awayWin = m.result ? m.result.awayScore > m.result.homeScore : false;
+  const winnerId = m.result && m.homeId && m.awayId
+    ? knockoutWinnerId(m.homeId, m.awayId, m.result.homeScore, m.result.awayScore, m.result.kickWinner)
+    : null;
+  const homeWin = winnerId !== null && winnerId === m.homeId;
+  const awayWin = winnerId !== null && winnerId === m.awayId;
   const hs = m.result ? `${m.result.homeScore}` : '';
   const as = m.result ? `${m.result.awayScore}` : '';
   return `

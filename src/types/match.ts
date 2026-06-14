@@ -1,4 +1,4 @@
-import type { MatchPhase, PossessionSide, PenaltyOffence, CardKind, BallQuality, PendingKick } from './engine';
+import type { MatchPhase, MatchPeriod, PossessionSide, PenaltyOffence, CardKind, BallQuality, PendingKick } from './engine';
 import type { Team } from './team';
 import type { Player } from './player';
 import type { NarrationDescriptor } from './narration';
@@ -152,6 +152,9 @@ export interface DisplaySnapshot {
   gameMinute: number;
   halfTimeDone: boolean;
   clockInTheRed: boolean;
+  // Live period, snapshot so the Scoreboard can label the clock (ET1/ET2 push
+  // past 80'). A frozen scalar per CLAUDE.md §4 — independent of clock.period.
+  period: MatchPeriod;
   phase: MatchPhase;
   possession: PossessionSide;
   score: Score;
@@ -188,6 +191,11 @@ export interface MatchState {
     halfTimeDone: boolean;
     clockInTheRed: boolean;
     penaltyKickToTouchLineout: boolean;
+    // Which of the four periods is live. 'first'/'second' for the regular halves
+    // (halfTimeDone distinguishes them for attack direction); 'extra_first'/
+    // 'extra_second' for knockout extra time. Drives the clock-in-red target
+    // (40/80/90/100) in CLOCK_ADVANCED + checkClockInRed.
+    period: MatchPeriod;
   };
   ball: {
     x: number;
@@ -246,6 +254,15 @@ export interface MatchState {
     //                    (TMO yellow weight, team-22 auto-card, maul-collapse yellow).
     refStrictness: number;
     refCardThreshold: number;
+    // True when a level score at full time should be resolved by extra time
+    // (two 10-minute periods, then a kicking competition) rather than left a
+    // draw. Set by the three knockout orchestrators; false for league fixtures.
+    allowExtraTime: boolean;
+    // Set only when extra time ended with the score STILL level and the kicking
+    // competition decided it — names the side that advances. The match score
+    // itself stays level (the competition adds no points); the season layer
+    // reads this to award the tie. Undefined whenever the score decided it.
+    extraTimeWinner?: PossessionSide;
   };
   phase: MatchPhase;
   possession: PossessionSide;

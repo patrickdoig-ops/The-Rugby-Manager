@@ -109,11 +109,15 @@ export function initScoreboard(): void {
     prevHome = display.score.home;
     prevAway = display.score.away;
     if (display.clockInTheRed) {
-      const halfTarget = display.halfTimeDone ? CLOCK_VALUES.fullTimeMinute : CLOCK_VALUES.halfTimeMinute;
-      clockDisplay.textContent = `${halfTarget}+${Math.floor(display.gameMinute - halfTarget)}′`;
+      const periodTarget = display.period === 'first'        ? CLOCK_VALUES.halfTimeMinute
+                         : display.period === 'second'       ? CLOCK_VALUES.fullTimeMinute
+                         : display.period === 'extra_first'  ? CLOCK_VALUES.extraFirstMinute
+                         :                                     CLOCK_VALUES.extraSecondMinute;
+      clockDisplay.textContent = `${periodTarget}+${Math.floor(display.gameMinute - periodTarget)}′`;
       clockDisplay.style.color = 'var(--rm-coral)';
     } else {
-      clockDisplay.textContent = `${Math.floor(display.gameMinute)}′`;
+      const etPrefix = display.period === 'extra_first' || display.period === 'extra_second' ? 'ET ' : '';
+      clockDisplay.textContent = `${etPrefix}${Math.floor(display.gameMinute)}′`;
       clockDisplay.style.color = '';
     }
     phaseDisplay.textContent = PHASE_LABEL[display.phase] ?? display.phase.replace(/_/g, ' ');

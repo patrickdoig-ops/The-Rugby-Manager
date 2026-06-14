@@ -22,6 +22,7 @@ import { rngSpatial } from '../../utils/rng';
 import {
   DEFENSIVE_LINE,
   DEFENCE_REANCHOR,
+  COVER_DEFENCE,
   LINE_SLOT_COUNT,
   LINE_OPEN_REDIRECT_CAP,
   DEFENCE_SPACING,
@@ -215,8 +216,33 @@ export function reanchorDefence(roles: LineRole[], carrier: Agent, p: ShapeParam
   const carrierAdvance = Math.max(0, (carrier.pos.x - p.mark.x) * p.attackDir);
   const press = Math.min(DEFENCE_REANCHOR.pressCap, carrierAdvance * DEFENCE_REANCHOR.pressGain * cfg.forwardPress);
   const targetLineX = clampX(openingLineX + p.attackDir * press);
+
+  // Cover defence: once the carrier has broken PAST the line, the NEAREST backfield
+  // defender (by lateral channel) steps UP to make the cover tackle; the other holds
+  // deep. Whether he shuts the break down is emergent (speed/geometry → ContactSystem).
+  const brokeThrough = (carrier.pos.x - targetLineX) * p.attackDir > COVER_DEFENCE.triggerAdvance;
+  let coverAgent: Agent | null = null;
+  if (brokeThrough) {
+    let best = Infinity;
+    for (const r of roles) {
+      if (!r.isBackfield) continue;
+      const d = Math.abs(r.agent.pos.y - carrier.pos.y);
+      if (d < best) { best = d; coverAgent = r.agent; }
+    }
+  }
+
   for (const r of roles) {
-    if (r.isBackfield) continue;
+    if (r.isBackfield) {
+      // The chosen cover defender comes UP to meet the carrier (goal-side of him so
+      // the angle is square, not a chase from behind); the other backfielder holds
+      // its deep kick-cover position (no target change).
+      if (r.agent === coverAgent && r.agent.intent.target) {
+        r.agent.intent.target.x = clampX(carrier.pos.x + p.attackDir * COVER_DEFENCE.leadAhead);
+        r.agent.intent.target.y = clampY(carrier.pos.y);
+        r.agent.intent.driveLayer = 3; r.agent.intent.driveReason = 'cover tackle';  // Layer 3 REACT
+      }
+      continue;
+    }
     const t = r.agent.intent.target;
     if (!t) continue;
     // Lateral: slide the slot's y toward the carrier's channel, blended by the

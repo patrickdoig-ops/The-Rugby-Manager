@@ -46,6 +46,24 @@ export const DEFENCE_REANCHOR = {
   trackGain: 0.12,
 } as const;
 
+// Cover defence (shape-realism). The deep backfield (fullback + a winger) normally
+// holds for kick coverage, but once the carrier has BROKEN PAST the defensive line
+// it must step UP and make the cover tackle instead of holding deep and conceding
+// the gain. The NEAREST backfielder (by lateral channel) comes up to meet the
+// carrier; the other holds (far-side / kick cover). Whether he shuts the break down
+// is emergent — a fast carrier beats the cover (a real line break), a slow one is
+// caught (contact). Outcome-affecting; the spatial verdict already routes a caught
+// carrier through ContactSystem.
+export const COVER_DEFENCE = {
+  // The carrier must be PAST the (pressed) defensive line by this margin (coord-
+  // units, along attackDir) for the cover to engage — a genuine break in progress.
+  // Below it, the front line is still contesting and the backfield holds deep.
+  triggerAdvance: 2.0,
+  // The cover aims this far GOAL-SIDE of the carrier (along attackDir) so he meets
+  // him square + goal-side rather than chasing from behind (the worse tackle angle).
+  leadAhead: 3.0,
+} as const;
+
 // Number of front-line defender slots laid out around the mark. The remaining
 // on-field defenders (minus the backfield) hold their nearest reform position;
 // 12 covers the realistic defensive front (15 − ~1-2 backfield − ruck bodies).

@@ -165,6 +165,14 @@ const ROOT_SEED = 0xDEADBEEF;
 // 5-seed sweep with comfortable margins (pts 25.51, tries 3.93, pen 11.98, tackAtt 64.51,
 // tackMade 62.62, TO 2.19, home-win 50.22).
 //
+// Shape-realism (cover defence): once the carrier breaks PAST the line, the nearest
+// deep backfielder now steps UP to make the cover tackle (COVER_DEFENCE) instead of
+// holding deep and conceding the gain; the other holds for kick/far-side cover.
+// Whether the break is shut down is emergent (a fast carrier still beats the cover).
+// Low scoring impact, modest defensive lift; every § 13 band holds on the 5-seed sweep
+// (pts 25.49, tries 3.94, pen 11.95, tackAtt 64.34, tackMade 62.46, TO 2.18,
+// home-win 53.11).
+//
 // Maul nerf (hooker over-scoring). Maul tries are credited to the hooker, and a
 // near-deterministic pack-strength model let forward-heavy clubs win ~86% of mauls,
 // so their hookers ran away with the try charts. Fix: (1) compressed the pack-score
@@ -172,7 +180,8 @@ const ROOT_SEED = 0xDEADBEEF;
 // mauls are now stoppable; (2) added MAUL_VALUES.defenderAdvantage (18) setting the
 // equal-pack floor (~19% maul_won); (3) trimmed the won-gain bands (5-10/15-25 →
 // 4-8/12-18, longDrivePct 10 → 6) so won mauls make less ground and cross the line less.
-const GOLDEN = 'd0e93171bd550c66c27d9220abd68a5028dff5b21cfcb5c1524109cc1055486e';
+// Golden re-derived after merging the cover-defence change with the maul nerf.
+const GOLDEN = 'ec6a5a8a5e94329cd088add6dcdde776315abf6a68697a40401bc4eb16f51aef';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

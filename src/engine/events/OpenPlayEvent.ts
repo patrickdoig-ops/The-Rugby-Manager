@@ -9,6 +9,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay, resolveOpenPlaySpatial } from '../resolvers/OpenPlayResolver';
 import { runCarrySim, seedWorld } from '../spatial/CarrySim';
 import type { CarrySimResult } from '../spatial/CarrySim';
+import { selectPlay, selectChannel } from '../playSelection';
 import { BACKFIELD_COUNT } from '../balance';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
@@ -326,6 +327,22 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
   let offsideOffender: Player | undefined;
   let sim: CarrySimResult | undefined;
   if (spatial && world) {
+    // PLAY SELECTION (WP6, § 7.1): offer a named playbook play for this carry,
+    // weighted by the team's attackingStyle (the "default playbook") and damped by
+    // per-match familiarity. When one fires, its overlay drives the carry run lines
+    // and we record PLAY_SELECTED (bumping that play's recency). openSpaceWide is
+    // the room to the open touchline — the wide-strike space gate. The selectPlay
+    // rng() draws are on the OUTCOME stream, so selection re-baselines (§ 13).
+    const openSpaceWide = Math.max(state.ball.y, 100 - state.ball.y);
+    const sel = selectPlay({
+      phase: 'PhasePlay',
+      channel: selectChannel(goWide, openSpaceWide),
+      spaceWide: openSpaceWide,
+      style: effAttackingStyle(state, attackTeam),
+      recency: state.playRecency[attackSide],
+    });
+    if (sel) events.push({ type: 'PLAY_SELECTED', playId: sel.play.id, side: attackSide });
+
     const s = runCarrySim(world, state, {
       attackSide,
       defendSide: defSide,
@@ -345,6 +362,10 @@ export function handlePhasePlay({ state, attackTeam, defendTeam, randomPlayer, s
       // (home advantage, team talk, tactical evasion shifts) — keeps line breaks
       // biased by the same match-shaping factors on the spatial path.
       modShift: baseAttackMod - baseDefendMod,
+      // The selected play + the familiarity the defence carries into this carry
+      // (undefined when no play fired → byte-identical plain carry).
+      play: sel?.play,
+      playFamiliarity: sel?.familiarity,
       silent,
     });
     sim = s;

@@ -194,7 +194,13 @@ const ROOT_SEED = 0xDEADBEEF;
 // a distance-graded chance (COVER_BEAT). Lifts break→try conversion ~16% → ~34%
 // and tries 3.3 → ~5.5/match. New rng draw per short-of-line break shifts the
 // whole outcome stream by design.
-const GOLDEN = '4ae64a21dbfaa9953eb9667519f89e93d554feba3187af1131e9c474b810b271';
+//
+// Play SELECTION (WP6, § 7.1): every spatial PhasePlay carry now rolls a play
+// fire-gate on the outcome stream (PLAY_SELECTION.firePct), and a fired play
+// overlays the carry's run lines. The added per-carry draw re-sequences the whole
+// outcome stream by design; bands stay within the owner's post-rebalance § 13
+// targets (5-seed tries 5.67, pts 36.99 — both in band) so only the golden moves.
+const GOLDEN = '211b17b08198cdb794a67e2eb4f6d7f5b53817220d5b44c6c2bcf43b761d9db9';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

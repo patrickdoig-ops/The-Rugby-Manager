@@ -90,6 +90,16 @@ export function assertInvariants(state: MatchState, force = false): void {
     fail('consecutiveWheels', `${state.consecutiveWheels}`);
   }
 
+  // Play-familiarity recency (WP6) — each scalar is bumped (≤1) / decayed (×<1)
+  // by PLAY_SELECTED, so every entry must stay in [0,1]. A stray value means a
+  // bump/decay path lost its clamp.
+  for (const side of ['home', 'away'] as const) {
+    for (const id in state.playRecency[side]) {
+      const r = state.playRecency[side][id];
+      if (!(r >= 0 && r <= 1)) fail(`playRecency.${side}.${id}`, `${r}`);
+    }
+  }
+
   // Maul counters — `mauls` increments per resolved drive (won or
   // collapse-penalty), `maulMetres` accumulates gained ground.
   for (const side of ['home', 'away'] as const) {

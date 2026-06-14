@@ -219,6 +219,7 @@ export function runOverlayScenario(
   params: Partial<ShapeParams> = {},
   ticks = CARRY_CORRIDOR_TICKS,
   driveDefence = true,
+  familiarity = 0,
 ): OverlayScenarioResult {
   const p: ShapeParams = {
     attackSide: 'home', defendSide: 'away', attackDir: 1,
@@ -235,7 +236,7 @@ export function runOverlayScenario(
     carrier = solveCarryCorridor(world, p);
     solveAttackSpread(world, p);
   }
-  const ov = createPlayOverlay(world, p, play);
+  const ov = createPlayOverlay(world, p, play, familiarity);
   if (!ov) throw new Error(`createPlayOverlay returned null for play ${play.id}`);
 
   const traj: Record<string, Vec2[]> = {};

@@ -31,6 +31,7 @@ import {
 } from './spatialScenarioKit.js';
 import { playById } from '../src/data/playbook/index.js';
 import { playPointToPitch, openSignFor } from '../src/engine/spatial/playGeometry.js';
+import { selectPlay } from '../src/engine/playSelection.js';
 import type { AgentSetup, ContactAgentSetup } from './spatialScenarioKit.js';
 import { commitRuck } from '../src/engine/spatial/RuckCommitment.js';
 import { run as runSpatial } from '../src/engine/spatial/SpatialSimulator.js';
@@ -1021,6 +1022,61 @@ const scenarios: Scenario[] = [
       // No teleport: every bound agent moved continuously (steering-bounded), even
       // across the abort tick where the carrier's target snaps to a forward run.
       if (r.maxStep > 3.0) return `position discontinuity at abort: maxStep ${r.maxStep.toFixed(2)} units/tick`;
+      return null;
+    },
+  },
+  {
+    // WP6 familiarity READ: a defender parked just OUTSIDE the fresh receiver-cover
+    // radius (4.0 units; coverR fresh 3.2) — a fresh play never aborts (the strike
+    // runner moves further away), but at familiarity 1 the radius widens to 4.48 and
+    // the play is read off the park. Proves PLAY_OVERLAY.familiarityReadGain bites.
+    name: 'WP6: familiarity widens the abort window — a read play dies where a fresh one survives',
+    run: () => {
+      const play = playById('switch')!;
+      const openSign = openSignFor(25);
+      const build = (): ReturnType<typeof buildScenarioWorld> => {
+        const home: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+        let strikeStart = { x: 50, y: 25 };
+        for (const role of Object.values(play.roles)) {
+          const wp = role.line[0];
+          const pt = playPointToPitch({ x: 50, y: 25 }, 1, openSign, wp.fwd, wp.lat);
+          home[role.slot - 1] = { x: pt.x, y: pt.y, pace: 80, agility: 80 };
+          if (role.slot === 12) strikeStart = pt;
+        }
+        // Defender 4.0 units OUTWARD of the strike runner's start (away from the
+        // mark laterally) — between coverR fresh (3.2) and read (4.48). Outward, so
+        // the inward-running strike receiver only recedes (a fresh play never aborts).
+        const away: AgentSetup[] = Array.from({ length: 15 }, () => ({ x: 2, y: 3, target: null }));
+        const outward = Math.sign(strikeStart.y - 25) || 1;
+        away[5] = { x: strikeStart.x, y: strikeStart.y + outward * 4.0, pace: 70, tackling: 70 };
+        return buildScenarioWorld({ home, away, ball: { x: 50, y: 25 } });
+      };
+      const fresh = runOverlayScenario(build(), play, { mark: { x: 50, y: 25 }, attackDir: 1, carrierSlot: 12 }, play.lifetimeTicks, false, 0);
+      const read  = runOverlayScenario(build(), play, { mark: { x: 50, y: 25 }, attackDir: 1, carrierSlot: 12 }, play.lifetimeTicks, false, 1);
+      if (fresh.aborted) return `fresh play aborted at tick ${fresh.abortTick} — defender too close to isolate the read lever`;
+      if (!read.aborted) return 'read play (familiarity 1) failed to abort — familiarityReadGain not biting';
+      return null;
+    },
+  },
+  {
+    // WP6 familiarity DECLINE: a repeated play loses selection weight. With the same
+    // seed sequence, count how often 'switch' is picked at recency 0 vs recency 1 —
+    // the read play must be chosen materially less (familiarityWeightDrop = 0.65).
+    name: 'WP6: a familiar play is selected less — recency lowers selection weight',
+    run: () => {
+      const ctx = (recency: Record<string, number>) => ({
+        phase: 'PhasePlay' as const, channel: 'mid' as const, spaceWide: 40,
+        style: 'balanced' as const, recency,
+      });
+      let freshHits = 0, readHits = 0;
+      for (let i = 0; i < 400; i++) {
+        setMatchSeed(0x5E1EC + i);
+        if (selectPlay(ctx({}))?.play.id === 'switch') freshHits++;
+        setMatchSeed(0x5E1EC + i);
+        if (selectPlay(ctx({ switch: 1 }))?.play.id === 'switch') readHits++;
+      }
+      if (freshHits === 0) return 'switch never selected at recency 0 — eligibility/weights broken';
+      if (readHits >= freshHits) return `recency did not lower selection: fresh ${freshHits} vs read ${readHits} hits`;
       return null;
     },
   },

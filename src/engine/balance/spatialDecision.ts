@@ -3,8 +3,9 @@
 // magic literals in src/engine/spatial/. Coordinates are the 0–100 pitch (x = long
 // axis, y = lateral); a coord-unit on the long axis ≈ 1 metre.
 
-import type { DefensiveLine } from '../../types/team';
+import type { AttackingStyle, DefensiveLine } from '../../types/team';
 import type { Zone } from './kickDecision';
+import type { PlayChannel } from '../../data/playbook/types';
 
 // Carrier utility AI (Upgrade.md § 5.4): the wide-vs-hard READ. On top of the
 // team's attackingStyle base propensity (effStyleScalar(HARD_CARRY_THRESHOLDS)),
@@ -84,4 +85,46 @@ export const PLAY_OVERLAY = {
   // then does the turnover abort fire, so a well-supported carry is not aborted by
   // a single tackler the contact system would resolve in the attack's favour.
   isolationRadius: 9.0,
+  // Familiarity READ (WP6): each of the three abort radii above is scaled by
+  // (1 + familiarityReadGain × recency) where recency is the 0..1 "the defence has
+  // seen this play lately" scalar (state.playRecency). A read play's abort windows
+  // widen — defenders react faster, so a repeated move dies more often. At recency
+  // 1 the radii grow 40%; at 0 (a fresh play) they are unscaled.
+  familiarityReadGain: 0.4,
+} as const;
+
+// Play SELECTION (WP6, Upgrade.md § 7.1) — which playbook play (if any) overlays a
+// carry. Tuning only; the play DEFINITIONS are content in src/data/playbook/. The
+// fire gate + weighted pick draw on the OUTCOME rng() stream (selection shapes the
+// outcome), so they are seeded-deterministic. Calibrated NEUTRAL to the owner's
+// post-rebalance § 13 targets (tries ~5.5): plays change HOW a break comes, not the
+// rate. A team's effective attackingStyle biases WHICH play surfaces (the "default
+// playbook from suggestedTactics") via styleAffinity; recency lowers a stale play's
+// weight so the attack varies its moves.
+export const PLAY_SELECTION = {
+  // Percent of eligible carries on which a play is offered at all. Low — a set move
+  // is the exception, not every phase. The rest run the plain ShapeSolver carry.
+  // Calibrated so plays keep tries on the owner's post-rebalance ~5.5 target.
+  firePct: 9,
+  // Open-side space (metres from the mark to the open touchline) at/above which a
+  // wide call reaches the WIDE channel; below it a wide call stays MID.
+  wideChannelSpace: 24,
+  // styleAffinity[attackingStyle][channel] — the team's shape preference scales a
+  // play's weight by the channels it is built for (a play's weight takes the MAX
+  // over its trigger channels). wide_wide flings it to the edge; keep_it_tight
+  // hammers the close channels; balanced is flat.
+  styleAffinity: {
+    wide_wide:     { tight: 0.5, mid: 1.0, wide: 1.6 },
+    balanced:      { tight: 1.0, mid: 1.0, wide: 1.0 },
+    keep_it_tight: { tight: 1.5, mid: 1.0, wide: 0.5 },
+  } as Record<AttackingStyle, Record<PlayChannel, number>>,
+  // How far a fully-read play's selection weight drops: weight ×= (1 − drop × recency).
+  // At recency 1 a stale play keeps 35% of its weight (the attack mostly moves on).
+  familiarityWeightDrop: 0.65,
+  // PLAY_SELECTED recency dynamics (applied in applyMatchEvent): on each selection
+  // the side's existing recencies decay by recencyDecay, then the chosen play gains
+  // recencyBump (clamped to 1). decay < 1 means a play not run for a few phases
+  // fades back toward fresh; the bump means ~2-3 repeats to approach "fully read".
+  recencyDecay: 0.7,
+  recencyBump: 0.5,
 } as const;

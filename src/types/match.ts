@@ -316,6 +316,13 @@ export interface MatchState {
     away: { attack: number; defend: number; startMinute: number; decayMinutes: number };
     singleOut?: { side: 'home' | 'away'; playerId: number; bonus: number; startMinute: number; decayMinutes: number };
   };
+  // Per-match play-familiarity recency (WP6 selection). Keyed by side, then play
+  // id → a 0..1 "the defence has seen this lately" scalar. Each PLAY_SELECTED bumps
+  // the chosen play toward 1 and decays that side's other plays toward 0. Read by
+  // selectPlay (lowers a stale play's selection weight) and the overlay abort check
+  // (a read play's abort radii widen — defenders react faster). Initialised empty
+  // at kick-off; never persisted (the match is transient — no SAVE_VERSION impact).
+  playRecency: { home: Record<string, number>; away: Record<string, number> };
   // Count of consecutive wheel outcomes in the current scrum sequence.
   // Incremented by the SCRUM_RESOLVED reducer when outcome === 'wheel';
   // reset to 0 on any other scrum outcome. handleScrum reads this to cap

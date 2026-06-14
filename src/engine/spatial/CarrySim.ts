@@ -73,9 +73,14 @@ export interface CarrySimInput {
   // plain carry. When present its named roles' run-line waypoints become the
   // Layer-1 steering source and its pass schedule replaces the default sweep; the
   // contact/gap verdict is still measured against the carrier. Undefined keeps the
-  // path byte-identical to the pre-overlay carry — selection (a later WP6 commit)
-  // is what populates this in live play.
+  // path byte-identical to the pre-overlay carry — selection populates this in live
+  // play (Upgrade.md § 7.1).
   play?: Play;
+  // Per-match familiarity (0..1) of the selected play with the DEFENCE (WP6) — how
+  // often it has been run lately (state.playRecency). Widens the overlay's abort
+  // radii (defenders read a repeated move and react faster). Ignored when no play;
+  // defaults to 0 (a fresh play).
+  playFamiliarity?: number;
   silent: boolean;
 }
 
@@ -205,7 +210,7 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
   // schedule own the ball — Layers 2–3 (contact / the abort checks) stay live.
   // createPlayOverlay returns null when the play can't bind its carrier (a carded
   // slot); the carry then runs plain. The carrier the verdict measures is unchanged.
-  const overlay: PlayOverlayState | null = input.play ? createPlayOverlay(world, params, input.play) : null;
+  const overlay: PlayOverlayState | null = input.play ? createPlayOverlay(world, params, input.play, input.playFamiliarity ?? 0) : null;
 
   // PASS PHASE (WP5): prefix the carry with the ball sweeping from the ruck
   // (scrum-half) through the backline to the carrier (positioned at his receiving

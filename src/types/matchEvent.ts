@@ -41,6 +41,13 @@ export type MatchEvent =
       assistTackler?: Player;
     }
 
+  // A playbook play was selected for the carry about to resolve (WP6). The reducer
+  // bumps that play's recency on the attacking side (state.playRecency) and decays
+  // the side's other plays — so a repeated play climbs toward "read" (defenders
+  // learn it). Carries no Player; it is selection bookkeeping, not a stat. Applied
+  // in silent mode too (it shapes the next carry's outcome via the abort radii).
+  | { type: 'PLAY_SELECTED'; playId: string; side: PossessionSide }
+
   // ── Errors / turnovers ───────────────────────────────────────────────────
   | { type: 'KNOCK_ON'; player: Player; attackSide: PossessionSide }
   | { type: 'TURNOVER_AT_BREAKDOWN'; jackal: Player }

@@ -66,6 +66,9 @@ export interface PlayOverlayState {
   nextTransfer: number;
   aborted: boolean;
   abortTick: number;     // the tick the play aborted (-1 while live), for scenarios
+  // 0..1 familiarity of this play with the DEFENCE (WP6) — scales the abort radii so
+  // a read play dies more readily (abortScale below). 0 = a fresh play (radii unscaled).
+  familiarity: number;
 }
 
 // Map an attack-oriented, mark-relative waypoint to a clamped pitch target.
@@ -84,7 +87,7 @@ function waypointTarget(ov: PlayOverlayState, wp: PlayWaypoint): Vec2 {
 // measured carry geometry is the one the play set up; every OTHER role binds to its
 // authored matchday slot. This keeps the rng()-chosen carrier (the legacy seam)
 // authoritative while the play shapes the run lines around him.
-export function createPlayOverlay(world: World, p: ShapeParams, play: Play): PlayOverlayState | null {
+export function createPlayOverlay(world: World, p: ShapeParams, play: Play, familiarity: number): PlayOverlayState | null {
   const base = p.attackSide === 'home' ? 0 : AGENTS_PER_SIDE;
   const carrierRoleName = findCarrierRole(play);
   const roles: BoundRole[] = [];
@@ -115,6 +118,7 @@ export function createPlayOverlay(world: World, p: ShapeParams, play: Play): Pla
     nextTransfer: 0,
     aborted: false,
     abortTick: -1,
+    familiarity,
   };
 
   // The opening ball-holder is the role that performs the first ball action that is
@@ -198,16 +202,24 @@ export function evaluatePlayAborts(ov: PlayOverlayState, world: World, p: ShapeP
   const defBase = p.defendSide === 'home' ? 0 : AGENTS_PER_SIDE;
   const nextReceiver = ov.nextTransfer < ov.transfers.length ? ov.transfers[ov.nextTransfer].to : null;
 
+  // Familiarity READ (WP6): a play the defence has seen lately has its abort windows
+  // widened — defenders react faster, so the read play dies more readily. At
+  // familiarity 0 (fresh) the radii are unscaled.
+  const readScale = 1 + PLAY_OVERLAY.familiarityReadGain * ov.familiarity;
+  const coverR     = PLAY_OVERLAY.receiverCoverRadius * readScale;
+  const interceptR = PLAY_OVERLAY.interceptLaneRadius * readScale;
+  const turnoverR  = PLAY_OVERLAY.turnoverRadius * readScale;
+
   let fire = false;
   for (const kind of ov.play.abort) {
     if (kind === 'receiver_covered' && nextReceiver) {
-      if (nearestDefenderDist(world, defBase, nextReceiver.pos) <= PLAY_OVERLAY.receiverCoverRadius) fire = true;
+      if (nearestDefenderDist(world, defBase, nextReceiver.pos) <= coverR) fire = true;
     } else if (kind === 'intercept_risk' && nextReceiver) {
-      if (nearestDefenderToSegment(world, defBase, ov.ballHolder.pos, nextReceiver.pos) <= PLAY_OVERLAY.interceptLaneRadius) fire = true;
+      if (nearestDefenderToSegment(world, defBase, ov.ballHolder.pos, nextReceiver.pos) <= interceptR) fire = true;
     } else if (kind === 'turnover' && carrierHasBall(ov)) {
       const supportDist = nearestSupportDist(ov);
       if (supportDist > PLAY_OVERLAY.isolationRadius &&
-          nearestDefenderDist(world, defBase, ov.carrier.pos) <= PLAY_OVERLAY.turnoverRadius) fire = true;
+          nearestDefenderDist(world, defBase, ov.carrier.pos) <= turnoverR) fire = true;
     }
     if (fire) break;
   }

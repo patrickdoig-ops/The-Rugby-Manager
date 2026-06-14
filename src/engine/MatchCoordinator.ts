@@ -262,6 +262,7 @@ function initMatchState(homeRaw: RawTeamInput, awayRaw: RawTeamInput, tickDelayM
       version: 0,
     },
     consecutiveWheels: 0,
+    playRecency: { home: {}, away: {} },
   };
 }
 

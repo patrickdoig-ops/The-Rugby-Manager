@@ -5,7 +5,7 @@ import { clamp } from '../utils/math';
 import { attackDir } from './FieldPosition';
 import { computeRating } from './RatingEngine';
 import { assertInvariants } from './invariants';
-import { CLOCK_VALUES, SCORE_VALUES, SIN_BIN_DURATION, slotFamiliarity, SLOT_POSITION } from './balance';
+import { CLOCK_VALUES, PLAY_SELECTION, SCORE_VALUES, SIN_BIN_DURATION, slotFamiliarity, SLOT_POSITION } from './balance';
 import type { Player, PlayerStats } from '../types/player';
 
 // The single function permitted to mutate MatchState (or any Player field).
@@ -140,6 +140,16 @@ function applyEventToState(state: MatchState, event: MatchEvent): void {
       }
       state.lastCarryOutcome = outcome;
       state.lastCarryCarrierId = carrier.id;
+      return;
+    }
+
+    // A playbook play was selected (WP6). Decay the side's existing recencies,
+    // then bump the chosen play toward 1 ("read"). A play not run for a phase or
+    // two fades back toward fresh; a repeated one climbs. Bounded [0,1].
+    case 'PLAY_SELECTED': {
+      const rec = state.playRecency[event.side];
+      for (const id in rec) rec[id] *= PLAY_SELECTION.recencyDecay;
+      rec[event.playId] = Math.min(1, (rec[event.playId] ?? 0) + PLAY_SELECTION.recencyBump);
       return;
     }
 

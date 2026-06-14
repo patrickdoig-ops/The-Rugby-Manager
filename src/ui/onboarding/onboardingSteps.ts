@@ -30,6 +30,9 @@ export interface OnboardingStep {
   advanceClick?: string;
   kind?: 'intro' | 'final';
   cta?: string;
+  // When set on a 'next' step, tapping its button also navigates back to the
+  // Hub — used to spare the player a multi-level back-out from a sub-menu.
+  returnToHub?: boolean;
 }
 
 export const PHASE1_STEPS: OnboardingStep[] = [
@@ -74,6 +77,15 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     cta: 'Got it',
     title: 'This is your Hub',
     body: 'Your base between matches. Start here: this card shows your next fixture — who you face, where, and recent form. Always know your opponent before you pick a side.',
+  },
+  {
+    id: 'help',
+    screen: 'hub',
+    target: '#hub .rm-help-btn',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'Help is always here',
+    body: 'See the “?” up here? Tap it on any screen for a quick guide to that page — what everything does and tips for new managers. If you ever get stuck, that’s where to look.',
   },
   {
     id: 'hub-squad',
@@ -236,9 +248,10 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     screen: 'staff',
     target: '.staff-btn--hire',
     advance: 'next',
-    cta: 'Got it',
+    cta: 'Back to Hub',
+    returnToHub: true,
     title: 'Hire your backroom',
-    body: 'Each role has a hire slot and a wage. Bring in the best you can afford — a top assistant manager especially pays off if you delegate the cup. Tap Back to the club menu when done, then Back again to the Hub.',
+    body: 'Each role has a hire slot and a wage. Bring in the best you can afford — a top assistant manager especially pays off if you delegate the cup. When you are done, this takes you back to the Hub.',
   },
   {
     id: 'hub-contracts',

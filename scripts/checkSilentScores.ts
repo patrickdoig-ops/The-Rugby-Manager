@@ -195,12 +195,13 @@ const ROOT_SEED = 0xDEADBEEF;
 // and tries 3.3 → ~5.5/match. New rng draw per short-of-line break shifts the
 // whole outcome stream by design.
 //
-// Play SELECTION (WP6, § 7.1): every spatial PhasePlay carry now rolls a play
-// fire-gate on the outcome stream (PLAY_SELECTION.firePct), and a fired play
-// overlays the carry's run lines. The added per-carry draw re-sequences the whole
-// outcome stream by design; bands stay within the owner's post-rebalance § 13
-// targets (5-seed tries 5.67, pts 36.99 — both in band) so only the golden moves.
-const GOLDEN = '211b17b08198cdb794a67e2eb4f6d7f5b53817220d5b44c6c2bcf43b761d9db9';
+// Play SELECTION (WP6, § 7.1): every spatial PhasePlay AND FirstPhase carry now
+// rolls a play fire-gate on the outcome stream (PLAY_SELECTION.firePct), and a fired
+// play overlays the carry's run lines. The added per-carry draw re-sequences the
+// whole outcome stream by design; bands stay within the owner's post-rebalance § 13
+// targets (5-seed tries 5.55, pts 36.17 — both in band) so only the golden moves.
+// FirstPhase strike selection added in a follow-up commit (golden re-derived again).
+const GOLDEN = '791f6a2f8453d3f73fc954c087f487cc3e6d4e233c86392c83e871a12cfddcb1';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

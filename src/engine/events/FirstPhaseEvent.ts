@@ -5,6 +5,7 @@ import { MatchPhase } from '../../types/engine';
 import { resolveOpenPlay, resolveOpenPlaySpatial } from '../resolvers/OpenPlayResolver';
 import { runCarrySim, seedWorld } from '../spatial/CarrySim';
 import type { CarrySimResult } from '../spatial/CarrySim';
+import { selectPlay, selectChannel } from '../playSelection';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, breaksCover, pickPrimaryDefender, pickAssistTackler, tryLineDefenceBonus } from '../FieldPosition';
@@ -376,6 +377,22 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   let frames: import('../spatial/types').Frame[] | undefined;
   let sim: CarrySimResult | undefined;
   if (spatial && world) {
+    // PLAY SELECTION (WP6, § 7.1) — strike plays off the set piece. Same seam as
+    // handlePhasePlay: offer a play (phase 'FirstPhase'), weighted by attackingStyle
+    // and damped by familiarity; a hit overlays the carry and records PLAY_SELECTED.
+    // The crash-ball strike is a TIGHT/MID channel; out-the-back is the WIDE play —
+    // selectChannel reads !goCrashBall as the wide call. openSpaceWide gates the wide
+    // strikes. The fire-gate draw is on the OUTCOME stream, so this re-baselines.
+    const openSpaceWide = Math.max(state.ball.y, 100 - state.ball.y);
+    const sel = selectPlay({
+      phase: 'FirstPhase',
+      channel: selectChannel(!goCrashBall, openSpaceWide),
+      spaceWide: openSpaceWide,
+      style: effAttackingStyle(state, attackTeam),
+      recency: state.playRecency[attackSide],
+    });
+    if (sel) events.push({ type: 'PLAY_SELECTED', playId: sel.play.id, side: attackSide });
+
     const s = runCarrySim(world, state, {
       attackSide,
       defendSide: defSide,
@@ -392,6 +409,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
       // the defender for a strike off a set piece so first-phase clean breaks sit at
       // the legacy ~13.3/match (the over-broken breaks become dominant tackles).
       contactDefenderBonus: EVASION.firstPhaseDefenderBonus,
+      // The selected strike play + the defence's familiarity with it (undefined → a
+      // byte-identical plain strike carry).
+      play: sel?.play,
+      playFamiliarity: sel?.familiarity,
       silent,
     });
     sim = s;

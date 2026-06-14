@@ -125,18 +125,23 @@ function renderStep(idx: number): void {
 
   // Normal step. 'action' steps carry no advance button — the player taps the
   // spotlighted UI; only the persistent Skip remains. A `returnToHub` step's
-  // button also navigates home, sparing a multi-level back-out.
+  // button also navigates home, sparing a multi-level back-out. A `dismissible`
+  // action step gets a "Got it" that just hides the card so the player can read,
+  // clear it, then act on the screen behind.
   const onNext = step.returnToHub
     ? () => { advance(); navGoHub?.(); }
     : advance;
   const buttons = step.advance === 'next'
     ? [{ label: step.cta ?? 'Next', primary: true, onClick: onNext }]
-    : [];
+    : step.dismissible
+      ? [{ label: 'Got it', primary: true, onClick: () => hideCoachMark() }]
+      : [];
   showCoachMark({
     eyebrow,
     title: step.title,
     body: step.body,
     target: step.target,
+    placement: step.placement,
     buttons,
     onSkip: () => { hideCoachMark(); finish(); },
   });

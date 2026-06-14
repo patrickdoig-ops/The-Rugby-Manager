@@ -33,6 +33,13 @@ export interface OnboardingStep {
   // When set on a 'next' step, tapping its button also navigates back to the
   // Hub — used to spare the player a multi-level back-out from a sub-menu.
   returnToHub?: boolean;
+  // 'bottom' anchors an untargeted card to the bottom of the screen with no
+  // backdrop dim, so the content behind (e.g. the team list) stays visible and
+  // selectable. Default for untargeted cards is a dimmed centre.
+  placement?: 'center' | 'bottom';
+  // Adds a "Got it" button that simply hides the card (without advancing), for
+  // action steps where the player reads, dismisses, then acts on the screen.
+  dismissible?: boolean;
 }
 
 export const PHASE1_STEPS: OnboardingStep[] = [
@@ -49,13 +56,17 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     id: 'pick-team',
     screen: 'team-selector',
     advance: 'action',
+    placement: 'bottom',
+    dismissible: true,
     title: 'Pick your club',
-    body: 'Tap any club to take charge. Choose one to continue.',
+    body: 'Tap any club to take charge — scroll for the full list. Choose one to continue.',
   },
   {
     id: 'team-info',
     screen: 'team-info',
     advance: 'action',
+    placement: 'bottom',
+    dismissible: true,
     title: 'Your squad',
     body: 'Here is the squad you would inherit — star players, ratings and depth. Tap Select to manage this club.',
   },

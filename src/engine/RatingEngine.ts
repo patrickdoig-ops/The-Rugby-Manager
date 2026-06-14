@@ -44,8 +44,12 @@ export function computeRating(player: Player): number {
   score += s.redCards          * u.redCards;
 
   // Position bonuses
-  if (id === 2 && s.lineoutThrows > 0)
-    score += (s.lineoutWins / s.lineoutThrows - W.position.hooker.lineoutWinRateBaseline) * W.position.hooker.lineoutBonusMultiplier;
+  if (id === 2) {
+    // Maul tries are a team effort — hooker try credit is halved (net 3.5 vs 7.0).
+    score -= s.tries * W.position.hooker.tryDiscount;
+    if (s.lineoutThrows > 0)
+      score += (s.lineoutWins / s.lineoutThrows - W.position.hooker.lineoutWinRateBaseline) * W.position.hooker.lineoutBonusMultiplier;
+  }
 
   if (id === 4 || id === 5) {
     score += s.lineoutCatches * W.position.locks.lineoutCatch;

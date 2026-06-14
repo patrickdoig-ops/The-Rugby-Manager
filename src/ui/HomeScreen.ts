@@ -140,12 +140,11 @@ export function initHomeScreen(
     <div id="home-chrome">
       <div id="home-status">
         <span class="home-live-dot"></span>
-        <span class="home-status-text">${statusLabel}</span>
+        <button id="settings-btn" aria-label="Settings">${gearIcon()}</button>
       </div>
       <div id="home-chrome-actions">
         <span class="home-chrome-version">v${VERSION}</span>
         ${helpButtonHtml('home')}
-        <button id="settings-btn" aria-label="Settings">${gearIcon()}</button>
       </div>
     </div>
 
@@ -157,11 +156,7 @@ export function initHomeScreen(
         <span class="title-bottom">Manager</span>
       </h1>
       <div class="home-broadcast-strip">
-        <span class="broadcast-item">10 Teams</span>
-        <span class="broadcast-sep"></span>
-        <span class="broadcast-item">18 Rounds</span>
-        <span class="broadcast-sep"></span>
-        <span class="broadcast-item broadcast-item--hi">Career Mode</span>
+        <span class="broadcast-item broadcast-item--hi">${statusLabel} Season</span>
       </div>
     </div>
 

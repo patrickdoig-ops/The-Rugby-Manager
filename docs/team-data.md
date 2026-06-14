@@ -536,12 +536,12 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Stephen Varney | Scrum-half | 2001-05-16 | 25 | Italy | 85 | 69 | 82 | 89 | 84 | 79 | 79 | 90 | 24 | 83 | 86 | 84 |
-| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 83 | 70 | 85 | 85 | 90 | 69 | 76 | 94 | 34 | 90 | 93 | 90 |
-| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 90 | 95 | 95 | 99 | 99 | 78 | 78 | 78 | 47 | 78 | 92 | 78 |
-| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 88 | 95 | 89 | 78 | 93 | 99 | 78 | 78 | 58 | 78 | 95 | 78 |
-| Henry Slade | Centre | 1993-03-19 | 33 | England | 88 | 78 | 85 | 78 | 95 | 95 | 78 | 95 | 22 | 86 | 95 | 99 |
+| Harvey Skinner | Fly-half | 1997-12-31 | 28 | England | 83 | 70 | 85 | 85 | 90 | 89 | 76 | 94 | 34 | 90 | 93 | 90 |
+| Immanuel Feyi-Waboso | Wing | 2002-12-20 | 23 | England | 90 | 95 | 95 | 99 | 99 | 88 | 78 | 78 | 47 | 78 | 92 | 78 |
+| Len Ikitau | Centre | 1998-10-01 | 27 | Australia | 88 | 95 | 89 | 78 | 93 | 92 | 78 | 78 | 58 | 78 | 95 | 78 |
+| Henry Slade | Centre | 1993-03-19 | 33 | England | 88 | 78 | 85 | 78 | 95 | 95 | 78 | 89 | 22 | 86 | 95 | 99 |
 | Paul Brown-Bampoe | Wing | 2002-05-15 | 24 | England | 90 | 76 | 92 | 92 | 86 | 82 | 73 | 80 | 63 | 77 | 83 | 75 |
-| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 88 | 78 | 88 | 88 | 87 | 80 | 75 | 86 | 37 | 78 | 89 | 80 |
+| Olly Woodburn | Wing / Full Back | 1991-11-18 | 34 | England | 88 | 78 | 88 | 88 | 87 | 85 | 75 | 86 | 37 | 78 | 89 | 80 |
 
 **Bench**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
@@ -551,22 +551,22 @@ League ppm has a realistic ceiling of ~5.0 (win + try bonus). The 60/40 blend le
 | Ethan Burger | Prop | 2000-05-23 | 25 | South Africa | 78 | 89 | 57 | 60 | 67 | 78 | 82 | 51 | 95 | 69 | 71 | 69 |
 | Alfie Bell | Lock | 2003-04-12 | 23 | England | 85 | 78 | 63 | 61 | 69 | 81 | 84 | 54 | 92 | 74 | 69 | 69 |
 | Rusi Tuima | Flanker | 2000-05-21 | 26 | Fiji | 86 | 86 | 71 | 77 | 66 | 84 | 90 | 57 | 81 | 69 | 78 | 73 |
-| Tom Cairns | Scrum-half | 2002-06-19 | 23 | England | 82 | 65 | 78 | 78 | 78 | 69 | 80 | 78 | 61 | 75 | 78 | 79 |
-| Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England | 83 | 64 | 72 | 71 | 79 | 68 | 77 | 87 | 63 | 78 | 78 | 78 |
+| Tom Cairns | Scrum-half | 2002-06-19 | 23 | England | 82 | 65 | 78 | 78 | 78 | 79 | 80 | 78 | 61 | 75 | 78 | 79 |
+| Will Haydon-Wood | Fly-half | 2000-10-27 | 25 | England | 83 | 64 | 72 | 71 | 79 | 78 | 77 | 87 | 63 | 78 | 78 | 78 |
 | Dan John | Wing | 2001-10-04 | 24 | Wales | 80 | 67 | 83 | 82 | 78 | 73 | 70 | 70 | 57 | 75 | 78 | 78 |
 
 **Wider squad — Forwards**
 | Name | Position | DOB | Age | Nationality | Stam | Str | Pace | Agil | Hand | Tack | Brk | Kick | SetP | Disc | Posi | Comp |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa | 72 | 72 | 44 | 56 | 53 | 73 | 77 | 49 | 87 | 65 | 60 | 63 |
-| Bachuki Tchumbadze | Prop | 2001-11-30 | 24 | Georgia | 72 | 78 | 49 | 54 | 53 | 72 | 75 | 46 | 80 | 65 | 64 | 62 |
-| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 85 | 74 | 79 | 67 | 60 | 76 | 81 | 58 | 71 | 62 | 72 | 60 |
-| Joe Bailey | Lock | 2004-07-06 | 21 | England | 82 | 72 | 56 | 54 | 56 | 72 | 75 | 46 | 87 | 66 | 62 | 65 |
-| Oscar Beckerleg | Lock | 2005-05-11 | 21 | England | 82 | 72 | 55 | 56 | 55 | 73 | 75 | 53 | 86 | 62 | 64 | 65 |
-| Ehren Painter | Prop | 1998-03-21 | 28 | England | 72 | 75 | 49 | 53 | 55 | 72 | 77 | 50 | 85 | 61 | 65 | 67 |
-| Richard Capstick | Flanker | 2000-02-13 | 26 | England | 82 | 72 | 65 | 69 | 62 | 72 | 82 | 56 | 68 | 65 | 72 | 63 |
-| Jack Yeandle | Hooker | 1989-12-22 | 36 | England | 72 | 72 | 53 | 60 | 72 | 72 | 75 | 49 | 80 | 65 | 69 | 64 |
-| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 72 | 85 | 51 | 53 | 51 | 72 | 75 | 44 | 85 | 67 | 64 | 65 |
+| Kwenzo Blose | Prop | 1997-05-12 | 29 | South Africa | 72 | 72 | 44 | 56 | 63 | 82 | 77 | 49 | 87 | 65 | 60 | 63 |
+| Bachuki Tchumbadze | Prop | 2001-11-30 | 24 | Georgia | 72 | 78 | 49 | 54 | 63 | 82 | 75 | 46 | 80 | 65 | 64 | 62 |
+| Tom Hooper | Flanker | 2001-01-29 | 25 | Australia | 85 | 74 | 79 | 67 | 80 | 76 | 81 | 58 | 71 | 62 | 72 | 60 |
+| Joe Bailey | Lock | 2004-07-06 | 21 | England | 82 | 72 | 56 | 54 | 79 | 82 | 75 | 46 | 87 | 66 | 62 | 65 |
+| Oscar Beckerleg | Lock | 2005-05-11 | 21 | England | 82 | 72 | 55 | 56 | 65 | 83 | 75 | 53 | 86 | 62 | 64 | 65 |
+| Ehren Painter | Prop | 1998-03-21 | 28 | England | 72 | 75 | 49 | 53 | 55 | 82 | 77 | 50 | 85 | 61 | 65 | 67 |
+| Richard Capstick | Flanker | 2000-02-13 | 26 | England | 82 | 72 | 65 | 69 | 62 | 82 | 82 | 56 | 68 | 65 | 72 | 63 |
+| Jack Yeandle | Hooker | 1989-12-22 | 36 | England | 72 | 72 | 53 | 60 | 72 | 82 | 75 | 49 | 80 | 65 | 69 | 64 |
+| Jimmy Roots | Prop | 2000-01-31 | 26 | England | 72 | 85 | 51 | 53 | 71 | 82 | 75 | 44 | 85 | 67 | 64 | 65 |
 | Julian Heaven | Hooker | 2000-10-01 | 25 | Australia | 69 | 72 | 54 | 60 | 72 | 72 | 75 | 51 | 82 | 60 | 64 | 66 |
 | Khwezi Mona | Prop | 1992-10-08 | 33 | South Africa | 72 | 76 | 48 | 55 | 55 | 75 | 75 | 45 | 83 | 64 | 63 | 60 |
 | Lewis Pearson | Lock | 1999-10-26 | 26 | England | 82 | 76 | 55 | 54 | 60 | 72 | 75 | 53 | 83 | 65 | 62 | 67 |

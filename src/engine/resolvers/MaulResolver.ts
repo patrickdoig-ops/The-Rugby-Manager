@@ -42,10 +42,12 @@ export function resolveMaul(
   defendBonus = 0,
   collapseBiasPct = 0,
 ): MaulResolution {
-  const { rngSpan, collapseFromMarginWeight, collapseFromDisciplineWeight, maxCollapsePct } = MAUL_VALUES;
+  const { rngSpan, collapseFromMarginWeight, collapseFromDisciplineWeight, maxCollapsePct, defenderAdvantage } = MAUL_VALUES;
   const attackScore = packScore(attackForwards) + attackBonus + rng(1, rngSpan);
   const defendScore = packScore(defendForwards) + defendBonus + rng(1, rngSpan);
-  const margin = attackScore - defendScore;
+  // defenderAdvantage is a flat edge to the defence — a maul is harder to
+  // win than to stop, so the attackers must clear it before the push tells.
+  const margin = attackScore - defendScore - defenderAdvantage;
 
   let result: MaulResult;
   let gainMetres = 0;

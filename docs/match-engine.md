@@ -1618,13 +1618,14 @@ Same gate fires for human and AI — no modal.
 
 ### Resolution
 
-Mirrors the scrum's pack-score formula. `MaulResolver.packScore` is a **sum** of `(strength × 0.55 + setPiece × 0.45)` per forward, so a pack down a man (sin-binned, sent off, in-match injured) loses ~12% of its score and is materially weaker. Discipline doesn't enter the score directly — it shows up in stage 2 as a collapse bias.
+Mirrors the scrum's pack-score formula. `MaulResolver.packScore` is a **sum** of `(strength × 0.20 + setPiece × 0.16)` per forward, so a pack down a man (sin-binned, sent off, in-match injured) loses ~27 of its ~232 score and is materially weaker (its maul_won rate collapses toward 0). The weights are deliberately **low** relative to the `rng(1, 50)` noise and the `defenderAdvantage` edge — this *compresses* how far raw pack strength tilts the contest. Un-compressed (the old 0.55/0.45 weights), a strong pack's score delta (a sum over 8 forwards) dwarfed the noise and won ~86% of mauls, which made the hookers of forward-heavy clubs run away with the try-scoring charts (every maul try is credited to the hooker). Compressed, a dominant pack wins ~60% (clearly favoured but stoppable), an even contest ~19%, a weaker pack ~1%. Discipline doesn't enter the score directly — it shows up in stage 2 as a collapse bias.
 
 Two-stage outcome:
 
-1. **Strength margin** (`attackScore + intensityMaulMod + rng(1, 50)` vs `defendScore + intensityMaulMod + rng(1, 50)`):
+1. **Strength margin** (`attackScore + intensityMaulMod + rng(1, 50)` vs `defendScore + intensityMaulMod + rng(1, 50)`, then a flat **`defenderAdvantage` of 18** is subtracted from the attack side):
    - `margin > 0` → attackers winning the push → continue to stage 2.
    - `margin ≤ 0` → defenders stop the maul cleanly → `maul_held` (turnover scrum to defenders, no ground gained).
+   - The `defenderAdvantage` edge models a well-drilled modern maul defence and sets the **equal-pack floor** (~19% maul_won). It works with the compressed pack weights (above), not instead of them: the edge sets the baseline, the low weights stop a strong pack blowing past it. Together they were the fix for hookers dominating the try-scoring charts (maul tries are credited to the hooker).
 2. **Cynical-collapse roll** (only on positive margin):
    - `collapsePct = clamp((margin × 0.30) + (max(0, 50 − defendDiscipline) × 0.50) + disciplineMaulCollapseMod, 0, 60)`
    - On hit → `maul_collapse_penalty` (defending side cited, attacking team gets the penalty).
@@ -1633,8 +1634,10 @@ Two-stage outcome:
 **Tactic hooks (intensity + discipline).** `intensityMaulMod` (`TACTIC_MODIFIERS`, `high: +12 / balanced: 0 / light: −12`) is a flat drive edge on each side's stage-1 score: a `high`-intensity attacker wins more mauls and is held (turned over) less; a `high` defender stops more. `disciplineMaulCollapseMod` (`risky: +10 / balanced: 0 / cautious: −8`, pp) biases the **defender's** collapse roll: a `risky` defence cracks more often — collapsing the maul to stop a drive/try illegally, conceding more penalties and yellows (via `MAUL_COLLAPSE_YELLOW`), but yielding fewer clean maul gains; a `cautious` defence rarely collapses and lets the drive go. Both default to 0 so `balanced` mauls are unchanged.
 
 On `maul_won`, the gain distribution is:
-- 90% chance: `rng(5, 10)` metres (the normal driving-maul band).
-- 10% chance: `rng(15, 25)` metres (the highlight-reel long drive).
+- 94% chance: `rng(4, 8)` metres (the normal driving-maul band).
+- 6% chance: `rng(12, 18)` metres (the highlight-reel long drive).
+
+Trimmed from the old 5-10m / 15-25m bands: a won maul makes less ground, so it is less likely to carry the ball over the line (and the rare long drive no longer scores from distance).
 
 The handler then projects the new ball position (`state.ball.x + attackDir(state) * gainMetres`) and checks `isTryScoredAt`. If true → `nextPhase: TryScored` with the hooker as `primaryPlayer` (so `handleTryScored` credits the try to the hooker). Otherwise → `nextPhase: FirstPhase`.
 
@@ -1644,11 +1647,11 @@ The handler then projects the new ball position (`state.ball.x + attackDir(state
 
 | Outcome | Probability | Next phase | Possession |
 |---|---:|---|---|
-| `maul_won` | ~45% | FirstPhase (or TryScored if it crossed the line) | attacking side retains |
-| `maul_held` | ~50% | Scrum | flips to defending side |
-| `maul_collapse_penalty` | ~5% | Penalty | attacking side keeps (and gets the penalty) |
+| `maul_won` | ~19% | FirstPhase (or TryScored if it crossed the line) | attacking side retains |
+| `maul_held` | ~78% | Scrum | flips to defending side |
+| `maul_collapse_penalty` | ~3% | Penalty | attacking side keeps (and gets the penalty) |
 
-Mismatched packs skew sharply: a strong pack mauling a weak defender drives `maul_won` to ~70%+ and lifts collapse to ~20-25%; a weak pack mauling a strong defender lands mostly in `maul_held`.
+Mismatched packs still skew, but the compressed weights cap the swing: a strong pack mauling a weak defender wins ~60% (the high margin lifts collapse too); a weak pack mauling a strong defender wins almost none and lands in `maul_held`.
 
 ### Cards
 

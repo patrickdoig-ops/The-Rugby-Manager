@@ -16,42 +16,57 @@
 export const MAUL_VALUES = {
   // packScore is a SUM of forwards' (strength * strengthWeight + setPiece * setPieceWeight)
   // — see MaulResolver. With 8 forwards averaging ~75/70 the per-side score
-  // is ~580. A side down one forward loses ~73 of pack score and is
-  // materially weaker.
-  strengthWeight:    0.55,
-  setPieceWeight:    0.45,
+  // is ~232. A side down one forward loses ~27 of pack score and is
+  // materially weaker (a man-down pack's maul_won rate collapses toward 0).
+  //
+  // The weights are deliberately *low* relative to the rng(1, 50) noise and
+  // the defenderAdvantage edge: this compresses how far pure pack strength
+  // tilts the contest. Without it, a strong pack's score delta (a SUM over
+  // 8 forwards) dwarfs the noise and wins ~86% of mauls — which made the
+  // hookers of forward-heavy clubs run away with the try-scoring charts.
+  // Compressed, a dominant pack wins ~60% (still clearly favoured, but
+  // genuinely stoppable), an even contest ~19%, a weaker pack ~1%.
+  strengthWeight:    0.20,
+  setPieceWeight:    0.16,
   // rng(1, 50) per side ⇒ noise distribution triangular on [-49, +49].
   rngSpan:           50,
-  // Two-stage resolution. Stage 1: pure strength margin (attackScore -
-  // defendScore + RNG) decides whether the attackers win the push
-  // (margin > 0 → maul_won) or the defenders stop it (margin ≤ 0 →
-  // maul_held). Stage 2: on a maul_won, roll a cynical-collapse check —
+  // Two-stage resolution. Stage 1: strength margin (attackScore -
+  // defendScore - defenderAdvantage + RNG) decides whether the attackers
+  // win the push (margin > 0 → maul_won) or the defenders stop it
+  // (margin ≤ 0 → maul_held). Stage 2: on a maul_won, roll a cynical-collapse check —
   // the defenders may bring the maul down illegally rather than concede
   // ground. Collapse probability rises with pressure (margin — the
   // more they're being driven back, the more tempted) AND inverse
   // discipline (a low-discipline pack is more likely to crack). The two
   // weights below combine additively, capped at maxCollapsePct.
   //
-  // Calibration target (equal packs): ~50% maul_won, ~50% maul_held,
-  // ~5-10% of maul_won attempts convert to collapse_penalty. Mismatched
-  // packs see more dominant outcomes — a strong attacking pack vs a
-  // weak defender still mostly gains ground; the weak defender
-  // occasionally cracks under sustained pressure.
+  // Calibration target (equal packs): ~19% maul_won, ~81% maul_held,
+  // a few % of maul_won attempts convert to collapse_penalty. Mismatched
+  // packs still skew — a strong attacking pack wins ~60% (and the high
+  // margin pushes more of those into collapse_penalty); a weaker pack
+  // wins almost none.
   collapseFromMarginWeight:     0.30,   // pp per +1 of margin (above 0)
   collapseFromDisciplineWeight: 0.50,   // pp per (disciplinePivot - defendDiscipline)
   // Stat pivot for the discipline term — 50 = neutral. Same value as
   // BREAKDOWN_VALUES.disciplinePivot and HIGH_TACKLE.statPivot by design.
   disciplinePivot:              50,
   maxCollapsePct:               60,
-  // Gain distribution on maul_won. Base drive is 5-10m; ~10% of wins
-  // chain into a long drive (15-25m). Real-world league driving
-  // mauls average ~7m; the long drives that show up on highlight reels
-  // are the rare cases the soft floor models.
-  baseGainMin:        5,
-  baseGainMax:       10,
-  longDrivePct:      10,
-  longGainMin:       15,
-  longGainMax:       25,
+  // Flat defensive edge subtracted from the attack margin in stage 1 —
+  // models a well-drilled modern maul defence (sack the catcher, swim
+  // round, refuse to engage). Sets the equal-pack floor: with the
+  // compressed pack weights above, an even contest wins ~19%. Works with
+  // (not instead of) the weight compression — the edge sets the baseline,
+  // the low weights stop a strong pack blowing past it.
+  defenderAdvantage:  18,
+  // Gain distribution on maul_won. Base drive is 4-8m; ~6% of wins
+  // chain into a long drive (12-18m). Real-world league driving
+  // mauls average ~7m; trimmed from the old 5-10m / 15-25m so a won maul
+  // makes less ground and is less likely to carry the ball over the line.
+  baseGainMin:        4,
+  baseGainMax:        8,
+  longDrivePct:       6,
+  longGainMin:       12,
+  longGainMax:        18,
 } as const;
 
 // Maul gate — probability of driving a maul (vs. transitioning straight

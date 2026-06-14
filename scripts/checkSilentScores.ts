@@ -164,7 +164,15 @@ const ROOT_SEED = 0xDEADBEEF;
 // home-win headroom to absorb the small turnover lift). Every § 13 band holds on the
 // 5-seed sweep with comfortable margins (pts 25.51, tries 3.93, pen 11.98, tackAtt 64.51,
 // tackMade 62.62, TO 2.19, home-win 50.22).
-const GOLDEN = 'bd2c88ad4a517b29dbba8b922e9bc8696dd564de35e54cce05ff72fd94bd8c4e';
+//
+// Maul nerf (hooker over-scoring). Maul tries are credited to the hooker, and a
+// near-deterministic pack-strength model let forward-heavy clubs win ~86% of mauls,
+// so their hookers ran away with the try charts. Fix: (1) compressed the pack-score
+// weights (0.55/0.45 → 0.20/0.16) so a dominant pack wins ~60% not ~86% — even strong
+// mauls are now stoppable; (2) added MAUL_VALUES.defenderAdvantage (18) setting the
+// equal-pack floor (~19% maul_won); (3) trimmed the won-gain bands (5-10/15-25 →
+// 4-8/12-18, longDrivePct 10 → 6) so won mauls make less ground and cross the line less.
+const GOLDEN = 'd0e93171bd550c66c27d9220abd68a5028dff5b21cfcb5c1524109cc1055486e';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

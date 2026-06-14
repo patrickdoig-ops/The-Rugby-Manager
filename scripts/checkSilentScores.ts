@@ -121,7 +121,19 @@ const ROOT_SEED = 0xDEADBEEF;
 // flow into the carry (no pass→carry teleport). Positions feed commitRuck, so
 // outcomes shift (by design); every § 13 band holds (pts 24.73, tries 3.79, TO 2.08,
 // pen 12.68, tackMade 64.4, home-win 53.56 on the 5-seed sweep).
-const GOLDEN = '88b770abcc90a1b8ec86aede5f9b93a8821b9fc53a68a7c9b098c63777d70044';
+//
+// WP6 FirstPhase spatialisation: FirstPhase joined SPATIAL_PHASES — a strike off a
+// scrum/lineout now resolves its carry through the spatial substrate (same hybrid
+// template as PhasePlay: the legacy rng() seam is preserved; the spatial line-break /
+// contact verdict overrides the outcome) and the World persists FirstPhase → Breakdown.
+// Re-calibrated with first-phase-LOCAL levers (a set-defence contact-evasion bonus so
+// the square set line is harder to beat 1-on-1; a line-break-metres bonus so a strike
+// into open field carries to the line instead of stopping short into a downfield
+// breakdown) plus two breakdown knobs (ruckRetentionBonus 9→11, notRollingAway 4→2.6)
+// to absorb the extra set-defence breakdowns. By design; every § 13 band holds on the
+// 5-seed sweep (pts 26.16, tries 4.04, pen 12.38, tackAtt 62.01, tackMade 59.78,
+// TO 2.06, home-win 53.11).
+const GOLDEN = '4239dcd21131624c701fb3e368f2be6c07676a32d99718d1d4595aed9369a4c4';
 
 // A fixed fixture list: one-way round-robin (45 unique pairings) plus a
 // handful of flag-bearing fixtures (derby, neutral venue, low/high fill) so

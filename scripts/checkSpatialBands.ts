@@ -197,10 +197,12 @@ f('knock-ons/match',        koPerMatch,       BASELINE_KNOCKONS_PER_MATCH,      
 f('home-win-share%',        homeWinPct,       BASELINE_HOME_WIN_SHARE_PCT,      BAND_HOME_WIN_SHARE_PCT);
 
 const seedsLabel = allSeeds ? `5 seeds (${N} fixtures)` : `3 seeds (${N} fixtures, fast mode)`;
+// Always surface the full metric readout — invaluable when a WP re-baseline pushes
+// a band and you need to see every number, not just the first offender.
+console.log(`  tries=${triesPerMatch.toFixed(2)}  pts=${pointsPerMatch.toFixed(2)}  pen=${penPerMatch.toFixed(2)}  tackAtt=${tackAttPerMatch.toFixed(2)}  tackMade=${tackMadePerMatch.toFixed(2)}`);
+console.log(`  carries=${carriesPerMatch.toFixed(2)}  TO=${toPerMatch.toFixed(2)}  KO=${koPerMatch.toFixed(2)}  homeWin%=${homeWinPct.toFixed(2)}`);
 if (failures.length === 0) {
   console.log(`OK: all § 13 spatial bands pass — ${seedsLabel} in ${elapsed} ms`);
-  console.log(`  tries=${triesPerMatch.toFixed(2)}  pts=${pointsPerMatch.toFixed(2)}  pen=${penPerMatch.toFixed(2)}  tackAtt=${tackAttPerMatch.toFixed(2)}  tackMade=${tackMadePerMatch.toFixed(2)}`);
-  console.log(`  carries=${carriesPerMatch.toFixed(2)}  TO=${toPerMatch.toFixed(2)}  KO=${koPerMatch.toFixed(2)}  homeWin%=${homeWinPct.toFixed(2)}`);
 } else {
   console.error(`SPATIAL BAND VIOLATION — ${failures.length} metric(s) out of band (${seedsLabel}):`);
   for (const err of failures) console.error(`  ✗ ${err}`);

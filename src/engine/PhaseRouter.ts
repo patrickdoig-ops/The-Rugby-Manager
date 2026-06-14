@@ -24,13 +24,16 @@ import { handleConversionKick } from './events/ConversionKickEvent';
 // with ctx.spatial = true, resolving carry line breaks through the spatial
 // World (SpatialSimulator) instead of the legacy resolver margin. Reverting a
 // phase to the legacy engine is a one-line change: remove it from this set.
-const SPATIAL_PHASES: ReadonlySet<MatchPhase> = new Set([MatchPhase.PhasePlay, MatchPhase.Breakdown]);
+const SPATIAL_PHASES: ReadonlySet<MatchPhase> = new Set([MatchPhase.PhasePlay, MatchPhase.FirstPhase, MatchPhase.Breakdown]);
 
 // Single-sourced spatial-phase predicate (Upgrade.md § 3; WP4). MatchCoordinator
 // reads this to decide when to build/reuse the persistent World, so the set of
 // spatial phases is defined in exactly one place. Breakdown joined PhasePlay in
 // WP4: the ruck commitment heuristic measures the live World (carrier isolation,
-// committed-body count) to feed the BreakdownResolver inputs.
+// committed-body count) to feed the BreakdownResolver inputs. FirstPhase joined in
+// WP6: a strike off a set piece resolves its carry through the spatial substrate
+// (same hybrid template as PhasePlay) so playbook strike plays can fire here — the
+// authored choreography still drives the live display until the WP8 frame renderer.
 export function isSpatialPhase(phase: MatchPhase): boolean {
   return SPATIAL_PHASES.has(phase);
 }

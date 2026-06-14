@@ -230,4 +230,13 @@ export const GAP_BREAK = {
   metresMax: [9, 24] as const,  // fast carrier (pace ~90) drawn range
   paceAtFloor: 40,
   paceAtFull:  90,
+  // Flat metres added to a FirstPhase spatial line break (coord-units ≈ m). A
+  // strike off a set piece breaks into the OPEN, structured field — a clean line
+  // break there carries further (often to the line) than a break in the congested
+  // phase-play middle. Applied only on a FirstPhase line break (WP6): it lifts
+  // first-phase tries back toward the legacy rate AND cuts the downfield breakdowns
+  // (and so the holding-on penalties) a break stopped short of the line would
+  // otherwise create — the single lever easing both the points-floor and the
+  // penalty-ceiling pressure the FirstPhase spatialisation introduced.
+  firstPhaseBreakMetresBonus: 8,
 } as const;

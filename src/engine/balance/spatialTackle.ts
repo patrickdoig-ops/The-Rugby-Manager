@@ -35,6 +35,14 @@ export const EVASION = {
   // Noise band: spatial-RNG draw in [-NOISE, NOISE] added to each side's score.
   // ±15 matches the legacy rng(1,20) jitter band.
   noiseBand: 15,
+  // First-phase set-defence bonus (WP6). A strike off a scrum/lineout meets the
+  // most ORGANISED defence of the sequence — a square, connected line — so the
+  // carrier beats his man 1-on-1 LESS often than in broken-field phase play (where
+  // the fold leaves the overlaps). Added to the DEFENDER's evasion score ONLY on a
+  // FirstPhase carry (phase play passes 0, unchanged); converts the over-broken
+  // first-phase clean breaks into dominant tackles / contact, bringing spatial
+  // first-phase line breaks back to the legacy ~13.3/match rate.
+  firstPhaseDefenderBonus: 14,
 } as const;
 
 // ── Phase 2 — Collision weights ───────────────────────────────────────────

@@ -44,7 +44,12 @@ export const BREAKDOWN_VALUES = {
   // holding-on penalties and breakdown turnovers down together (vs lowering the
   // turnover margin, which would just convert penalties into an unrealistic
   // turnover glut). Tuned to land holding-on ≈ 10% of attacking breakdowns.
-  ruckRetentionBonus: 9,
+  // Raised 9→11 with the WP6 FirstPhase spatialisation: first-phase strikes now feed
+  // the spatial breakdown too (the World persists FirstPhase → Breakdown), adding
+  // more set-defence breakdowns where the just-tackled strike carrier is isolated,
+  // which pushed holding-on penalties up. The higher retention bonus pulls both those
+  // penalties AND the paired turnovers back down together, restoring the § 13 bands.
+  ruckRetentionBonus: 11,
 } as const;
 
 // Base trigger rates for the breakdown-fired penalty offences added alongside
@@ -59,7 +64,14 @@ export const BREAKDOWN_VALUES = {
 // then shifted by the matching TACTIC_MODIFIERS row (see balance/tactics.ts).
 export const BREAKDOWN_PENALTIES = {
   dangerousCleanoutBasePct: 1.5,
-  notRollingAwayBasePct:    4,
+  // Trimmed 4→2.6 with the WP6 FirstPhase spatialisation. Spatial first-phase
+  // strikes added more set-defence breakdowns (and so more holding-on penalties);
+  // ruckRetentionBonus above pulls those down but is capped by the turnover floor.
+  // not_rolling_away is a flat defender penalty (least coupled to possession / points
+  // — usually played as advantage with the ball retained), so trimming it absorbs the
+  // rest of the penalty increase without disturbing the turnover / points / tries
+  // floors the breakdown-contest knob would.
+  notRollingAwayBasePct:    2.6,
   offsideAtRuckBasePct:     8,
 } as const;
 

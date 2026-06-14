@@ -2,7 +2,9 @@ import type { PhaseContext, PhaseResult } from './types';
 import type { MatchEvent } from '../../types/matchEvent';
 import type { NarrationStep } from '../../types/narration';
 import { MatchPhase } from '../../types/engine';
-import { resolveOpenPlay } from '../resolvers/OpenPlayResolver';
+import { resolveOpenPlay, resolveOpenPlaySpatial } from '../resolvers/OpenPlayResolver';
+import { runCarrySim, seedWorld } from '../spatial/CarrySim';
+import type { CarrySimResult } from '../spatial/CarrySim';
 import { tackleInfringement } from '../resolvers/TackleInfringementResolver';
 import { tryLandingY, tryLocationBand } from '../resolvers/TryLocationResolver';
 import { attackDir, isTryScoredAt, onFieldPlayers, availableBacks, availableForwards, pickCoverDefender, pickPrimaryDefender, pickAssistTackler, tryLineDefenceBonus } from '../FieldPosition';
@@ -10,20 +12,50 @@ import { emitSweepHops } from '../Lateral';
 import { homeEdge } from '../HomeAdvantage';
 import { rng } from '../../utils/rng';
 import { clamp } from '../../utils/math';
-import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BALL_LINE_BREAK_METRES, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, FIRST_PHASE_PASS_DISTANCE_M, FIRST_PHASE_CHOREOGRAPHIES, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
+import { HOME_ADVANTAGE, HARD_CARRY_THRESHOLDS, CRASH_BALL_THRESHOLDS, CRASH_BALL_LINE_BREAK_METRES, BACKFIELD_COUNT, EVASION, GAP_BREAK, TACTIC_MODIFIERS, COMMENTARY_CHANCES, SHORT_HANDED, knockOnPct, OBSTRUCTION_BASE_PCT, INTERCEPTION_BASE_PCT, INTERCEPTION_HANDLING_WEIGHT, INTERCEPTION_STAT_CENTRE, INTERCEPTION_FOLLOW_UP_BONUS, FIRST_PHASE_PASS_DISTANCE_M, FIRST_PHASE_CHOREOGRAPHIES, SWEEP_STYLE_MULT, TRY_LANDING_JITTER } from '../balance';
 import { decideKick, buildKickTransition } from '../KickDecisionDirector';
 import { SLOT, isBackSlot } from '../Slot';
 import { tryOffloadChain } from './offloadChain';
 import { applyFirstPhaseChoreography } from '../choreography/applyChoreography';
-import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar } from '../tacticsResolve';
+import { effDefendingBreakdown, effBackfieldDefence, effDefensiveLine, effDisciplineScalar, effStyleScalar, effAttackingStyle } from '../tacticsResolve';
+
+// Collapse consecutive duplicate slots in a pass chain (the spatial sweep reads it
+// as one pass per distinct receiver) — mirror of the helper in OpenPlayEvent.
+function dedupeChain(chain: number[]): number[] {
+  const out: number[] = [];
+  for (const s of chain) if (out.length === 0 || out[out.length - 1] !== s) out.push(s);
+  return out;
+}
 
 const FULL_BACKLINE = 7;
 
-export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer, silent }: PhaseContext): PhaseResult {
+export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, pickPlayer, silent, spatial, world, worldContinuation }: PhaseContext): PhaseResult {
   const attackSide = state.possession;
   const attackOnField = onFieldPlayers(attackTeam, state, attackSide);
   const goCrashBall = rng(1, 100) <= effStyleScalar(state, attackTeam, CRASH_BALL_THRESHOLDS);
   const playType = goCrashBall ? 'crash_ball' : 'out_the_back';
+
+  // Cold-entry formation seed (Upgrade.md § 3; WP6 — FirstPhase is now spatial).
+  // A FirstPhase beat always follows a staged set piece (Scrum/Lineout) that left
+  // the World dirty, so it is a FRESH beat: snap the World into a believable strike
+  // shape BEFORE any branch reads it (mirrors handlePhasePlay). carrierSlot defaults
+  // to the scrum-half — the actual carry re-solves its corridor for the real strike
+  // carrier inside runCarrySim; this only gets agents OFF the ball into shape. No rng
+  // draw happens in seedWorld, so determinism is untouched.
+  if (spatial && world && !worldContinuation) {
+    const defSideSeed = attackSide === 'home' ? 'away' : 'home';
+    seedWorld(world, {
+      attackSide,
+      defendSide: defSideSeed,
+      attackDir: attackDir(state),
+      mark: { x: state.ball.x, y: state.ball.y },
+      defensiveLine: effDefensiveLine(state, defendTeam),
+      backfield: BACKFIELD_COUNT[effBackfieldDefence(state, defendTeam)],
+      defendDiscipline: defendTeam.tactics.discipline,
+      carrierSlot: SLOT.SCRUM_HALF,
+      attackingStyle: effAttackingStyle(state, attackTeam),
+    });
+  }
 
   // Apply an uploaded Phase Animator play to the result, reconciling the authored
   // timeline against the engine outcome. Thin closure over the shared pipeline so the
@@ -115,6 +147,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   // Step 2 — Crash Ball or Wide Play
   let ballCarrier;
   let defender;
+  // The slots the ball sweeps along before the carry (spatial pass phase, WP6):
+  // ruck (scrum-half) → fly-half → … → strike carrier. Set in each branch.
+  let passChainSlots: number[] = [];
   // Structural pass steps prefix the outcome step in the descriptor (mirrors
   // the playIntro string concatenation in the previous implementation).
   const playIntroSteps: NarrationStep[] = [];
@@ -168,6 +203,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     events.push({ type: 'PASS_COMPLETED', passer: carrier });
     passCount++;
     ballCarrier = insideCentre;
+    passChainSlots = [scrumHalf.id, carrier.id, insideCentre.id];
     // Channel-aware: crash-ball carrier is #12 (midfield channel) — defender
     // is weighted across opposite 12/13 plus back-row support.
     defender = pickPrimaryDefender(defendTeam, state, defSide, ballCarrier);
@@ -297,6 +333,7 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     events.push({ type: 'PASS_COMPLETED', passer: outsideCentre });
     passCount++;
     ballCarrier = wideReceiver;
+    passChainSlots = [scrumHalf.id, carrier.id, outsideCentre.id, wideReceiver.id];
     // Channel-aware: wide-play carrier is a wing — defender weighted across
     // opposite wing / fullback / outside centre.
     defender = pickPrimaryDefender(defendTeam, state, defSide, ballCarrier);
@@ -325,18 +362,77 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
   const fpSingleOutBonus = fpSo && fpSo.side === attackSide && fpSo.playerId === ballCarrier.id ? fpSo.bonus * fpSoFrac : 0;
   const baseAttackMod = attackMod + ha.attack + tlBonus.evasion + ttAttack.attack * ttAttackFrac + fpSingleOutBonus;
   const baseDefendMod = defendMod + backfieldPenalty + shortHandedMod + dlEvasion + TACTIC_MODIFIERS.defendingBreakdownTackleMod[effDefendingBreakdown(state, defendTeam)] + ha.defend + ttDef.defend * ttDefFrac;
-  let res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
   const direction = attackDir(state);
 
+  // ── Spatial carry resolution (Upgrade.md §§ 4.1, 5.2; WP6 — FirstPhase) ──────
+  // Same hybrid template as handlePhasePlay: when the phase resolves spatially the
+  // line-break VERDICT comes from the spatial World (the strike carrier runs his
+  // corridor; gap/contact detection over the folding line decides break / tackle /
+  // metres and WHO the nearest defender is), while resolveOpenPlaySpatial draws the
+  // identical rng() sequence as the legacy resolver so the outcome stream stays
+  // determinate. All spatial draws are on the isolated spatial stream. Removing
+  // FirstPhase from SPATIAL_PHASES (the one-line revert) takes the legacy branch.
+  let res: ReturnType<typeof resolveOpenPlay>;
+  let frames: import('../spatial/types').Frame[] | undefined;
+  let sim: CarrySimResult | undefined;
+  if (spatial && world) {
+    const s = runCarrySim(world, state, {
+      attackSide,
+      defendSide: defSide,
+      attackDir: direction,
+      defensiveLine,
+      backfield: BACKFIELD_COUNT[effBackfieldDefence(state, defendTeam)],
+      defendDiscipline: defendTeam.tactics.discipline,
+      carrierSlot: ballCarrier.id,
+      attackingStyle: effAttackingStyle(state, attackTeam),
+      // The ball sweeps ruck → fly-half → … → strike carrier before the carry.
+      passChain: dedupeChain(passChainSlots),
+      modShift: baseAttackMod - baseDefendMod,
+      // Set defence is the hardest to beat 1-on-1 — bias the contact evasion toward
+      // the defender for a strike off a set piece so first-phase clean breaks sit at
+      // the legacy ~13.3/match (the over-broken breaks become dominant tackles).
+      contactDefenderBonus: EVASION.firstPhaseDefenderBonus,
+      silent,
+    });
+    sim = s;
+    if (!silent) frames = s.frames;
+    // Spatial picks the tackler (nearest line defender); map the slot back to the
+    // on-field Player, falling back to the channel-aware pick if it is off the field.
+    defender = defendOnField.find(p => p.id === s.tacklerSlot) ?? defender;
+    res = resolveOpenPlaySpatial(ballCarrier, defender, s.lineBreak, s.spatialMetres, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
+    // WP3 contact model: the spatial contact resolved the outcome — override what the
+    // legacy collision formula returned (its 5 rng() draws were still consumed above).
+    if (s.contactOccurred && s.contactOutcome !== null) {
+      res.outcome = s.contactOutcome as typeof res.outcome;
+      if (s.contactOutcome === 'dominant_carry') res.collisionResult = 'dominant_carry';
+      else if (s.contactOutcome === 'dominant_tackle') res.collisionResult = 'dominant_tackle';
+      else res.collisionResult = 'broken_tackle';
+    }
+    // Push spatial offload events (if any) BEFORE the CARRY_RESOLVED below.
+    if (s.offloadAttempted) {
+      const catcher = s.catcherSlot != null ? attackOnField.find(p => p.id === s.catcherSlot) ?? null : null;
+      if (catcher) {
+        events.push({ type: 'OFFLOAD_ATTEMPTED', offloader: ballCarrier, catcher, attackSide });
+        if (s.offloadCompleted) events.push({ type: 'OFFLOAD_COMPLETED', offloader: ballCarrier, catcher, attackSide });
+      }
+    }
+  } else {
+    res = resolveOpenPlay(ballCarrier, defender, baseAttackMod, baseDefendMod, dlCollision + tlBonus.collision);
+  }
+
   // Crash-ball line breaks are contained by the converging fullback + flanker
-  // — re-roll gain into the tighter channel range.
-  if (goCrashBall && res.outcome === 'line_break') {
+  // — re-roll gain into the tighter channel range. Legacy path only: spatial owns
+  // every line-break decision + its metres (the conditional rng draw is dropped on
+  // the spatial path, so its stream stays determinate).
+  if (!spatial && goCrashBall && res.outcome === 'line_break') {
     res.gainMetres = rng(CRASH_BALL_LINE_BREAK_METRES[0], CRASH_BALL_LINE_BREAK_METRES[1]);
   }
 
   let chainNarration: NarrationStep[] = [];
   let chainMetres = 0;
-  if (res.outcome !== 'line_break') {
+  // Skip the legacy offload chain when the spatial contact system already rolled an
+  // offload (it would double-emit) — the spatial offload events were pushed above.
+  if (res.outcome !== 'line_break' && !sim?.offloadAttempted) {
     const chain = tryOffloadChain({
       state, attackTeam, defendTeam, attackSide, defSide,
       phase: MatchPhase.FirstPhase,
@@ -362,6 +458,10 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
 
   if (res.outcome === 'line_break') {
     res.gainMetres += TACTIC_MODIFIERS.defensiveLineBreakBonus[defensiveLine];
+    // A first-phase strike breaks into open, structured field — the break carries
+    // further (more first-phase tries, fewer breaks stopped short into a downfield
+    // breakdown). Spatial path only (WP6); the legacy path keeps its tuned metres.
+    if (spatial) res.gainMetres += GAP_BREAK.firstPhaseBreakMetresBonus;
   }
 
   // Try check hoisted above CARRY_RESOLVED so the cover-tackler pick can
@@ -479,6 +579,9 @@ export function handleFirstPhase({ state, attackTeam, defendTeam, randomPlayer, 
     outcome: res.outcome,
     carrierFromStart: false,
     events,
+    // Spatial frames ride on the GameEvent (WP6); the authored choreography still
+    // drives the live display until the WP8 frame renderer consumes these.
+    frames,
   };
 
   return applyChoreography(baseRes, playType, direction);

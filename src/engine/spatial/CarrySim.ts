@@ -63,6 +63,12 @@ export interface CarrySimInput {
   // Net legacy carry modifier (attackMod − defendMod) the gap threshold reads so
   // home advantage / team talk / tactics still bias line breaks (Upgrade.md §13).
   modShift: number;
+  // Context-specific bonus (≥0) added to the DEFENDER's Phase-1 evasion score in
+  // contact: higher = the carrier beats the tackler 1-on-1 less often. 0 for phase
+  // play; the FirstPhase strike passes a set-defence bonus so a strike off a set
+  // piece is harder to beat (the square, organised line makes more dominant tackles
+  // and fewer clean breaks — WP6). Default 0 keeps existing callers byte-identical.
+  contactDefenderBonus?: number;
   // The selected playbook play overlaid on this carry (WP6), or undefined for a
   // plain carry. When present its named roles' run-line waypoints become the
   // Layer-1 steering source and its pass schedule replaces the default sweep; the
@@ -249,7 +255,7 @@ export function runCarrySim(world: World, state: MatchState, input: CarrySimInpu
     // After an abort the carrier is a normal ball-carrier again, so contact resumes.
     if (overlay && !overlay.aborted && !carrierHasBall(overlay)) return false;
 
-    const result = detectContact(world, carrier, roles);
+    const result = detectContact(world, carrier, roles, input.contactDefenderBonus ?? 0);
     if (!result) return false;
 
     if (result.outcome === 'broken_tackle') {

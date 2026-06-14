@@ -108,6 +108,10 @@ export function detectContact(
   world: World,
   carrier: Agent,
   roles: LineRole[],
+  // Context bonus added to the defender's Phase-1 evasion score (≥0). 0 for phase
+  // play; a FirstPhase strike passes a set-defence bonus so the square set line is
+  // harder to beat 1-on-1 (WP6). Default keeps every existing caller byte-identical.
+  defenderEvasionBonus = 0,
 ): ContactResult | null {
   // Find the nearest defender within CONTACT_RADIUS that has NOT been beaten
   // (recoveryLockout == false) and is from the opposing side.
@@ -141,7 +145,8 @@ export function detectContact(
   const defenderScore =
     (defender.positioning * E.defenderPositioningWeight +
      defender.tackling    * E.defenderTacklingWeight) * gMod +
-    rngSpatial(-E.noiseBand, E.noiseBand);
+    rngSpatial(-E.noiseBand, E.noiseBand) +
+    defenderEvasionBonus;
 
   if (attackerScore > defenderScore) {
     // Broken tackle: defender is physically beaten. Apply recovery lockout so

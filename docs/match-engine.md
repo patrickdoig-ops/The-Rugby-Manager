@@ -508,6 +508,17 @@ On a spatial Breakdown beat the contest is no longer fed an **rng-picked** forwa
 
 **Calibration (WP 4 — breakdown commitment).** Full 5-seed sweep (450 fixtures): tries 3.62, points 23.56, pen 12.16, tackles-attempted 64.28, tackles-made 62.76, carries 40.04, turnovers 2.29, knock-ons 2.94, home-win 55.11% — all `Upgrade.md` § 13 bands in range. The silent-score golden was regenerated (intentional outcome shift — the contest now uses the spatially-committed participants).
 
+### Spatial FirstPhase (WP 6)
+
+FirstPhase joined `SPATIAL_PHASES` (`PhaseRouter.ts`). A strike off a scrum/lineout now resolves its carry through the spatial substrate on the **same hybrid template as PhasePlay**: `handleFirstPhase` keeps every legacy `rng()` gate (interceptions, knock-ons, obstruction) and still calls `resolveOpenPlaySpatial` (identical draw sequence to `resolveOpenPlay`), but the line-break / contact **verdict** comes from `runCarrySim` over the persistent World — the strike carrier (crash → #12, wide → wing) runs his corridor, gap/contact detection over the folding set line decides break / tackle / metres and picks the tackler. `ensureWorld` cold-seeds the World on FirstPhase (a FirstPhase beat always follows a staged set piece, so it is a fresh seed); the World then persists FirstPhase → Breakdown so first-phase breakdowns run through the spatial commitment too. The **authored Phase-Animator choreography still drives the live display** (the spatial `frames` ride along on the `GameEvent`, consumed by the WP8 renderer); reverting is a one-line `SPATIAL_PHASES` change.
+
+**Set-defence calibration (first-phase-LOCAL levers).** A first-phase strike meets the most ORGANISED defence of the sequence, so the generic spatial verdict (tuned for broken-field phase play) over-breaks it. Two first-phase-only knobs correct it, threaded through `CarrySimInput` (0 for phase play, so PhasePlay is byte-identical):
+
+- **`EVASION.firstPhaseDefenderBonus = 14`** (`spatialTackle.ts`) — added to the DEFENDER's Phase-1 evasion score (`detectContact(..., defenderEvasionBonus)`) only on a first-phase carry, so the square set line is harder to beat 1-on-1; the over-broken clean breaks become dominant tackles, restoring the tackles-made band.
+- **`GAP_BREAK.firstPhaseBreakMetresBonus = 8`** (`spatialShape.ts`) — flat metres added to a first-phase spatial line break, so a strike into open field carries to the line (more first-phase tries) instead of stopping short into a downfield breakdown (fewer holding-on penalties). This single lever eased both the points-floor and the penalty-ceiling pressure the spatialisation introduced.
+
+Plus the two breakdown knobs above (`ruckRetentionBonus 9→11`, `notRollingAwayBasePct 4→2.6`) absorb the extra set-defence breakdowns the persisted World feeds. **By design; the silent-score golden was regenerated and every § 13 band holds on the 5-seed sweep:** pts 26.16, tries 4.04, pen 12.38, tackAtt 62.01, tackMade 59.78, TO 2.06, home-win 53.11.
+
 ### Play overlay (WP 6 — the playbook)
 
 A **play** is authored content (`src/data/playbook/`, schema `types.ts`): a temporary named role-assignment (2–4 roles → matchday slot) carrying attack-oriented, mark-relative run-line waypoints `{t, fwd, lat}` + a timed `pass`/`dummy`/`receive`/`carry` schedule + trigger (phases/channels/`minSpaceWide`) + abort conditions. `playPointToPitch(origin, attackDir, openSign, fwd, lat)` (`src/engine/spatial/playGeometry.ts`) is the single mirror transform — one definition plays in either direction / off either touchline, no hand-mirrored data.
@@ -1166,7 +1177,7 @@ stackedScore(players, leadStat, supportStat):
 **ARS (Attack Ruck Score):**
 ```
 ARS = stackedScore(supporters, breakdown, strength) + rng(1,20) + attackBonus
-    + ruckRetentionBonus (9)                  ← carrying team's own-ruck edge / penalty-rate calibration
+    + ruckRetentionBonus (11)                 ← carrying team's own-ruck edge / penalty-rate calibration
     + (fastestBackRowPace − 50) × 0.3         ← first-to-arrive pace edge
 attackBonus = (CARRY_HANDOFF_BONUSES.lineBreak (15)    if previous play was line_break,
                CARRY_HANDOFF_BONUSES.dominantCarry (6)  if previous play was dominant_carry,
@@ -1174,7 +1185,7 @@ attackBonus = (CARRY_HANDOFF_BONUSES.lineBreak (15)    if previous play was line
             + homeEdge.attack
 ```
 
-**Ruck retention bonus.** A flat `+9` to ARS in `BREAKDOWN_VALUES` — the ball-carrying team's inherent advantage securing its own ruck. It is also the league penalty-rate calibration knob against the current ruck-score scale: it shifts the whole margin distribution up, pulling **both** holding-on penalties and breakdown turnovers down together (vs lowering the turnover margin, which would convert penalties into an unrealistic turnover glut). Tuned to land holding-on ≈ 10% of attacking breakdowns (clean 40.6% / slow 37.6% / turnover 9.6% / penalty 12.1% of contests).
+**Ruck retention bonus.** A flat `+11` to ARS in `BREAKDOWN_VALUES` — the ball-carrying team's inherent advantage securing its own ruck. It is also the league penalty-rate calibration knob against the current ruck-score scale: it shifts the whole margin distribution up, pulling **both** holding-on penalties and breakdown turnovers down together (vs lowering the turnover margin, which would convert penalties into an unrealistic turnover glut). Tuned to land holding-on ≈ 10% of attacking breakdowns. Raised `9 → 11` with the WP6 FirstPhase spatialisation (below): first-phase strikes now feed the spatial breakdown too, so more set-defence breakdowns where the just-tackled strike carrier is isolated pushed holding-on penalties up; the higher bonus pulls those (and the paired turnovers) back into band.
 
 **Pace arrival edge.** The fastest loose forward (back row) on each side races to the ball. Each side adds `(fastestBackRowPace − paceArrivalPivot) × paceArrivalWeight` (pivot 50, weight 0.3) to its score — attack → ARS, the contesting defender → DTS (jackal and counter_ruck; shadow gets none, those defenders retreat into the line). The pace rep is measured **symmetrically** on both sides (same pool: back row; same aggregation: max, computed in `BreakdownEvent` and passed into the resolver), so the **net** margin effect is a pure pack-pace differential — a faster pack reaches the breakdown first and secures it (or jackals it) — not an artefact of which random supporters were committed. A 15-pt pace edge ≈ 4.5 margin points. Constants in `BREAKDOWN_VALUES` (`src/engine/balance/breakdown.ts`).
 
@@ -1861,7 +1872,7 @@ The Pre-Match screen (LINE-UP step) shows the referee name and a tendency label 
 // src/engine/balance/breakdown.ts
 BREAKDOWN_PENALTIES = {
   dangerousCleanoutBasePct: 1.5,   // pre-resolve roll; pct per breakdown event
-  notRollingAwayBasePct:    4,     // pre-resolve roll; pct per breakdown event
+  notRollingAwayBasePct:    2.6,   // pre-resolve roll; pct per breakdown event (4 → 2.6, WP6 — absorbs the first-phase penalty rise)
   offsideAtRuckBasePct:     8,     // post-resolve roll; pct per clean_ball / slow_ball outcome
 }
 

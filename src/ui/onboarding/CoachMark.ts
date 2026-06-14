@@ -23,6 +23,7 @@ export interface CoachMarkSpec {
   buttons: CoachButton[];
   target?: string;          // CSS selector to spotlight; omit for a centred card
   onSkip?: () => void;      // renders a "Skip tour" link when provided
+  placement?: 'center' | 'bottom';  // untargeted-card position (default 'center', dimmed)
 }
 
 let root: HTMLElement | null = null;
@@ -101,8 +102,10 @@ export function showCoachMark(spec: CoachMarkSpec): void {
       const inBottomHalf = rect.top + rect.height / 2 > window.innerHeight / 2;
       card.dataset.pos = inBottomHalf ? 'top' : 'bottom';
     } else {
+      // No spotlight: either a dimmed centre card (default) or a bottom-anchored
+      // card with no dim, so the screen behind stays visible and selectable.
       spot.style.display = 'none';
-      card.dataset.pos = 'center';
+      card.dataset.pos = spec.placement === 'bottom' ? 'bottom' : 'center';
     }
   };
   place();

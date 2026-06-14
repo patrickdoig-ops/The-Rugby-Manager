@@ -60,7 +60,7 @@ import { playerOverall } from '../engine/RatingEngine';
 import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/europeanStories';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
-import { upcomingGap, upcomingGapFromDate, splitGapIntoPeriods, nextPlayableDate } from './trainingCalendar';
+import { upcomingGap, upcomingGapFromDate, splitGapIntoPeriods, nextPlayableDate, lastPlayedMatchdayDate } from './trainingCalendar';
 import { leagueRound, earliestDateForRound } from './leagueRound';
 import { addDaysIso } from './age';
 import { reconcileRestObligations, lionsReturnEvents, summerTourReturnEvents } from './internationalDutyEngine';
@@ -745,20 +745,19 @@ export class GameCoordinator {
   // its own span. Emits game:trainingApplied.
   runCupMatchdayTraining(weeks: TrainingPlan[]): TrainingWeekResult {
     const n = Math.max(1, weeks.length);
-    const { days } = upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
+    const { days } = this.matchdayGap();
     const spans = splitGapIntoPeriods(days, n);
     const acc = runTrainingPeriods(this.state, weeks, spans);
     eventBus.emit('game:trainingApplied', { state: this.state });
     return { plan: weeks[weeks.length - 1], players: [...acc.values()], weeks: n };
   }
 
-  // One training week for a European matchday — a fixed 7-day recovery/dev
-  // week (European games sit roughly weekly inside the league calendar, and
-  // European keeps its league-driven calendar.date, so a date-derived gap
-  // isn't available). Emits game:trainingApplied.
+  // One training week for a European matchday — gap-scoped to the next matchday,
+  // anchored on the date of the just-played fixture (see matchdayGap).
+  // Emits game:trainingApplied.
   runEuropeanMatchdayTraining(weeks: TrainingPlan[]): TrainingWeekResult {
     const n = Math.max(1, weeks.length);
-    const { days } = upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
+    const { days } = this.matchdayGap();
     const spans = splitGapIntoPeriods(days, n);
     const acc = runTrainingPeriods(this.state, weeks, spans);
     eventBus.emit('game:trainingApplied', { state: this.state });
@@ -766,7 +765,7 @@ export class GameCoordinator {
   }
 
   europeanMatchdayGap(): { weeks: number; days: number } {
-    return upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
+    return this.matchdayGap();
   }
 
   // The gap from the current cup matchday to the player's next matchday — used
@@ -775,7 +774,21 @@ export class GameCoordinator {
   // (which `upcomingGap`, keyed off the derived leagueRound, would report). Mirrors the
   // span runCupMatchdayTraining itself recovers/develops over.
   cupMatchdayGap(): { weeks: number; days: number } {
-    return upcomingGapFromDate(this.state.calendar.date, nextPlayableDate(this.state, this.state.player.teamId, this.state.calendar.date));
+    return this.matchdayGap();
+  }
+
+  // Shared FROM→TO span for a cup/European matchday training week. The FROM
+  // anchor is the date of the matchday the manager just played, NOT
+  // `calendar.date`: a non-league fixture often kicks off on a Friday, while
+  // `calendar.date` tracks the upcoming LEAGUE round's earliest fixture (often a
+  // later date). Anchoring on `calendar.date` understates the rest gap — e.g. a
+  // Fri cup match with the next league round opening on a later Friday would
+  // report a 3-day gap when the player's own next match is 9 days away (#118).
+  // Falls back to `calendar.date` when no matchday has been played yet.
+  private matchdayGap(): { weeks: number; days: number } {
+    const playerId = this.state.player.teamId;
+    const from = lastPlayedMatchdayDate(this.state, playerId) ?? this.state.calendar.date;
+    return upcomingGapFromDate(from, nextPlayableDate(this.state, playerId, from));
   }
 
   // ===== Off-season market (Phases 2-7) =====

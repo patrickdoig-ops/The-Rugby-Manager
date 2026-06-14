@@ -2201,7 +2201,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // First-run onboarding. Registered before the first Home render so it catches
   // the boot screen-show; navigation stays here via the onStartTour hook.
-  initOnboarding({ onStartTour: () => goTeamSelector('forward') });
+  initOnboarding({
+    onStartTour: () => goTeamSelector('forward'),
+    onGoHub: () => goHub('back'),
+    getState: () => gameEngine?.getState() ?? null,
+  });
 
   const renderHome = (): void => {
     initHomeScreen(goTeamSelector, continueGame, goSettingsFromHome, allTeams,

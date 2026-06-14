@@ -17,6 +17,10 @@
 //              element advances the tour. Use ONLY for same-screen steps; never
 //              on a control that also navigates (that would double-advance).
 // `target` — CSS selector for the element to spotlight. Omit for a centred card.
+// `placement` — 'bottom' anchors an untargeted card at the foot of the screen
+//              with no dim (keeps a selection screen visible). Default centre.
+// `dismissible` — adds a "Got it" that hides the card without advancing.
+// `returnToHub` — on a 'next' step, the button also navigates back to the Hub.
 
 import type { ScreenId } from '../ScreenRouter';
 
@@ -30,15 +34,8 @@ export interface OnboardingStep {
   advanceClick?: string;
   kind?: 'intro' | 'final';
   cta?: string;
-  // When set on a 'next' step, tapping its button also navigates back to the
-  // Hub — used to spare the player a multi-level back-out from a sub-menu.
   returnToHub?: boolean;
-  // 'bottom' anchors an untargeted card to the bottom of the screen with no
-  // backdrop dim, so the content behind (e.g. the team list) stays visible and
-  // selectable. Default for untargeted cards is a dimmed centre.
   placement?: 'center' | 'bottom';
-  // Adds a "Got it" button that simply hides the card (without advancing), for
-  // action steps where the player reads, dismisses, then acts on the screen.
   dismissible?: boolean;
 }
 
@@ -79,7 +76,7 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     body: 'Quick Start drops you straight into the season with this squad. Tap it to begin.',
   },
 
-  // ── Hub: understand the next match FIRST, then squad, then tactics ──────────
+  // ── Hub: opponent first, then where to find help, then squad ───────────────
   {
     id: 'hub-next-match',
     screen: 'hub',
@@ -119,20 +116,20 @@ export const PHASE1_STEPS: OnboardingStep[] = [
   {
     id: 'squad-select',
     screen: 'squad-management',
-    target: '.sq-player--starter',
+    target: '.sq-player--starter .sq-jersey',
     advance: 'action',
     advanceClick: '.sq-player',
-    title: 'Select a player',
-    body: 'Tap a player to select them — their row lights up. Go ahead, tap one of your starters.',
+    title: 'Tap the number square',
+    body: 'To pick a player, tap their number square — the jersey number on the left of the row. It is the easiest spot to hit. Tap one of your starters now; the row lights up.',
   },
   {
     id: 'squad-swap',
     screen: 'squad-management',
-    target: '.sq-player--bench',
+    target: '.sq-player--bench .sq-jersey',
     advance: 'action',
     advanceClick: '.sq-player',
     title: 'Swap them over',
-    body: 'Now tap a second player to swap the two over. Scroll down to reach your bench or wider squad, then tap one.',
+    body: 'Now tap a second player’s number square to swap the two over. Scroll down to your bench or wider squad, then tap their number.',
   },
   {
     id: 'squad-expand',
@@ -166,26 +163,10 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     advance: 'next',
     cta: 'Got it',
     title: 'Save your side',
-    body: 'When your 23 looks right, tap Save to keep your changes — or Back to leave the side as it was. Then we will set your tactics.',
+    body: 'When your 23 looks right, tap Save to keep your changes — or Back to leave the side as it was. Then we will head straight to kickoff.',
   },
 
-  // ── Tactics, then kick off ────────────────────────────────────────────────
-  {
-    id: 'hub-tactics',
-    screen: 'hub',
-    target: '#hub-tile-tactics',
-    advance: 'action',
-    title: 'Now your game plan',
-    body: 'With your squad set, tap Tactics to choose a formation and style of play.',
-  },
-  {
-    id: 'tactics',
-    screen: 'tactics',
-    advance: 'next',
-    cta: 'Got it',
-    title: 'Set your tactics',
-    body: 'Pick a formation and a style — the defaults are solid to start with. Tap Back when you are happy, and we will kick off.',
-  },
+  // ── Straight to the first match — tactics also surface in the build-up ──────
   {
     id: 'hub-continue',
     screen: 'hub',
@@ -200,16 +181,36 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     advance: 'next',
     cta: 'Got it',
     title: 'Matchday build-up',
-    body: 'Set the mood with a team talk, then start the match.',
+    body: 'Set the mood with a team talk — you can also tweak tactics here — then start the match.',
+  },
+
+  // ── Live match: into the 2D pitch for kickoff, then the other views ─────────
+  {
+    id: 'live-pitch',
+    screen: 'app',
+    target: '#btn-view-pitch',
+    advance: 'action',
+    advanceClick: '#btn-view-pitch',
+    title: 'Watch in 2D',
+    body: 'You start on the Dashboard overview. For kickoff, tap the pitch icon to switch to the 2D pitch view — the most engaging way to watch the action.',
   },
   {
-    id: 'live-match',
+    id: 'live-views',
+    screen: 'app',
+    target: '#view-toggle-bar',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'Switch your view',
+    body: 'These icons change how you follow the match — Dashboard, Pitch, Commentary, live Stats, and Players. Flick between them any time to get the detail you want.',
+  },
+  {
+    id: 'live-controls',
     screen: 'app',
     target: '#sim-controls',
     advance: 'next',
     cta: 'Got it',
-    title: 'The match unfolds',
-    body: 'The game plays out automatically. Use these controls to play, pause, change speed, or make tactical tweaks and subs. We will see the result at full time.',
+    title: 'Match controls',
+    body: 'Down here you play, pause, change speed, and make tactical tweaks or substitutions on the fly. We will see the result at full time.',
   },
   {
     id: 'result',
@@ -217,10 +218,26 @@ export const PHASE1_STEPS: OnboardingStep[] = [
     advance: 'next',
     cta: 'Continue',
     title: "That's a match!",
-    body: 'Results feed your league table and season story. Now let me show you how to manage the season around your matches — delegation, staff and transfers. Tap Continue to head back to the Hub.',
+    body: 'Results feed your league table and season story. Now let me show you a few things to manage around your matches. Tap Continue to head back to the Hub.',
   },
 
-  // ── Phase 2: delegate the League Cup → staff → transfers → loans ────────────
+  // ── Phase 2: advanced tactics → cup delegation → staff → transfers → loans ──
+  {
+    id: 'hub-tactics',
+    screen: 'hub',
+    target: '#hub-tile-tactics',
+    advance: 'action',
+    title: 'Tactics, in depth',
+    body: 'You played the defaults — which are perfectly fine. But if you want more control, tap Tactics for the advanced options.',
+  },
+  {
+    id: 'tactics-advanced',
+    screen: 'tactics',
+    advance: 'next',
+    cta: 'Got it',
+    title: 'Fine-tune your game plan',
+    body: 'Here you can set formation, attacking and defensive styles, set-piece calls and more. Adjust as much or as little as you like, Save, then tap Back. Totally optional — come here whenever you want finer control.',
+  },
   {
     id: 'hub-club',
     screen: 'hub',

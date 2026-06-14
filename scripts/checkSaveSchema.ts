@@ -45,7 +45,7 @@ const EXPECTED = {
   careerKeys: 'activePoachedIds,archive,clubs,freeAgents,loanPool,market,midseasonRejections,nextRosterId,nextStaffId,pendingMoves,roster,seasonsCompleted,staff,takeoverHistory',
   playerKeys: 'baseStats,condition,contract,currentStats,dob,fatiguePct,firstName,formModifier,id,lastName,matchStats,morale,nationality,position,potential,rating,reputation,rosterId,seasonStats,squadNumber,x,y',
   clubKeys: 'id,salaryBudget,squad',
-  fixtureKeys: 'awayId,date,homeId,round',
+  fixtureKeys: 'awayId,date,homeId,refereeId,round',
 };
 
 const coord = await GameCoordinator.newSeason('bath', 0xDEADBEEF, allTeams);

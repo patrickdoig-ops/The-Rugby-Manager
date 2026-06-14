@@ -146,11 +146,12 @@ export function handleBreakdown({ state, attackTeam, defendTeam, spatial, world 
   // short-circuits to MatchPhase.Penalty before resolveBreakdown is called —
   // the existing 4-way contest is skipped for this breakdown.
 
+  const refMult = state.engine.refStrictness;
   // 1. dangerous_cleanout — attacker, TMO-eligible (40/40/20 via OFFENCE_SPEC).
   //    Offender: a random supporter (the cleaner). Penalty flips possession.
-  const cleanoutPct = BREAKDOWN_PENALTIES.dangerousCleanoutBasePct
+  const cleanoutPct = (BREAKDOWN_PENALTIES.dangerousCleanoutBasePct
                     + TACTIC_MODIFIERS.dangerousCleanoutAttackMod[attPlan]
-                    + effDisciplineScalar(attackTeam, TACTIC_MODIFIERS.disciplinePenaltyMod);
+                    + effDisciplineScalar(attackTeam, TACTIC_MODIFIERS.disciplinePenaltyMod)) * refMult;
   if (rng(1, 100) <= cleanoutPct) {
     const offender = supporters[rng(0, supporters.length - 1)];
     events.push({ type: 'PENALTY_AWARDED', offence: 'dangerous_cleanout', offender, offendingSide: attackSide });
@@ -165,9 +166,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam, spatial, world 
 
   // 2. not_rolling_away — defender, no TMO. Offender is the jackal (the
   //    nearest defender to the tackle, already picked above).
-  const notRollingPct = BREAKDOWN_PENALTIES.notRollingAwayBasePct
+  const notRollingPct = (BREAKDOWN_PENALTIES.notRollingAwayBasePct
                       + TACTIC_MODIFIERS.notRollingAwayDefendMod[defPlan]
-                      + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplinePenaltyMod);
+                      + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplinePenaltyMod)) * refMult;
   if (rng(1, 100) <= notRollingPct) {
     events.push({ type: 'PENALTY_AWARDED', offence: 'not_rolling_away', offender: jackal, offendingSide: defSide });
     return {
@@ -195,9 +196,9 @@ export function handleBreakdown({ state, attackTeam, defendTeam, spatial, world 
   //    penalty_defending (the existing breakdown_infringement already wins
   //    the whistle). Offender: a random on-field defender.
   if (res.result === 'clean_ball' || res.result === 'slow_ball') {
-    const offsidePct = BREAKDOWN_PENALTIES.offsideAtRuckBasePct
+    const offsidePct = (BREAKDOWN_PENALTIES.offsideAtRuckBasePct
                      + TACTIC_MODIFIERS.offsideAtRuckDefendMod[effDefensiveLine(state, defendTeam)]
-                     + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplinePenaltyMod);
+                     + effDisciplineScalar(defendTeam, TACTIC_MODIFIERS.disciplinePenaltyMod)) * refMult;
     if (rng(1, 100) <= offsidePct) {
       const offender = defendOnField[rng(0, defendOnField.length - 1)] ?? jackal;
       events.push({ type: 'PENALTY_AWARDED', offence: 'offside_at_ruck', offender, offendingSide: defSide });

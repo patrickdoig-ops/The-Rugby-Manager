@@ -154,6 +154,7 @@ function parseSavedGame(parsed: SavedGame): SavedSeason | null {
       ...(f.isDerby === true ? { isDerby: true } : {}),
       ...(typeof f.venue === 'string' ? { venue: f.venue } : {}),
       ...(typeof f.venueCapacity === 'number' ? { venueCapacity: f.venueCapacity } : {}),
+      ...(typeof f.refereeId === 'string' ? { refereeId: f.refereeId } : {}),
     }));
     const tactics: TeamTactics | undefined = parsed.tactics
       ? { ...DEFAULT_TACTICS, ...parsed.tactics } as TeamTactics

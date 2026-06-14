@@ -84,6 +84,7 @@ import { setCareerSeed, rngTransfer, getTransferCallCount, advanceTransferTo, ha
 import { SEASON_VALUES, STARTER_FA_POOL, DISCIPLINE_COUNSEL, YELLOW_BAN_THRESHOLD, MORALE, AI_EARLY_RENEWAL_CADENCE_ROUNDS, ARCHIVE_CAP } from '../engine/balance';
 import type { SquadStatusKey } from '../types/player';
 import { PREMIERSHIP_2025_26 } from '../data/fixtures-2025-26';
+import { assignReferees, getRefereeById } from '../data/referees';
 import type { RawTeamInput } from '../types/teamData';
 import { nextBlock, type CalendarBlock } from './calendarBlocks';
 
@@ -232,12 +233,19 @@ export class GameCoordinator {
   ): Promise<GameCoordinator> {
     const coord = new GameCoordinator(allTeams);
     setCareerSeed(seed);
+    // Assign a referee to each fixture via the career RNG stream before
+    // SEASON_INITIALIZED writes them into state. Fixtures are read-only
+    // authored data; build a new schedule rather than mutating the import.
+    const scheduleWithRefs: typeof schedule = {
+      ...schedule,
+      fixtures: assignReferees(schedule.fixtures),
+    };
     applySeasonEvent(coord.state, {
       type: 'SEASON_INITIALIZED',
       playerTeamId,
       seed: seed >>> 0,
       teamIds: allTeams.map(t => t.id),
-      schedule,
+      schedule: scheduleWithRefs,
     });
     const seasonStartYear = parseSeasonStartYear(coord.state.calendar.seasonLabel);
     const seeded = seedRoster(allTeams, seasonStartYear);
@@ -1662,7 +1670,8 @@ export class GameCoordinator {
       const homeFillRate = attendance !== undefined && homeJson.stadiumCapacity
         ? attendance / homeJson.stadiumCapacity
         : undefined;
-      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby });
+      const ref = f.refereeId ? getRefereeById(f.refereeId) : undefined;
+      const sim = await simulateFixture(home, away, this.state.seed, f.round, { homeFillRate, isDerby: f.isDerby, refStrictness: ref?.strictness, refCardThreshold: ref?.cardThreshold });
       const aiResult: FixtureResult = {
         round: f.round,
         homeId: f.homeId,

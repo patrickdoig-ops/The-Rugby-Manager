@@ -43,6 +43,7 @@ import type { GameCoordinator } from '../game/GameCoordinator';
 import type { GameState } from '../types/gameState';
 import type { PlayerInjury } from '../types/player';
 import { leagueRound } from '../game/leagueRound';
+import { getRefereeById } from '../data/referees';
 
 type RawPlayer = {
   id: number;
@@ -82,6 +83,23 @@ const TACTIC_DIMS: PresetTacticDim[] = [
 
 function getSquadNum(p: RawPlayer): number {
   return p.squadNumber ?? p.id;
+}
+
+// Build a one-line tendency label for the referee strip.
+// strictness >1.05 = Strict; <0.95 = Lenient; else neutral for penalty calls.
+// cardThreshold >1.05 = Card-happy; <0.95 = Lenient cards; else neutral for cards.
+function refTendencyLabel(strictness: number, cardThreshold: number): string {
+  const penLabel = strictness > 1.05 ? 'Strict'
+                 : strictness < 0.95 ? 'Lenient'
+                 : 'Neutral';
+  const cardLabel = cardThreshold > 1.05 ? 'Card-happy'
+                  : cardThreshold < 0.95 ? 'Lenient cards'
+                  : 'Neutral cards';
+  if (penLabel === 'Neutral' && cardLabel === 'Neutral cards') return 'Neutral';
+  const parts: string[] = [];
+  if (penLabel !== 'Neutral') parts.push(penLabel);
+  if (cardLabel !== 'Neutral cards') parts.push(cardLabel);
+  return parts.join(' · ');
 }
 
 function crestSm(letter: string, color: string): string {
@@ -256,6 +274,7 @@ function renderLineupBody(
   state: GameState,
   isExpanded: (rosterId: number) => boolean,
   captainRosterId: number | undefined,
+  refereeLabel?: string,
 ): string {
   const hc = teamTextColor(team.color);
   const editSquadLink = showEditSquad
@@ -267,6 +286,7 @@ function renderLineupBody(
   const startersHtml = starters.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), showEditSquad, captainRosterId)).join('');
   const benchHtml    = bench.map(p => renderLineupRow(p, team.color, hasOnProfile, state, rowExpanded(p), false, captainRosterId)).join('');
   const metaParts = [stadium, matchDate].filter(Boolean).join(' · ');
+  const refPart = refereeLabel;
   return `
     <div class="pm-lineup-card">
       <div class="pm-lineup-header">
@@ -276,6 +296,7 @@ function renderLineupBody(
         </div>
         <div class="pm-lineup-team" style="color:${hc}">${team.name}</div>
         ${metaParts ? `<div class="pm-lineup-meta">${metaParts}</div>` : ''}
+        ${refPart ? `<div class="pm-lineup-meta pm-lineup-meta--referee">${refPart}</div>` : ''}
       </div>
       <div class="pm-lineup-section">
         <div class="pm-lineup-section-label">Starting XV</div>
@@ -568,6 +589,12 @@ export function initPreMatchScreen(
     ? `${venueBase} · ${expectedAttendance.toLocaleString()} exp.`
     : venueBase;
 
+  // ── Referee strip ────────────────────────────────────────────────────
+  const fixtureRef = fixture?.refereeId ? getRefereeById(fixture.refereeId) : undefined;
+  const refereeLabel = fixtureRef
+    ? `Referee: ${fixtureRef.name} · ${refTendencyLabel(fixtureRef.strictness, fixtureRef.cardThreshold)}`
+    : undefined;
+
   // ── Tactics state ────────────────────────────────────────────────────
   const initialTactics: TeamTactics = savedTactics ? { ...savedTactics } : { ...DEFAULT_TACTICS };
   let chosenTactics: TeamTactics = { ...initialTactics };
@@ -674,7 +701,7 @@ export function initPreMatchScreen(
 
   function bodyHtml(): string {
     if (step === 'mine') {
-      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded, currentCaptainId);
+      return renderLineupBody('LINE-UP', playerTeam, playerStarters, playerBench, stadiumName, matchDate, !!onEditSquad, !!onPlayerProfile, state, isRowExpanded, currentCaptainId, refereeLabel);
     }
     if (step === 'scout') {
       return renderScoutBody(oppTeam, oppTeam.shortName, scoutData);

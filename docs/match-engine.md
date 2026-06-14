@@ -1831,6 +1831,19 @@ SHORT_HANDED       = { missingBackDefendPenalty: -8 }
 SIN_BIN_LENIENCY   = { scaleOne: 0.45, scaleTwoPlus: 0.0 }
 ```
 
+**Referee profiles (`src/data/referees.ts` + `src/engine/balance/referees.ts`).** Each league fixture is assigned one of 12 authored referees at season-init / rollover time via `assignReferees()` (career RNG stream, `rngTransferRaw`). The assignment persists on `Fixture.refereeId` and survives save/load. Two personality dials drive the effect:
+
+- **`strictness`** `[0.85, 1.15]` — multiplied against every direct-probability penalty roll (high tackle, breakdown penalties: `dangerous_cleanout`, `not_rolling_away`, `offside_at_ruck`, and obstruction). Scrum and breakdown-contest penalties are outcome-driven (margin thresholds, not probability rolls) and are unaffected. A strict referee (1.15) raises the high-tackle base rate from 8 % to 9.2 %; a lenient one (0.85) lowers it to 6.8 %.
+- **`cardThreshold`** `[0.85, 1.15]` — multiplied against every card-escalation probability: the team-22 auto-card effective scale, the TMO `outcomeYellowPct` weight, and the maul-collapse direct-yellow pct. A card-happy referee (1.15) amplifies the yellow probability; a lenient referee (0.85) damps it. `red_20` probability in TMO outcomes is NOT scaled (a dangerous high tackle can still earn a red regardless).
+
+```ts
+// src/engine/balance/referees.ts
+REFEREE_STRICTNESS_RANGE     = 0.15   // authored referees sit within ±15 % of 1.0
+REFEREE_CARD_THRESHOLD_RANGE = 0.15
+```
+
+The Pre-Match screen (LINE-UP step) shows the referee name and a tendency label derived from the two dials: "Strict" (strictness > 1.05), "Lenient" (< 0.95), "Card-happy" (cardThreshold > 1.05), "Lenient cards" (< 0.95), or "Neutral" if both are in the neutral band. Cup, European, and playoff matches use neutral multipliers (1.0 × 1.0) — referee assignment is league-only.
+
 **Per-offence base trigger rates** — pct per phase-event for the new offences:
 ```ts
 // src/engine/balance/breakdown.ts

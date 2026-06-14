@@ -53,6 +53,11 @@ export interface Fixture {
   venue?: string;
   // Capacity of the alternative venue, shown as display-only flavour.
   venueCapacity?: number;
+  // Assigned referee for this fixture. Absent on pre-referee-pool saves and
+  // on the hardcoded 2025-26 fixtures loaded from a save (which carry whatever
+  // refereeId was stamped at season-init time). No SAVE_VERSION bump needed —
+  // additive optional; absence means neutral multipliers (1.0 × 1.0).
+  refereeId?: string;
 }
 
 export interface SeasonSchedule {

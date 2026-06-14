@@ -153,6 +153,7 @@ import { resolveCaptainRosterId }  from './game/captain';
 import { buildTeamFromRoster, buildAutoSelectedTeamFromRoster } from './game/rosterTeamBuilder';
 import { snapshotMatch }           from './game/seasonStatsCollector';
 import { SEASON_VALUES, HOME_ADVANTAGE, MORALE } from './engine/balance';
+import { getRefereeById } from './data/referees';
 import { computeAttendance }        from './game/attendance';
 import { generateSeed }            from './utils/rng';
 import { eventBus }                from './utils/eventBus';
@@ -1633,7 +1634,8 @@ document.addEventListener('DOMContentLoaded', () => {
       : HOME_ADVANTAGE.crowdFillNeutral;
     const humanConfigured = playerSide === 'home' ? configuredHome : configuredAway;
     const humanCaptainRosterId = resolveCaptainRosterId(humanConfigured.players, liveState.player.captainRosterId);
-    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId, humanPreTalk, humanSquadMorale });
+    const fixtureRef = liveFixture?.refereeId ? getRefereeById(liveFixture.refereeId) : undefined;
+    const engine = new MatchCoordinator(configuredHome, configuredAway, { tickDelayMs: loadTickDelayMs(), playerTactics, humanSide: playerSide, homeFillRate, isDerby: liveFixture?.isDerby ?? false, humanCaptainRosterId, humanPreTalk, humanSquadMorale, refStrictness: fixtureRef?.strictness, refCardThreshold: fixtureRef?.cardThreshold });
     initSimController(engine);
 
     const unsub = eventBus.on('engine:finished', ({ state }) => {

@@ -232,8 +232,10 @@ Position bonuses (stacked additively on top of universal):
 | 11, 14, 15 (wings/fullback) | `lineBreaks × 0.5` (stacked) |
 
 ```
-rating = clamp(6.0 + score / 10.0, 1.0, 10.0)
+rating = clamp(6.0 + score / 5.4, 1.0, 10.0)
 ```
+
+The `divisor` (5.4) scales the performance contributions on top of the 6.0 baseline — a lower divisor widens the spread so a standout season tops out in the 8s rather than barely clearing 7. **Season calibration** (450 silent fixtures, season avg = `ratingSum / appearances`, ≥9 apps): top ≈ 8.0–8.3 (the best handful reach 8s), p95 ≈ 7.8, p90 ≈ 7.3, median ≈ 6.5, floor ≈ 5.1. A quiet game still rests near the 6.0 baseline. (Was `divisor 10.0` — top capped at ~7.4 with no player reaching 8.)
 
 **`PlayerMatchStats`** is declared in `src/types/player.ts` and initialised to all zeros in `zeroMatchStats()` which is called by `initPlayer()` for every player (starters and bench). Fields:
 

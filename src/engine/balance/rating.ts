@@ -8,7 +8,12 @@
 
 export const RATING_WEIGHTS = {
   base: 6.0,
-  divisor: 10.0,
+  // Performance contributions are scaled by 1/divisor on top of `base`. A
+  // lower divisor widens the spread around the 6.0 baseline so a standout
+  // season tops out around 8.5 (the best handful of players reach 8s) while a
+  // quiet game still sits near 6.0 — calibrated against the season avg-rating
+  // leaderboard (top ≈ 8.5, p50 ≈ 6.5, floor ≈ 5.1). See docs/match-engine.md.
+  divisor: 5.4,
   min: 1.0,
   max: 10.0,
   universal: {

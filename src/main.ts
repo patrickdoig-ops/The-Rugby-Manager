@@ -197,6 +197,15 @@ function configureNativeShell(): void {
   );
 }
 
+// Apply persisted a11y preferences (theme + colour-blind mode) before any
+// render so there is no flash of the wrong theme on load.
+(function applyA11yPrefs(): void {
+  const theme = localStorage.getItem('rugbyTheme');
+  if (theme) document.documentElement.setAttribute('data-theme', theme);
+  const a11y = localStorage.getItem('rugbyA11y');
+  if (a11y) document.documentElement.setAttribute('data-a11y', a11y);
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   configureNativeShell();
   initTextScale();            // accessibility text scale — before any render

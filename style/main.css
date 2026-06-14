@@ -152,6 +152,59 @@
 }
 
 /* ════════════════════════════════════════
+   LIGHT THEME — token-only overrides
+   Applied via <html data-theme="light">; all UI reads CSS vars so no
+   rules need duplicating. Only colours change; geometry is untouched.
+   ════════════════════════════════════════ */
+
+[data-theme="light"] {
+  --rm-bg:          oklch(0.97 0.004 150);
+  --rm-bg-deep:     oklch(0.93 0.005 150);
+  --rm-surface:     oklch(1.00 0.000 150);
+  --rm-surface-2:   oklch(0.95 0.004 150);
+  --rm-surface-3:   oklch(0.90 0.005 150);
+
+  --rm-border:      oklch(0.80 0.008 150);
+  --rm-border-soft: oklch(0.86 0.006 150);
+  --rm-divider:     oklch(0.75 0.010 150);
+  --rm-hairline:    color-mix(in oklch, oklch(0.20 0.010 150) 8%, transparent);
+
+  --rm-chalk:       oklch(0.14 0.010 150);
+  --rm-text:        oklch(0.18 0.010 150);
+  --rm-text-muted:  oklch(0.40 0.010 150);
+  --rm-text-dim:    oklch(0.55 0.010 150);
+  --rm-text-faint:  oklch(0.70 0.008 150);
+
+  --rm-cta:         oklch(0.40 0.18 144);
+  --rm-cta-hover:   oklch(0.46 0.19 144);
+  --rm-cta-active:  oklch(0.34 0.15 144);
+
+  --bg:       var(--rm-bg);
+  --surface:  var(--rm-surface);
+  --surface2: var(--rm-surface-2);
+  --surface3: var(--rm-surface-3);
+
+  --border:     var(--rm-border);
+  --border-mid: var(--rm-border-soft);
+
+  --text:       var(--rm-text);
+  --text-sec:   var(--rm-text-muted);
+  --text-muted: var(--rm-text-dim);
+}
+
+/* ════════════════════════════════════════
+   COLOUR-BLIND MODE — shape channel for pitch dots
+   When <html data-a11y="cb"> is set by the CB toggle in Settings,
+   home team dots become triangles (clip-path) so teams differ by
+   shape, not just colour. Away dots remain circles.
+   ════════════════════════════════════════ */
+
+[data-a11y="cb"] .pitch-dot[data-key^="h"] {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  border-radius: 0;
+}
+
+/* ════════════════════════════════════════
    RESET & GLOBALS
    ════════════════════════════════════════ */
 

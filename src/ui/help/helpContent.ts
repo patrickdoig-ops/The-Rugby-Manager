@@ -525,6 +525,8 @@ const HELP_TOPICS = {
     purpose: 'Tune how the game looks, sounds and feels to your preference.',
     features: [
       { label: 'Sound & haptics', desc: 'Toggle audio and vibration feedback.' },
+      { label: 'Light theme', desc: 'Switch between the default dark theme and a light theme. Your choice is saved across sessions.' },
+      { label: 'Colour-blind dot shapes', desc: 'When enabled, home team player dots on the pitch become triangles (away stay as circles) so the two sides are distinguishable by shape, not just colour. Saved across sessions.' },
       { label: 'Text size', desc: 'Scale the interface text for comfort.' },
       { label: 'Main menu', desc: 'Return to the home screen from here.' },
     ],

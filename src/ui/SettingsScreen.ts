@@ -74,6 +74,22 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
       <section class="settings-section">
         <h2 class="settings-section-title">Accessibility</h2>
 
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-theme">Light theme</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-theme" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <label class="settings-row-label" for="settings-cb">Colour-blind dot shapes</label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="settings-cb" />
+            <span class="settings-toggle-track"></span>
+          </label>
+        </div>
+
         ${systemFollowAvailable() ? `
         <div class="settings-row">
           <label class="settings-row-label" for="settings-followsystem">Follow system text size</label>
@@ -241,6 +257,28 @@ export function initSettingsScreen(onBack: () => void, onReset = onBack, onSaves
   // Live-update the highlight if the system size changes while Settings is open.
   setTextScaleChangeHandler(() => refresh());
   refresh();
+
+  // Light theme toggle
+  const themeInput = el.querySelector<HTMLInputElement>('#settings-theme')!;
+  themeInput.checked = document.documentElement.getAttribute('data-theme') === 'light';
+  themeInput.addEventListener('change', () => {
+    const next = themeInput.checked ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('rugbyTheme', next);
+  });
+
+  // Colour-blind dot shapes toggle
+  const cbInput = el.querySelector<HTMLInputElement>('#settings-cb')!;
+  cbInput.checked = document.documentElement.getAttribute('data-a11y') === 'cb';
+  cbInput.addEventListener('change', () => {
+    if (cbInput.checked) {
+      document.documentElement.setAttribute('data-a11y', 'cb');
+      localStorage.setItem('rugbyA11y', 'cb');
+    } else {
+      document.documentElement.removeAttribute('data-a11y');
+      localStorage.removeItem('rugbyA11y');
+    }
+  });
 
   el.querySelector<HTMLButtonElement>('#settings-reset')!.addEventListener('click', () => {
     const ok = window.confirm(

@@ -735,6 +735,12 @@ export interface GameState {
     // attendance multiplier and a board-confidence pressure below 30.
     // Set via FAN_SENTIMENT_UPDATED.
     fanSentiment?: number;
+    // Tracks the season-once national-team release-request decision.
+    // 'pending' → card is in the inbox awaiting the manager's choice.
+    // 'decided' → the manager has acted; card is removed.
+    // Absent on legacy saves and on seasons where no capped player is in the squad.
+    // Set via INTERNATIONAL_RELEASE_OFFERED. Cleared at SEASON_ROLLED_OVER.
+    internationalReleaseDecision?: 'pending' | 'decided';
   };
   seed: number;
   career: CareerState;
@@ -1677,6 +1683,14 @@ export type SeasonEvent =
       // (attendance multiplier: 0.9 + sentiment/500, so 50 → ×1.0).
       type: 'FAN_SENTIMENT_UPDATED';
       delta: number;
+    }
+  | {
+      // Sets the season-once national-team release-request decision state.
+      // 'pending' → request offered, card shows in inbox.
+      // 'decided' → manager has acted, card removed.
+      // Cleared at SEASON_ROLLED_OVER.
+      type: 'INTERNATIONAL_RELEASE_OFFERED';
+      state: 'pending' | 'decided';
     };
 
 // Reference to a completeable European round — returned by

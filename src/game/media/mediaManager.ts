@@ -308,6 +308,96 @@ export function generateMatchStory(ctx: MediaMatchContext): MediaStory {
   };
 }
 
+// Context for generating an international-break media story about the manager's
+// called-up players. Pure + deterministic — seed is derived from the break
+// window and the season seed, so it never touches the career stream.
+export interface MediaInternationalCtx {
+  seed: number;
+  window: 'autumn' | 'six_nations';
+  clubName: string;
+  clubShort: string;
+  // Players from the club who were called up, sorted best-first.
+  players: Array<{ firstName: string; lastName: string; nation: string; appearances: number; injured: boolean; statGains: number }>;
+}
+
+// Phrase pools for international break stories.
+const INTL_STANDOUT_BODIES = [
+  '{player} shone for {nation} during the {window}, catching the eye with a strong showing over {apps} Tests. The return to club duty will be welcomed — {clubShort} will be glad to have them back.',
+  'A strong {window} window for {player}, who featured {apps} times for {nation}. Their form on the international stage bodes well for the remainder of the Premiership season.',
+  '{player} made the most of their {window} call-up, picking up {apps} Tests for {nation}. {clubShort} fans will be hoping that international form translates back to the Premiership.',
+  'International experience gained: {player} returned from {nation} duty after {apps} Tests during the {window}. Another outing at the top level can only sharpen them.',
+] as const;
+
+const INTL_INJURY_BODIES = [
+  '{player} picked up a knock while on duty with {nation} during the {window}. {clubShort} will be sweating on their return, with a key fixture not far away.',
+  'Concern for {clubShort} as {player} returned from the {window} with an injury sustained on {nation} duty. The club will assess the damage before their next Premiership outing.',
+] as const;
+
+const INTL_GENERAL_BODIES = [
+  '{clubShort}\'s internationals return from the {window} — {n} players were away on duty. A full week\'s training should see them back up to speed before the Premiership resumes.',
+  'The {window} is over and the Premiership clubs are counting their players back in. {clubShort} had {n} away on national duty, and the squad now refocuses on the league.',
+] as const;
+
+function windowLabel(w: 'autumn' | 'six_nations'): string {
+  return w === 'autumn' ? 'Autumn Nations Series' : 'Six Nations';
+}
+
+// Generate 1–2 media stories from the international break for the manager's
+// club. Returns an empty array if no players were called up.
+export function generateInternationalStories(ctx: MediaInternationalCtx): MediaStory[] {
+  if (ctx.players.length === 0) return [];
+  const rng = makeRng(ctx.seed);
+  const stories: MediaStory[] = [];
+  const wLabel = windowLabel(ctx.window);
+
+  // Story 1: focus on standout / injured player (or just the break if nothing notable).
+  const injured = ctx.players.find(p => p.injured);
+  const standout = ctx.players.find(p => !p.injured && p.appearances >= 2);
+  const focus = injured ?? standout ?? ctx.players[0];
+
+  if (focus) {
+    const pool = focus.injured ? INTL_INJURY_BODIES : INTL_STANDOUT_BODIES;
+    const template = pool[Math.floor(rng() * pool.length)]!;
+    const body = template
+      .replace('{player}', `${focus.firstName} ${focus.lastName}`)
+      .replace('{nation}', focus.nation)
+      .replace('{window}', wLabel)
+      .replace('{apps}', String(focus.appearances))
+      .replace('{clubShort}', ctx.clubShort);
+    const persona = pick(rng, PERSONAS);
+    const lead = persona.outlet === 'X' ? `${persona.byline} on X: ` : `${persona.byline}, ${persona.outlet}: `;
+    stories.push({
+      id: `media:intl:${ctx.window}:${ctx.clubShort}:${focus.firstName[0]}${focus.lastName}`,
+      round: 0,
+      subject: focus.injured
+        ? `${focus.firstName} ${focus.lastName} returns from ${focus.nation} duty with injury`
+        : `${focus.firstName} ${focus.lastName} shines for ${focus.nation}`,
+      body: `${lead}${body}`,
+      outlet: persona.outlet === 'X' ? `${persona.byline} · X` : persona.outlet,
+    });
+  }
+
+  // Story 2 (only when 3+ players away and no injury already covered): brief general note.
+  if (ctx.players.length >= 3 && !injured && rng() < 0.6) {
+    const template = INTL_GENERAL_BODIES[Math.floor(rng() * INTL_GENERAL_BODIES.length)]!;
+    const body = template
+      .replace('{clubShort}', ctx.clubShort)
+      .replace('{window}', wLabel)
+      .replace('{n}', String(ctx.players.length));
+    const persona = pick(rng, PERSONAS);
+    const lead = persona.outlet === 'X' ? `${persona.byline} on X: ` : `${persona.byline}, ${persona.outlet}: `;
+    stories.push({
+      id: `media:intl:${ctx.window}:${ctx.clubShort}:general`,
+      round: 0,
+      subject: `${ctx.clubShort}'s internationals return from ${wLabel}`,
+      body: `${lead}${body}`,
+      outlet: persona.outlet === 'X' ? `${persona.byline} · X` : persona.outlet,
+    });
+  }
+
+  return stories;
+}
+
 export function generateSeasonPrediction(ctx: MediaPredictionContext): MediaStory {
   const rng = makeRng(ctx.seed);
   const pool = ctx.tier === 'title' ? P.PREDICT_TITLE

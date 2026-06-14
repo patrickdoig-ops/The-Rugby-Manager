@@ -611,6 +611,8 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       }
       // Fan sentiment is per-season — reset to neutral at rollover.
       state.player.fanSentiment = 50;
+      // Release-request decision is per-season — clear at rollover.
+      state.player.internationalReleaseDecision = undefined;
       return;
     }
     case 'PLAYOFF_BRACKET_SEEDED': {
@@ -1204,6 +1206,10 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
     case 'FAN_SENTIMENT_UPDATED': {
       const current = state.player.fanSentiment ?? 50;
       state.player.fanSentiment = Math.max(0, Math.min(100, current + event.delta));
+      return;
+    }
+    case 'INTERNATIONAL_RELEASE_OFFERED': {
+      state.player.internationalReleaseDecision = event.state;
       return;
     }
     case 'EUROPEAN_KNOCKOUT_RECORDED': {

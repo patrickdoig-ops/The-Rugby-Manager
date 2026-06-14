@@ -55,7 +55,8 @@ import { buildAutoSelectedTeamFromRoster } from './rosterTeamBuilder';
 import { CUP_POOLS_2025_26, CUP_FIXTURES_2025_26, buildCupSeed } from './cupScheduler';
 import { parseSeasonStartYear, seasonOpenIso, getAge } from './age';
 import { recentForm } from './teamStats';
-import { generateMatchStory, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
+import { generateMatchStory, generateInternationalStories, type MediaMatchContext, type MediaPlayer } from './media/mediaManager';
+import { playerOverall } from '../engine/RatingEngine';
 import { buildEuropeanDrawStory, buildEuropeanEliminationStory } from './media/europeanStories';
 import { collectSeasonEvents, collectConditionEvents, type MatchSnapshot } from './seasonStatsCollector';
 import { runTrainingPeriods } from './trainingRunner';
@@ -691,8 +692,84 @@ export class GameCoordinator {
   }
 
   // Process international returns at the end of the break's cup weeks.
+  // Also publishes 1–2 media stories about the manager's called-up players and,
+  // at the autumn break, offers the season-once national-team release-request
+  // decision if there is a capped player in the squad.
   resolveInternationalWindow(window: InternationalWindow): InternationalBreakSummary | undefined {
-    return this.intlBreak.resolveInternationalWindow(window);
+    const summary = this.intlBreak.resolveInternationalWindow(window);
+    if (!summary) return undefined;
+
+    // Publish 1–2 international break media stories.
+    const teamId = this.state.player.teamId;
+    const myTeam = this.teamsById.get(teamId);
+    const mine = summary.callUps.filter(c => c.clubId === teamId);
+    if (mine.length > 0 && myTeam) {
+      const stories = generateInternationalStories({
+        seed: hashSeed(this.state.seed, 'intl', window, String(this.state.calendar.week)),
+        window,
+        clubName: myTeam.name,
+        clubShort: myTeam.shortName ?? myTeam.name,
+        players: mine.map(c => ({
+          firstName: c.firstName,
+          lastName: c.lastName,
+          nation: c.nation,
+          appearances: c.appearances,
+          injured: c.injured,
+          statGains: Object.keys(c.statDeltas).length,
+        })),
+      });
+      for (const story of stories) {
+        applySeasonEvent(this.state, { type: 'MEDIA_STORY_PUBLISHED', story });
+      }
+    }
+
+    // Season-once release-request decision (autumn break only, first time).
+    if (window === 'autumn' && !this.state.player.internationalReleaseDecision) {
+      const club = this.state.career.clubs.find(c => c.id === teamId);
+      if (club) {
+        // Find the highest-OVR capped player in the squad.
+        const cappedRid = club.squad
+          .filter(rid => (this.state.career.roster[rid]?.internationalCaps ?? 0) > 0)
+          .sort((a, b) => {
+            const pa = this.state.career.roster[a];
+            const pb = this.state.career.roster[b];
+            if (!pa || !pb) return 0;
+            return playerOverall(pb.baseStats, pb.position) - playerOverall(pa.baseStats, pa.position);
+          })[0];
+        if (cappedRid !== undefined) {
+          applySeasonEvent(this.state, { type: 'INTERNATIONAL_RELEASE_OFFERED', state: 'pending' });
+        }
+      }
+    }
+
+    return summary;
+  }
+
+  // Honour a national-team release request: morale boost for the player.
+  releaseForInternationalDuty(rosterId: number): void {
+    applySeasonEvent(this.state, {
+      type: 'PLAYER_MORALE_ADJUSTED',
+      rosterId,
+      delta: 3,
+      reason: 'international_release_granted',
+    });
+    applySeasonEvent(this.state, { type: 'INTERNATIONAL_RELEASE_OFFERED', state: 'decided' });
+  }
+
+  // Refuse a national-team release request: morale penalty + small board note.
+  refuseInternationalRelease(rosterId: number): void {
+    applySeasonEvent(this.state, {
+      type: 'PLAYER_MORALE_ADJUSTED',
+      rosterId,
+      delta: -2,
+      reason: 'international_release_refused',
+    });
+    applySeasonEvent(this.state, {
+      type: 'BOARD_CONFIDENCE_ADJUSTED',
+      delta: -1,
+      reason: 'refused_international_release',
+    });
+    applySeasonEvent(this.state, { type: 'INTERNATIONAL_RELEASE_OFFERED', state: 'decided' });
   }
 
   getBreakWindow(): InternationalWindow | null {

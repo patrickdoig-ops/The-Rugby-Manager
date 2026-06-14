@@ -463,20 +463,27 @@ const HELP_TOPICS = {
     features: [
       { label: 'Returning players', desc: 'Who is back, and their fitness after international duty.' },
       { label: 'News', desc: 'Any injuries or form changes picked up while away.' },
+      { label: 'Inbox stories', desc: 'After the break, your inbox receives 1—2 media stories about your returning internationals — standout performances, injuries on duty, or a general squad update.' },
+    ],
+    tips: [
+      'Check the inbox after each break — it flags any players who came back injured or with a rest obligation.',
     ],
   },
 
-  // ─── System ───────────────────────────────────────────────────
+  // ─── System ─────────────────────────────────────────────────  // ─── System ───────────────────────────────────────────────────
   'inbox': {
     title: 'Inbox',
     purpose: 'Your assistant’s briefings — the decisions and news that need your attention between matches.',
     features: [
       { label: 'Messages', desc: 'Injuries, expiring contracts, poach threats, board notes and media stories.' },
+      { label: 'Action buttons', desc: 'Some items carry decision buttons — speak to a player, promise game time, grant or reject a transfer request, or respond to a national-team release request (Release: morale +3; Refuse: morale —2 and a small board note).' },
+      { label: 'International release request', desc: 'Once per season (autumn break) the national coaching staff may request an out-of-window release for your highest-capped player. Your choice affects morale and, if refused, board confidence.' },
       { label: 'Quick links', desc: 'Many items jump straight to the screen where you can act.' },
       { label: 'Read & dismiss', desc: 'Clear items once handled to keep the unread count meaningful.' },
     ],
     tips: [
       'Check the inbox before every match — it surfaces what matters most right now.',
+      'Releasing a capped player for international duty earns morale — refuse only if you need them for a big fixture.',
     ],
   },
   'settings': {

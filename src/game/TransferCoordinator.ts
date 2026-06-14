@@ -1084,7 +1084,7 @@ export class TransferCoordinator {
     if (!club) return;
     // Playing-time promise deadline (toRound) is a league-round number, set from
     // leagueRound when the promise is made — compare against the same.
-    const week = leagueRound(this.state);
+    const round = leagueRound(this.state);
     const gamesPlayed = this.state.league.results.filter(
       r => r.homeId === teamId || r.awayId === teamId,
     ).length;
@@ -1108,7 +1108,7 @@ export class TransferCoordinator {
 
       // Playing-time promise expiry check.
       const promise = p.playingTimePromise;
-      if (promise && week >= promise.toRound) {
+      if (promise && round >= promise.toRound) {
         const startsGained = (p.seasonStats.starts ?? 0) - promise.startsAtPromise;
         if (startsGained < promise.startsRequired) {
           applySeasonEvent(this.state, { type: 'PROMISE_BROKEN', rosterId: rid });

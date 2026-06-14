@@ -990,7 +990,7 @@ The Hub (`src/ui/HubScreen.ts`) has **six tiles** plus a Settings cog and a sing
 | Competitions | `competitions-menu` | Sub-menu: League / League Cup / European Cup / European Shield |
 | Training | `training` (mid-week mode) | Persists plan without running the training block |
 | Contracts & Transfers | `contracts-transfers-menu` | Sub-menu (club colours): Contracts leaf + Transfers leaf + Scouting leaf; badge = expiring-contract count + poach-threat count combined |
-| Club | `club-menu` | Sub-menu (club colours): Board Confidence, Assistant Manager, Staff, Finances, Awards tiles |
+| Club | `club-menu` | Sub-menu (club colours): Board Confidence, Assistant Manager, Staff, Finances, Awards, Club History tiles |
 
 **Invariant: the Hub tile count is fixed at six.** New screens must fit inside existing sub-menus. `CompetitionsMenuScreen` is the home for competition-related screens; `ClubMenuScreen` and `ContractsTransfersMenuScreen` are the natural homes for club-management features. (The **Fixtures** list — formerly a Hub tile — now lives as a tile in the **League sub-menu**; `goFixtures` → `fixture-list` is shared by the League sub-menu and the inbox.)
 
@@ -998,7 +998,7 @@ PreMatch's 'mine' step (the user's starting XV) carries a tappable captain badge
 
 **Contracts sub-menu** (`contracts-transfers-menu`, `src/ui/ContractsTransfersMenuScreen.ts`): Tier 2 club-colour app-header; four tiles with the same `.hub-tile` class but WITHOUT the `--rm-cta` override used by the League sub-menu, so tiles inherit `--team-color-tile` from `injectTeamColors`. Individual tile badges: Contracts = expiring-contract count, Transfers = poach-threat count, Scouting = total scouted player count. The fourth tile is **Loans** → `loans` (loan management screen — development loans out to a fixed partnership club, emergency cover loans in from a generated pool).
 
-**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header; five hub-tiles with the same `.hub-tile` class — **Board Confidence** → `board-confidence`, **Assistant Manager** → `assistant-manager`, **Staff** → `staff`, **Finances** → `club-finances`, **Awards** → `achievements`. New club-management screens should be added here as additional tiles (extend `TILES` and `InitClubMenuOpts` in `ClubMenuScreen.ts`). The **`AssistantManagerScreen`** (`assistant-manager`) is the persistent home of the League Cup delegation choice — manage live vs. assistant-simulate, and (when delegating) best-available vs. rest-the-starters — persisted to `state.player.cupManageLive` / `cupDirection` immediately on toggle. It replaced the old once-per-block `CupFixturesScreen` `pre_block` decision prompt; that screen is now browse-only (Competitions → League Cup). The "This Week" preview (`MatchdayScreen`) surfaces the current choice as a note whenever the manager has a cup game. The `BoardConfidenceScreen` hosts the owner-confidence card and factor list. The `StaffScreen` hosts hire/release. The `FinancesScreen` shows the player salary budget vs committed wages, staff budget vs spend, and a one-way season-only slider to transfer unused player salary headroom to staff budget (`ClubState.staffBudgetBoost`, cleared at `SEASON_ROLLED_OVER`).
+**Club sub-menu** (`club-menu`, `src/ui/ClubMenuScreen.ts`): Tier 2 club-colour app-header; six hub-tiles with the same `.hub-tile` class — **Board Confidence** → `board-confidence`, **Assistant Manager** → `assistant-manager`, **Staff** → `staff`, **Finances** → `club-finances`, **Awards** → `achievements`, **Club History** → `club-history`. New club-management screens should be added here as additional tiles (extend `TILES` and `InitClubMenuOpts` in `ClubMenuScreen.ts`). The **`AssistantManagerScreen`** (`assistant-manager`) is the persistent home of the League Cup delegation choice — manage live vs. assistant-simulate, and (when delegating) best-available vs. rest-the-starters — persisted to `state.player.cupManageLive` / `cupDirection` immediately on toggle. It replaced the old once-per-block `CupFixturesScreen` `pre_block` decision prompt; that screen is now browse-only (Competitions → League Cup). The "This Week" preview (`MatchdayScreen`) surfaces the current choice as a note whenever the manager has a cup game. The `BoardConfidenceScreen` hosts the owner-confidence card and factor list. The `StaffScreen` hosts hire/release. The `FinancesScreen` shows the player salary budget vs committed wages, staff budget vs spend, and a one-way season-only slider to transfer unused player salary headroom to staff budget (`ClubState.staffBudgetBoost`, cleared at `SEASON_ROLLED_OVER`). The **`ClubHistoryScreen`** (`club-history`, `src/ui/ClubHistoryScreen.ts`) is a read-only view showing season-by-season results, all-time club records (most appearances, most career tries, most league points in a season — top-3 per category from `state.career.archive`), and the Hall of Fame (`state.career.hallOfFame`).
 
 ### 15.5 Navigation flow
 
@@ -1018,11 +1018,12 @@ Hub
  │   └─ [European Shield] → EuropeanShieldScreen (pools & knockouts; tap a team name → TeamInfoScreen), back → CompetitionsMenuScreen
  ├─ [Contracts & Transfers] → ContractsTransfersMenuScreen → Contracts / Transfers / Scouting / Loans, back → ContractsTransfersMenuScreen → back → Hub
  │   └─ [Scouting] → ScoutingScreen (swipe card → removeScouting; tap card → PlayerProfile), back → ContractsTransfersMenuScreen
- ├─ [Club] → ClubMenuScreen (Board / Staff / Finances / Awards tiles), back → Hub
+ ├─ [Club] → ClubMenuScreen (Board / Staff / Finances / Awards / Club History tiles), back → Hub
  │   ├─ [Board] → BoardConfidenceScreen (confidence meter + factors), back → ClubMenuScreen
  │   ├─ [Staff] → StaffScreen (hire/release assistant manager, fitness lead, scouts), back → ClubMenuScreen
  │   ├─ [Finances] → FinancesScreen (salary budgets + staff-budget transfer slider), back → ClubMenuScreen
- │   └─ [Awards] → AchievementsScreen (season honours + career milestones), back → ClubMenuScreen
+ │   ├─ [Awards] → AchievementsScreen (season honours + career milestones), back → ClubMenuScreen
+ │   └─ [Club History] → ClubHistoryScreen (season history, club records, Hall of Fame), back → ClubMenuScreen
  └─ Go to next match → PreMatch
      └─ Kick Off → TeamTalk → Match → MatchResult → post-match chain
 ```

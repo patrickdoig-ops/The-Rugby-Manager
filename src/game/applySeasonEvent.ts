@@ -228,6 +228,31 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       // Flag so the rollover aging loop and weekly morale decay skip them.
       const retiree = state.career.roster[event.rosterId];
       if (retiree) retiree.retired = true;
+      // Hall of Fame: induct players retiring from the managed club who
+      // meet the threshold — ≥50 appearances OR ≥20 career tries across
+      // all archived seasons while at the managed club.
+      if (event.clubId === state.player.teamId && retiree) {
+        let totalApps = 0;
+        let totalTries = 0;
+        for (const season of state.career.archive) {
+          const ps = season.playerSeasonHistory?.[event.rosterId];
+          if (ps && ps.clubId === state.player.teamId) {
+            totalApps += ps.apps;
+            totalTries += ps.tries;
+          }
+        }
+        if (totalApps >= 50 || totalTries >= 20) {
+          if (!state.career.hallOfFame) state.career.hallOfFame = [];
+          state.career.hallOfFame.push({
+            rosterId: event.rosterId,
+            name: `${retiree.firstName} ${retiree.lastName}`,
+            position: retiree.position,
+            appearances: totalApps,
+            tries: totalTries,
+            seasonAdded: state.career.seasonsCompleted,
+          });
+        }
+      }
       return;
     }
     case 'PLAYER_INJURED': {
@@ -485,6 +510,9 @@ function applySeasonEventBody(state: GameState, event: SeasonEvent): void {
       }
       if (event.europeanShield !== undefined) {
         state.league.europeanShield = event.europeanShield ? cloneEuropean(event.europeanShield) : null;
+      }
+      if (event.hallOfFame !== undefined) {
+        state.career.hallOfFame = event.hallOfFame.map(e => ({ ...e }));
       }
       return;
     }

@@ -110,6 +110,7 @@ import { initContractsScreen, showContracts, showContractsMarqueeEdit } from './
 import { initContractsTransfersMenuScreen, showContractsTransfersMenu } from './ui/ContractsTransfersMenuScreen';
 import { initLoanScreen, showLoans } from './ui/LoanScreen';
 import { initClubMenuScreen, showClubMenu } from './ui/ClubMenuScreen';
+import { initClubHistoryScreen, showClubHistory } from './ui/ClubHistoryScreen';
 import { initAssistantManagerScreen, showAssistantManager } from './ui/AssistantManagerScreen';
 import { initBoardConfidenceScreen, showBoardConfidence } from './ui/BoardConfidenceScreen';
 import { initStaffScreen, showStaff } from './ui/StaffScreen';
@@ -449,6 +450,12 @@ document.addEventListener('DOMContentLoaded', () => {
       onStaff: () => goStaff(),
       onFinances: () => goFinances(),
       onAwards: goAchievements,
+      onClubHistory: () => goClubHistory(),
+    });
+    initClubHistoryScreen({
+      getGameEngine,
+      allTeams,
+      onBack: () => goClubMenu('back'),
     });
     initAssistantManagerScreen({
       getGameEngine,
@@ -710,6 +717,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function goFinances(direction: 'forward' | 'back' = 'forward'): void {
     showFinancesScreen();
     screenRouter.show('club-finances', { direction });
+  }
+
+  function goClubHistory(direction: 'forward' | 'back' = 'forward'): void {
+    showClubHistory();
+    screenRouter.show('club-history', { direction });
   }
 
   function goAchievements(direction: 'forward' | 'back' = 'forward'): void {

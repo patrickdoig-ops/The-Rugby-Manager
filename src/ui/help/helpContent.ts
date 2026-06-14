@@ -135,6 +135,7 @@ const HELP_TOPICS = {
       { label: 'Staff', desc: 'Hire and release your assistant manager, fitness lead and scouts.' },
       { label: 'Finances', desc: 'Player wage budget, staff budget and the slider to move spare headroom between them.' },
       { label: 'Awards', desc: 'Season honours, trophies and career milestones.' },
+      { label: 'Club History', desc: 'Season-by-season results, all-time records and the Hall of Fame.' },
     ],
   },
   'assistant-manager': {
@@ -320,6 +321,19 @@ const HELP_TOPICS = {
     ],
     tips: [
       'The slider is one-way and resets each season — only shift what you are sure you will not need.',
+    ],
+  },
+
+  'club-history': {
+    title: 'Club History',
+    purpose: 'A record of the club under your management — season results, all-time records and the Hall of Fame.',
+    features: [
+      { label: 'Season History', desc: 'Every completed season listed in reverse order — finishing position, league points and any trophies won.' },
+      { label: 'Club Records', desc: 'All-time top-3 for appearances, career tries and most league points in a single season.' },
+      { label: 'Hall of Fame', desc: 'Players who retired from your club having made at least 50 appearances or scored at least 20 tries.' },
+    ],
+    tips: [
+      'Inductees are added automatically when a long-serving player retires — keep hold of your best players to build a legacy.',
     ],
   },
 

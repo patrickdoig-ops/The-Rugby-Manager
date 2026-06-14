@@ -45,5 +45,6 @@ export function buildCareerArchiveRestoredEvent(save: SavedSeason): Extract<Seas
     ...(save.premCup !== undefined ? { premCup: save.premCup } : {}),
     ...(save.europeanCup !== undefined ? { europeanCup: save.europeanCup } : {}),
     ...(save.europeanShield !== undefined ? { europeanShield: save.europeanShield } : {}),
+    ...(career.hallOfFame !== undefined ? { hallOfFame: career.hallOfFame } : {}),
   };
 }

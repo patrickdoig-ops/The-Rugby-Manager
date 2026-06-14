@@ -598,6 +598,20 @@ export interface ScoutingRecord {
   assignedScoutId?: string;
 }
 
+// A player inducted into the managed club's Hall of Fame at retirement.
+// Added when the player meets the threshold: ≥50 appearances OR ≥20 career
+// tries across archived seasons while at the managed club.
+// `seasonAdded` is the seasonsCompleted count at the time of induction
+// (display-only — helps render "inducted in Season N").
+export interface HallOfFameEntry {
+  rosterId: number;
+  name: string;        // "FirstName LastName"
+  position: string;    // player.position at retirement
+  appearances: number; // career total from archive
+  tries: number;       // career total from archive
+  seasonAdded: number; // state.career.seasonsCompleted at induction
+}
+
 // Multi-season career state — the persistent roster of every senior player
 // across every club, plus per-club squad pointers and historical archive.
 // Seeded once at first-ever new-game start (ROSTER_SEEDED); mutates only
@@ -653,6 +667,11 @@ export interface CareerState {
   // players, seeded once per season at newSeason() via loanPoolGenerator.
   // Absent until first seeded (legacy saves and pre-loan saves load fine).
   loanPool?: number[];
+  // Players inducted into the managed club's Hall of Fame at retirement.
+  // Added when a retiring player meets the threshold (≥50 appearances OR
+  // ≥20 career tries across archived seasons while at the managed club).
+  // Additive-optional: absent on legacy saves (treated as empty).
+  hallOfFame?: HallOfFameEntry[];
 }
 
 // Per-club budget-change reason chips for the BudgetRevealScreen.
@@ -1061,6 +1080,9 @@ export type SeasonEvent =
       // replayable from results). undefined means "leave alone" (legacy saves).
       europeanCup?: EuropeanCompState | null;
       europeanShield?: EuropeanCompState | null;
+      // Hall of Fame entries from prior seasons. Undefined on legacy saves —
+      // reducer leaves hallOfFame as-is (undefined ⇒ no entries).
+      hallOfFame?: HallOfFameEntry[];
     }
   | {
       // Persistent injury landed on a roster player. Fired at match

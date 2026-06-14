@@ -131,6 +131,9 @@ export interface SavedCareer {
   nextStaffId?: number;
   // Feature 2.3 — rosterIds of the season's loan-available players.
   loanPool?: number[];
+  // Players inducted into the managed club's Hall of Fame. Additive-optional —
+  // absent on legacy saves (treated as empty, no HoF entries).
+  hallOfFame?: import('../types/gameState').HallOfFameEntry[];
 }
 
 export interface SavedSeason {
@@ -1743,6 +1746,9 @@ export class GameCoordinator {
           : {}),
         ...(this.state.career.loanPool !== undefined
           ? { loanPool: this.state.career.loanPool }
+          : {}),
+        ...(this.state.career.hallOfFame !== undefined
+          ? { hallOfFame: this.state.career.hallOfFame }
           : {}),
       },
       teamSeasonStats: this.state.league.teamSeasonStats,

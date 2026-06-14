@@ -197,12 +197,7 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
                                <button class="inbox-transfer-grant" data-rosterid="${item.transferRequestAction.rosterId}">Grant request</button>
                                <button class="inbox-transfer-reject" data-rosterid="${item.transferRequestAction.rosterId}">Reject</button>
                              </div>`
-                          : item.releaseRequestAction
-                            ? `<div class="inbox-actions inbox-transfer-actions">
-                                 <button class="inbox-release-grant" data-rosterid="${item.releaseRequestAction.rosterId}">Release</button>
-                                 <button class="inbox-release-refuse" data-rosterid="${item.releaseRequestAction.rosterId}">Refuse</button>
-                               </div>`
-                            : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
+                          : item.deepLink ? `<button class="inbox-deeplink" data-link="${item.deepLink}">${deepLinkLabels[item.deepLink]}</button>` : ''}
                   </div>
                 </div>`;
             }).join('')}
@@ -278,24 +273,6 @@ export function initInboxScreen(opts: InitInboxScreenOpts): void {
       btn.addEventListener('click', () => {
         const engine = opts.getGameEngine();
         engine.rejectTransferRequest(rosterId);
-        render(engine.getState());
-      });
-    });
-
-    el!.querySelectorAll<HTMLButtonElement>('.inbox-release-grant').forEach(btn => {
-      const rosterId = Number(btn.dataset.rosterid);
-      btn.addEventListener('click', () => {
-        const engine = opts.getGameEngine();
-        engine.releaseForInternationalDuty(rosterId);
-        render(engine.getState());
-      });
-    });
-
-    el!.querySelectorAll<HTMLButtonElement>('.inbox-release-refuse').forEach(btn => {
-      const rosterId = Number(btn.dataset.rosterid);
-      btn.addEventListener('click', () => {
-        const engine = opts.getGameEngine();
-        engine.refuseInternationalRelease(rosterId);
         render(engine.getState());
       });
     });

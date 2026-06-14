@@ -34,9 +34,6 @@ export interface InboxItem {
   // When present, renders three transfer-request response buttons:
   // "Promise game time", "Grant request", "Reject".
   transferRequestAction?: { rosterId: number };
-  // When present, renders two international-release buttons:
-  // "Release" (morale +3) and "Refuse" (morale -2, board note).
-  releaseRequestAction?: { rosterId: number };
 }
 
 function ordinal(n: number): string {
@@ -890,31 +887,6 @@ export function buildAssistantReport(state: GameState, allTeams: RawTeamInput[])
         body: 'We have mathematically secured a top-four finish. The playoffs are guaranteed.',
         deepLink: 'league',
       });
-    }
-  }
-
-  // --- International release request (autumn break, season-once) ---
-  if (state.player.internationalReleaseDecision === 'pending') {
-    const cappedRid = club.squad
-      .filter(rid => (state.career.roster[rid]?.internationalCaps ?? 0) > 0)
-      .sort((a, b) => {
-        const pa = state.career.roster[a];
-        const pb = state.career.roster[b];
-        if (!pa || !pb) return 0;
-        return playerOverall(pb.baseStats, pb.position) - playerOverall(pa.baseStats, pa.position);
-      })[0];
-    if (cappedRid !== undefined) {
-      const p = state.career.roster[cappedRid];
-      if (p) {
-        items.push({
-          id: `intl-release:${season}`,
-          category: 'squad',
-          priority: 72,
-          subject: 'National team release request',
-          body: `The national coaching staff have requested the release of ${p.firstName} ${p.lastName} (${p.internationalCaps} cap${(p.internationalCaps ?? 0) !== 1 ? 's' : ''}) for international duty outside the scheduled break window. Granting the request boosts morale; refusing keeps the player in the club but causes friction.`,
-          releaseRequestAction: { rosterId: cappedRid },
-        });
-      }
     }
   }
 

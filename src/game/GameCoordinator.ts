@@ -723,53 +723,7 @@ export class GameCoordinator {
       }
     }
 
-    // Season-once release-request decision (autumn break only, first time).
-    if (window === 'autumn' && !this.state.player.internationalReleaseDecision) {
-      const club = this.state.career.clubs.find(c => c.id === teamId);
-      if (club) {
-        // Find the highest-OVR capped player in the squad.
-        const cappedRid = club.squad
-          .filter(rid => (this.state.career.roster[rid]?.internationalCaps ?? 0) > 0)
-          .sort((a, b) => {
-            const pa = this.state.career.roster[a];
-            const pb = this.state.career.roster[b];
-            if (!pa || !pb) return 0;
-            return playerOverall(pb.baseStats, pb.position) - playerOverall(pa.baseStats, pa.position);
-          })[0];
-        if (cappedRid !== undefined) {
-          applySeasonEvent(this.state, { type: 'INTERNATIONAL_RELEASE_OFFERED', state: 'pending' });
-        }
-      }
-    }
-
     return summary;
-  }
-
-  // Honour a national-team release request: morale boost for the player.
-  releaseForInternationalDuty(rosterId: number): void {
-    applySeasonEvent(this.state, {
-      type: 'PLAYER_MORALE_ADJUSTED',
-      rosterId,
-      delta: 3,
-      reason: 'international_release_granted',
-    });
-    applySeasonEvent(this.state, { type: 'INTERNATIONAL_RELEASE_OFFERED', state: 'decided' });
-  }
-
-  // Refuse a national-team release request: morale penalty + small board note.
-  refuseInternationalRelease(rosterId: number): void {
-    applySeasonEvent(this.state, {
-      type: 'PLAYER_MORALE_ADJUSTED',
-      rosterId,
-      delta: -2,
-      reason: 'international_release_refused',
-    });
-    applySeasonEvent(this.state, {
-      type: 'BOARD_CONFIDENCE_ADJUSTED',
-      delta: -1,
-      reason: 'refused_international_release',
-    });
-    applySeasonEvent(this.state, { type: 'INTERNATIONAL_RELEASE_OFFERED', state: 'decided' });
   }
 
   getBreakWindow(): InternationalWindow | null {
